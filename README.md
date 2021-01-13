@@ -23,3 +23,16 @@ Reference:
 Note:  We can not use xi-editor for this, because this needs to run on the browser.
 Xi-core requires opening channels and have a protocol for passing and receiving data from the backend.
 Ropey will do that part.
+
+## Build and run the project
+
+```sh
+
+cd ultron-web
+./start_optimized.sh
+
+```
+
+## Demo
+
+[link](https://ivanceras.github.io/ultron)
