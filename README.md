@@ -39,6 +39,8 @@ cd ultron/ultron-web
 ./start_optimized.sh
 
 ```
+Then, navigate to http://localhost:4001
+
 
 ## Demo
 
