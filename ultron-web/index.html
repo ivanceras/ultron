@@ -1,0 +1,19 @@
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+    <title>Code editor</title>
+    <style type="text/css">
+        body {
+            font-family: "Fira Sans", "Courier New", Courier,"Lucida Sans Typewriter","Lucida Typewriter",monospace;
+            margin: 0;
+            background-color: rgba(0,43,54,65025);
+        }
+    </style>
+  </head>
+  <body>
+    <script type=module>
+      import init from './pkg/ultron_web.js';
+      init().catch(console.error);
+    </script>
+  </body>
+</html>

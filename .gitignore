@@ -1,0 +1,14 @@
+target
+*.sw*
+*.bk
+Cargo.lock
+
+.DS_Store
+public/
+parts/
+prime/
+snap/
+**/out/*
+stage/
+*.snap*
+*.tar*
