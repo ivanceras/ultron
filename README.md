@@ -2,6 +2,8 @@
 
 Ultron is a web based monospaced text-editor completely written in rust.
 
+![Screenshot](https://raw.githubusercontent.com/ivanceras/ultron/master/screenshot/ultron.png)
+
 I wrote this code editor for my very specific usecase:
 - real monospace on GUI editors for ascii diagrams
 
