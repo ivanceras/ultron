@@ -33,8 +33,9 @@ Ropey will do that part.
 ## Build and run the project
 
 ```sh
+git clone https://github.com/ivanceras/ultron.git
 
-cd ultron-web
+cd ultron/ultron-web
 ./start_optimized.sh
 
 ```
