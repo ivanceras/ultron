@@ -1,6 +1,6 @@
 # Ultron
 
-Ultron is a web based monospaced text-editor completely written in rust.
+Ultron is a web based monospace text-editor with syntax highlighting, completely written in rust.
 
 ![Screenshot](https://raw.githubusercontent.com/ivanceras/ultron/master/screenshot/ultron.png)
 
@@ -19,12 +19,12 @@ Wide characters will be using `<div class"wide_{n}">` where `n` is the unicode_w
 The style for this char will then be set with a multiplier to the normal width.
 
 # Dependencies:
-Ropey - to handle the buffer.
+[Ropey](https://crates.io/crates/ropey) - to handle the buffer.
 
 
-Reference:
-[Smith](https://github.com/IGI-111/Smith) to see how it is done.
-[zee](https://crates.io/crates/zee)
+Similar projects:
+- [Smith](https://github.com/IGI-111/Smith) to see how it is done.
+- [zee](https://crates.io/crates/zee)
 
 Note:  We can not use xi-editor for this, because this needs to run on the browser.
 Xi-core requires opening channels and have a protocol for passing and receiving data from the backend.
