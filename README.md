@@ -1,6 +1,10 @@
 # Ultron
 
-A wrote this code editor for my very specific usecase: real monospace on GUI editors for ascii diagrams
+Ultron is a web based monospaced text-editor completely written in rust.
+
+I wrote this code editor for my very specific usecase:
+- real monospace on GUI editors for ascii diagrams
+
 GUI editors don't handle monospace font quite well for CJK characters or any unicode characters
 that have are more than 1 character wide.
 
