@@ -1,4 +1,4 @@
-#![deny(warnings)]
+//#![deny(warnings)]
 pub mod editor;
 
 pub use editor::Editor;

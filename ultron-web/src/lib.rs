@@ -1,4 +1,4 @@
-#![deny(warnings)]
+//#![deny(warnings)]
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
 use ultron::editor;
@@ -76,26 +76,16 @@ impl Component<Msg> for App {
     fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
         match msg {
             Msg::EditorMsg(emsg) => {
-                if let Some(omsg) = self.editor.update(emsg) {
-                    Cmd::new(move |program| program.dispatch(Msg::EditorMsg(omsg.clone())))
-                } else {
-                    Cmd::none()
-                }
+                let should_update_view = self.editor.update(emsg);
+                Cmd::should_update_view(should_update_view)
             }
             Msg::Mouseup(_client_x, _client_y) => {
-                if let Some(omsg) = self.editor.update(editor::Msg::StopSelection) {
-                    Cmd::new(move |program| program.dispatch(Msg::EditorMsg(omsg.clone())))
-                } else {
-                    Cmd::none()
-                }
+                let should_update_view = self.editor.update(editor::Msg::StopSelection);
+                Cmd::should_update_view(should_update_view)
             }
             Msg::KeyDown(ke) => {
-                let cmd = if let Some(omsg) = self.editor.update(editor::Msg::KeyDown(ke)) {
-                    Cmd::new(move |program| program.dispatch(Msg::EditorMsg(omsg.clone())))
-                } else {
-                    Cmd::none()
-                };
-                cmd
+                let should_update_view = self.editor.update(editor::Msg::KeyDown(ke));
+                Cmd::should_update_view(should_update_view)
             }
         }
     }

@@ -3,9 +3,6 @@ use sauron::jss;
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
 use sauron::web_sys::HtmlTextAreaElement;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::Hash;
-use std::hash::Hasher;
 use std::iter::FromIterator;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::Color;
@@ -66,18 +63,10 @@ pub struct Editor {
 struct Line {
     line_pos: usize,
     /// hash of the line content
-    line_hash: u64,
     /// total sum of the character width
     line_width: usize,
     highlight_ranges: Vec<HighlightRange>,
     last_col: usize,
-}
-
-impl Line {
-    /// contains only newline
-    fn is_blank_line(&self) -> bool {
-        self.highlight_ranges.len() == 1 && self.highlight_ranges[0].chars[0].ch == '\n'
-    }
 }
 
 /// highlight range, which contains a vector of individual char
@@ -203,15 +192,9 @@ impl Editor {
             .filter(|line| line.len_chars() > 0)
             .enumerate()
             .map(|(n_line, line)| {
-                let line_chars: Vec<char> = line.chars().collect();
-
                 let line_str = String::from_iter(line.chars());
                 let ranges: Vec<(Style, &str)> =
                     syntax_highlighter.highlight(&line_str, &self.syntax_set);
-
-                let mut hasher = DefaultHasher::new();
-                line_chars.hash(&mut hasher);
-                let line_hash = hasher.finish();
 
                 let mut range_col = 0;
                 let highlight_ranges: Vec<HighlightRange> = ranges
@@ -244,7 +227,6 @@ impl Editor {
                 let last_col: usize = self.text_buffer.last_line_col(n_line);
                 Line {
                     line_pos: n_line,
-                    line_hash,
                     line_width,
                     highlight_ranges,
                     last_col,
@@ -356,9 +338,10 @@ impl Editor {
             let navigator = web_sys::window()
                 .expect("no global `window` exists")
                 .navigator();
-            let clipboard = navigator.clipboard();
-            let text_selection = self.text_buffer.get_text(start_pos, end_pos);
-            let _ = clipboard.write_text(&text_selection);
+            if let Some(clipboard) = navigator.clipboard() {
+                let text_selection = self.text_buffer.get_text(start_pos, end_pos);
+                let _ = clipboard.write_text(&text_selection);
+            }
         }
     }
 
@@ -412,26 +395,32 @@ impl Editor {
         text_area.select();
     }
 
-    pub fn update(&mut self, msg: Msg) -> Option<Msg> {
-        match msg {
+    /// returns bool indicating whether the view should be updated or not
+    pub fn update(&mut self, msg: Msg) -> bool {
+        let should_update_view = match msg {
             Msg::Paste(text_content) => {
                 log::trace!("pasted text: {}", text_content);
                 self.insert_string(&text_content);
+                true
             }
             Msg::CopiedSelected => {
                 log::info!("copying works?..");
+                true
             }
             Msg::MoveCursor(line, col) => {
                 self.move_at(line, col);
+                true
             }
             Msg::MoveCursorToLine(line) => {
                 self.move_to_line(line);
+                true
             }
             Msg::StartSelection(line, col) => {
                 self.is_selecting = true;
                 let start_pos = self.text_buffer.line_col_to_pos(line, col);
                 self.text_buffer.selection = Some((start_pos, None));
                 self.reposition_cursor_to_selection();
+                true
             }
             Msg::ToSelection(line, col) => {
                 if self.is_selecting {
@@ -442,20 +431,33 @@ impl Editor {
                         .map(|(_from, to)| *to = Some(end_pos));
                     self.reposition_cursor_to_selection();
                     self.select_textarea();
+                    true
+                } else {
+                    false
                 }
             }
             Msg::EndSelection(line, col) => {
-                self.is_selecting = false;
-                let end_pos = self.text_buffer.line_col_to_pos(line, col);
-                self.text_buffer
-                    .selection
-                    .as_mut()
-                    .map(|(_from, to)| *to = Some(end_pos));
-                self.reposition_cursor_to_selection();
-                self.select_textarea();
+                if self.is_selecting {
+                    self.is_selecting = false;
+                    let end_pos = self.text_buffer.line_col_to_pos(line, col);
+                    self.text_buffer
+                        .selection
+                        .as_mut()
+                        .map(|(_from, to)| *to = Some(end_pos));
+                    self.reposition_cursor_to_selection();
+                    self.select_textarea();
+                    true
+                } else {
+                    false
+                }
             }
             Msg::StopSelection => {
-                self.is_selecting = false;
+                if self.is_selecting {
+                    self.is_selecting = false;
+                    true
+                } else {
+                    false
+                }
             }
             Msg::KeyDown(ke) => {
                 let key = ke.key();
@@ -472,9 +474,7 @@ impl Editor {
                     }
                     "Tab" => {
                         // tab is 4 spaces
-                        for _i in 0..4 {
-                            self.insert(' ');
-                        }
+                        self.insert_string(&" ".repeat(4));
                     }
                     "ArrowUp" => {
                         self.step(Movement::Up);
@@ -528,11 +528,12 @@ impl Editor {
                         }
                     }
                 }
+                true
             }
-        }
+        };
         self.maybe_recompute_lines();
         self.recompute_meta();
-        None
+        should_update_view
     }
 
     pub fn style(&self) -> Vec<String> {
@@ -698,8 +699,8 @@ impl Editor {
     pub fn view(&self) -> Node<Msg> {
         let class_ns = |class_names| jss::class_namespaced(COMPONENT_NAME, class_names);
         let class_number_wide = format!("number_wide{}", self.number_wide);
-
-        div(
+        let t1 = sauron::now();
+        let html = div(
             vec![class(COMPONENT_NAME)],
             vec![
                 textarea(
@@ -727,13 +728,17 @@ impl Editor {
                     ],
                     vec![],
                 ),
-                div(
-                    vec![class_ns("code"), class_ns(&class_number_wide)],
-                    self.lines
+                div(vec![class_ns("code"), class_ns(&class_number_wide)], {
+                    let t3 = sauron::now();
+                    let all_lines = self
+                        .lines
                         .iter()
                         .map(|line| self.view_line(line))
-                        .collect::<Vec<_>>(),
-                ),
+                        .collect::<Vec<_>>();
+                    let t4 = sauron::now();
+                    log::debug!("all_lines took: {}ms", t4 - t3);
+                    all_lines
+                }),
                 div(
                     vec![
                         class_ns("status"),
@@ -759,10 +764,14 @@ impl Editor {
                     ))],
                 ),
             ],
-        )
+        );
+        let t2 = sauron::now();
+        log::debug!("view took: {}ms", t2 - t1);
+        html
     }
 
     fn view_line(&self, line: &Line) -> Node<Msg> {
+        let t1 = sauron::now();
         let is_current_line = self.current_line == line.line_pos;
         let line_pos = line.line_pos;
 
@@ -773,7 +782,7 @@ impl Editor {
 
         let filler_width = self.browser_size.0 as usize - line.line_width;
         let line_last_col = line.last_col;
-        div(
+        let html = div(
             vec![
                 class_ns("line_block"),
                 classes_ns_flag([("block_cursor", self.use_block_cursor)]),
@@ -783,11 +792,6 @@ impl Editor {
                 vec![
                     class_ns("number__line"),
                     classes_ns_flag([("line_focused", is_current_line)]),
-                    if !line.is_blank_line() {
-                        key(line.line_hash)
-                    } else {
-                        empty_attr()
-                    },
                 ],
                 vec![
                     div(
@@ -811,10 +815,15 @@ impl Editor {
                         vec![text(line.line_pos + 1)],
                     ),
                     div(vec![class_ns("line")], {
-                        line.highlight_ranges
+                        let t5 = sauron::now();
+                        let html = line
+                            .highlight_ranges
                             .iter()
                             .map(|range| self.view_range(line.line_pos, range))
-                            .collect::<Vec<_>>()
+                            .collect::<Vec<_>>();
+                        let t6 = sauron::now();
+                        log::debug!("range in line took: {}ms", t6 - t5);
+                        html
                     }),
                     div(
                         vec![
@@ -835,7 +844,10 @@ impl Editor {
                     ),
                 ],
             )],
-        )
+        );
+        let t2 = sauron::now();
+        log::debug!("view line took: {}ms", t2 - t1);
+        html
     }
 
     fn view_range(&self, line_pos: usize, range: &HighlightRange) -> Node<Msg> {
@@ -905,6 +917,11 @@ impl Editor {
                     //the events is not re-attached, since they always evaluates equal
                     //ISSUE: events callback comparison always evaluates to true since
                     //we can not compare closures.
+                    //
+                    // To fix this issue,
+                    // we listen to the mouse events at the document level
+                    // and determine which line,col position by calculation based on the mouse
+                    // position
                     on_mousedown(move |_| Msg::StartSelection(line_pos, col_pos)),
                     on_mouseup(move |_| Msg::EndSelection(line_pos, col_pos)),
                     on_mousemove(move |_| Msg::ToSelection(line_pos, col_pos)),
