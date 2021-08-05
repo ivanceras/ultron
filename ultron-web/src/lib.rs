@@ -16,6 +16,11 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
+        //let content = include_str!("../../ultron/src/editor.rs");
+        // FIXME:
+        // optimization: show only the lines
+        // from the file that is viewable by the screen
+        // for, now we will just use files with smaller size
         let content = include_str!("../../ultron/test_data/hello.rs");
         App {
             editor: Editor::from_str(&content),

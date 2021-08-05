@@ -736,7 +736,7 @@ impl Editor {
                         .map(|line| self.view_line(line))
                         .collect::<Vec<_>>();
                     let t4 = sauron::now();
-                    log::debug!("all_lines took: {}ms", t4 - t3);
+                    //log::debug!("all_lines took: {}ms", t4 - t3);
                     all_lines
                 }),
                 div(
@@ -822,7 +822,7 @@ impl Editor {
                             .map(|range| self.view_range(line.line_pos, range))
                             .collect::<Vec<_>>();
                         let t6 = sauron::now();
-                        log::debug!("range in line took: {}ms", t6 - t5);
+                        //log::debug!("range in line took: {}ms", t6 - t5);
                         html
                     }),
                     div(
@@ -846,7 +846,7 @@ impl Editor {
             )],
         );
         let t2 = sauron::now();
-        log::debug!("view line took: {}ms", t2 - t1);
+        //log::debug!("view line took: {}ms", t2 - t1);
         html
     }
 
