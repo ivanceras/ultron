@@ -28,12 +28,6 @@ impl App {
             editor: Editor::from_str(&content),
         }
     }
-
-    fn convert_mouse_to_line_col(client_x: i32, client_y: i32) -> (usize, usize) {
-        let col = client_x as f32 / editor::CH_WIDTH as f32;
-        let line = client_y as f32 / editor::CH_HEIGHT as f32;
-        (line.round() as usize, col.round() as usize)
-    }
 }
 
 impl Component<Msg> for App {
@@ -123,8 +117,7 @@ impl Component<Msg> for App {
                 Cmd::should_update_view(should_update)
             }
             Msg::Mouseup(client_x, client_y) => {
-                let (line, col) = Self::convert_mouse_to_line_col(client_x, client_y);
-                let should_update = self.editor.update(editor::Msg::EndSelection(line, col));
+                let should_update = self.editor.update(editor::Msg::Mouseup(client_x, client_y));
                 if should_update {
                     Cmd::measure()
                 } else {
@@ -132,8 +125,9 @@ impl Component<Msg> for App {
                 }
             }
             Msg::Mousedown(client_x, client_y) => {
-                let (line, col) = Self::convert_mouse_to_line_col(client_x, client_y);
-                let should_update = self.editor.update(editor::Msg::StartSelection(line, col));
+                let should_update = self
+                    .editor
+                    .update(editor::Msg::Mousedown(client_x, client_y));
                 if should_update {
                     Cmd::measure()
                 } else {
@@ -141,8 +135,10 @@ impl Component<Msg> for App {
                 }
             }
             Msg::Mousemove(client_x, client_y) => {
-                let (line, col) = Self::convert_mouse_to_line_col(client_x, client_y);
-                let should_update = self.editor.update(editor::Msg::ToSelection(line, col));
+                log::trace!("Moving the mouse at: {},{}", client_x, client_y);
+                let should_update = self
+                    .editor
+                    .update(editor::Msg::Mousemove(client_x, client_y));
                 if should_update {
                     Cmd::measure()
                 } else {

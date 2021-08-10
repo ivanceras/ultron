@@ -19,6 +19,7 @@ pub const CH_HEIGHT: u32 = 16;
 
 pub(crate) mod action;
 mod history;
+mod style;
 mod text_buffer;
 
 #[derive(Clone, PartialEq)]
@@ -32,6 +33,10 @@ pub enum Msg {
     ToSelection(usize, usize),
     Paste(String),
     CopiedSelected,
+    Mouseup(i32, i32),
+    Mousedown(i32, i32),
+    Mousemove(i32, i32),
+    Mounted(web_sys::Node),
 }
 
 const COMPONENT_NAME: &str = "ultron";
@@ -62,6 +67,8 @@ pub struct Editor {
     theme_set: ThemeSet,
     theme_name: String,
     pub update_took: Option<f64>,
+    editor_x: f32,
+    editor_y: f32,
 }
 
 struct Line {
@@ -122,10 +129,21 @@ impl Editor {
             theme_set,
             theme_name,
             update_took: None,
+            editor_x: f32::NAN,
+            editor_y: f32::NAN,
         };
         editor.recompute_lines();
         editor.recompute_meta();
         editor
+    }
+
+    fn convert_mouse_to_line_col(&self, client_x: i32, client_y: i32) -> (usize, usize) {
+        log::trace!("editor_loc: {},{}", self.editor_x, self.editor_y);
+        let number_line_offset = self.number_wide as f32 * CH_WIDTH as f32;
+        log::trace!("number_line_offset: {}", number_line_offset);
+        let col = (client_x as f32 - self.editor_x - number_line_offset) / CH_WIDTH as f32;
+        let line = (client_y as f32 - self.editor_y) / CH_HEIGHT as f32;
+        (line.round() as usize, col.round() as usize)
     }
 
     pub fn set_browser_size(&mut self, width: i32, height: i32) {
@@ -402,6 +420,27 @@ impl Editor {
     /// returns bool indicating whether the view should be updated or not
     pub fn update(&mut self, msg: Msg) -> bool {
         let should_update_view = match msg {
+            Msg::Mounted(target_node) => {
+                let element: &web_sys::Element = target_node.unchecked_ref();
+                let rect = element.get_bounding_client_rect();
+                self.editor_x = rect.x().round() as f32;
+                self.editor_y = rect.y().round() as f32;
+                false
+            }
+            Msg::Mouseup(client_x, client_y) => {
+                let (line, col) = self.convert_mouse_to_line_col(client_x, client_y);
+                self.update(Msg::EndSelection(line, col))
+            }
+            Msg::Mousedown(client_x, client_y) => {
+                log::trace!("Mouse is down at {},{}", client_x, client_y);
+                let (line, col) = self.convert_mouse_to_line_col(client_x, client_y);
+                log::trace!("selection should start at {:?}", (line, col));
+                self.update(Msg::StartSelection(line, col))
+            }
+            Msg::Mousemove(client_x, client_y) => {
+                let (line, col) = self.convert_mouse_to_line_col(client_x, client_y);
+                self.update(Msg::ToSelection(line, col))
+            }
             Msg::Paste(text_content) => {
                 log::trace!("pasted text: {}", text_content);
                 self.insert_string(&text_content);
@@ -545,180 +584,7 @@ impl Editor {
     }
 
     pub fn style(&self) -> Vec<String> {
-        let selection_bg = if let Some(selection_bg) = self.selection_background() {
-            selection_bg
-        } else {
-            Color {
-                r: 100,
-                g: 100,
-                b: 100,
-                a: 100,
-            }
-        };
-
-        let cursor_color = if let Some(cursor_color) = self.cursor_color() {
-            cursor_color
-        } else {
-            Color {
-                r: 255,
-                g: 0,
-                b: 0,
-                a: 255,
-            }
-        };
-
-        let css = jss_ns!(COMPONENT_NAME,{
-            ".": {
-                "user-select": "none",
-                "-webkit-user-select": "none",
-                "position": "relative",
-                "font-size": px(14),
-                "cursor": "text",
-            },
-
-            // paste area hack, we don't want to use
-            // the clipboard read api, since it needs permission from the user
-            // create a textarea instead, where it is focused all the time
-            // so, pasting will be intercepted from this textarea
-            ".paste_area": {
-                "resize": "none",
-                //"width": 0, //if width is 0, it will not work in chrome
-                "height": 0,
-                "position": "sticky",
-                "top": 0,
-                "left": 0,
-                "padding": 0,
-                "border":0,
-            },
-
-            ".code": {
-                "position": "relative",
-            },
-
-            ".line_block": {
-                "display": "block",
-            },
-
-            // number and line
-            ".number__line": {
-                "display": "flex",
-            },
-
-            // numbers
-            ".number": {
-                "flex": "none", // dont compress the numbers
-                "text-align": "right",
-                "background-color": "cyan",
-                "padding-right": ex(1),
-            },
-            ".number_wide1 .number": {
-                "width": px(1 * CH_WIDTH),
-            },
-            // when line number is in between: 10 - 99
-            ".number_wide2 .number": {
-                "width": px(2 * CH_WIDTH),
-            },
-            // when total lines is in between 100 - 999
-            ".number_wide3 .number": {
-                "width": px(3 * CH_WIDTH),
-            },
-            // when total lines is in between 1000 - 9000
-            // we don't support beyond this
-            ".number_wide4 .number": {
-                "width": px(4 * CH_WIDTH),
-            },
-
-            // line content
-            ".line": {
-                "display": "flex",
-                "flex": "none", // dont compress lines
-            },
-
-            ".filler": {
-                //"background-color": "#eee",
-                "width": percent(100),
-            },
-
-            ".line_focused": {
-                "background-color": "pink",
-            },
-
-            ".range": {
-                "display": "flex",
-                "flex": "none",
-            },
-
-            ".line .ch": {
-                "width": px(CH_WIDTH),
-                "height": px(CH_HEIGHT),
-                "font-family": "monospace",
-                "font-stretch": "ultra-condensed",
-                "font-variant-numeric": "slashed-zero",
-                "font-kerning": "none",
-                "font-size-adjust": "none",
-                "font-optical-sizing": "none",
-                "position": "relative",
-                "overflow": "hidden",
-                "align-items": "center",
-            },
-
-            ".ch.selected": {
-                "background-color": Self::convert_rgba(selection_bg),
-            },
-
-            ".ch .cursor": {
-               "position": "absolute",
-               "left": 0,
-               "width" : px(CH_WIDTH),
-               "height": px(CH_HEIGHT),
-               "background-color": Self::convert_rgba(cursor_color),
-               //"border": "1px solid red",
-               //"margin": "-1px",
-               "display": "inline",
-               "animation": "cursor_blink-anim 1000ms step-end infinite",
-               //"z-index": 1,
-            },
-
-            ".ch.wide2 .cursor": {
-                "width": px(2 * CH_WIDTH),
-            },
-
-            // i-beam cursor
-            ".thin_cursor .cursor": {
-                "width": px(2),
-            },
-
-            ".thin_cursor .wide2 .cursor": {
-                "width": px(2 * CH_WIDTH),
-            },
-
-            ".block_cursor .cursor": {
-                "width": px(CH_WIDTH),
-            },
-
-            ".line .ch.wide2": {
-                "width": px(2 * CH_WIDTH),
-                "font-size": px(12),
-            },
-
-
-            ".status": {
-                "background-color": "blue",
-                "position": "sticky",
-                "bottom": 0,
-                "display": "flex",
-                "flex-direction": "flex-end",
-            },
-
-            "@keyframes cursor_blink-anim": {
-              "50%": {
-                "background-color": "transparent",
-                "border-color": "transparent",
-              }
-            },
-
-        });
-        vec![css]
+        vec![self.generate_style()]
     }
 
     pub fn view(&self) -> Node<Msg> {
@@ -726,7 +592,10 @@ impl Editor {
         let class_number_wide = format!("number_wide{}", self.number_wide);
         let t1 = sauron::now();
         let html = div(
-            vec![class(COMPONENT_NAME)],
+            vec![
+                class(COMPONENT_NAME),
+                on_mount(|me| Msg::Mounted(me.target_node)),
+            ],
             vec![
                 textarea(
                     vec![

@@ -15,13 +15,21 @@ log = "0.4"
 console_log = { version = "0.2", features = ["color"]}
 wee_alloc = { version = "0.4", optional = true }
 unicode-width = "0.1"
-ropey = "1.2"
+ropey = "1.3"
 percent-encoding = "2.1.0"
 syntect = { version = "4", default-features = false, features = ["default-fancy"] }
 
 [dependencies.web-sys]
 version = "0.3"
-features = ["Window", "Navigator", "Clipboard", "DataTransfer", "HtmlDocument"]
+features = [
+    "Window", 
+    "Navigator", 
+    "Clipboard", 
+    "DataTransfer", 
+    "HtmlDocument",
+    "DomRect",
+    "Element",
+]
 
 
 [features]
