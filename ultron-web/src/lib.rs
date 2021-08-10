@@ -90,9 +90,16 @@ impl Component<Msg> for App {
             }
             Msg::KeyDown(ke) => {
                 let should_update_view = self.editor.update(editor::Msg::KeyDown(ke));
-                Cmd::should_update_view(should_update_view)
+                let mut cmd = Cmd::should_update_view(should_update_view);
+                cmd.log_measurements = true;
+                cmd
             }
         }
+    }
+
+    fn measurements(&mut self, measurements: Measurements) -> Cmd<Self, Msg> {
+        self.editor.update_took = Some(measurements.total_time);
+        Cmd::none()
     }
 }
 

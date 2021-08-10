@@ -58,6 +58,7 @@ pub struct Editor {
     syntax_set: SyntaxSet,
     theme_set: ThemeSet,
     theme_name: String,
+    pub update_took: Option<f64>,
 }
 
 struct Line {
@@ -117,6 +118,7 @@ impl Editor {
             syntax_set,
             theme_set,
             theme_name,
+            update_took: None,
         };
         editor.recompute_lines();
         editor.recompute_meta();
@@ -758,9 +760,14 @@ impl Editor {
                         },
                     ],
                     vec![text(format!(
-                        "line: {}, column: {}",
+                        "line: {}, column: {}, {}",
                         self.current_line + 1,
                         self.current_col + 1,
+                        if let Some(took) = self.update_took {
+                            format!("update took: {}ms", took)
+                        } else {
+                            "".to_string()
+                        }
                     ))],
                 ),
             ],
@@ -836,9 +843,6 @@ impl Editor {
                             } else {
                                 empty_attr()
                             },
-                            on_mousedown(move |_| Msg::StartSelection(line_pos, line_last_col)),
-                            on_mouseup(move |_| Msg::EndSelection(line_pos, line_last_col)),
-                            on_mousemove(move |_| Msg::ToSelection(line_pos, line_last_col)),
                         ],
                         vec![],
                     ),
@@ -912,19 +916,6 @@ impl Editor {
                         empty_attr()
                     },
                     classes_ns_flag([(class_wide, ch.unicode_width > 1)]),
-                    //FIXME: events are only set once at the creation of a node
-                    //event if the arguments such as line_pos, col_pos changed
-                    //the events is not re-attached, since they always evaluates equal
-                    //ISSUE: events callback comparison always evaluates to true since
-                    //we can not compare closures.
-                    //
-                    // To fix this issue,
-                    // we listen to the mouse events at the document level
-                    // and determine which line,col position by calculation based on the mouse
-                    // position
-                    on_mousedown(move |_| Msg::StartSelection(line_pos, col_pos)),
-                    on_mouseup(move |_| Msg::EndSelection(line_pos, col_pos)),
-                    on_mousemove(move |_| Msg::ToSelection(line_pos, col_pos)),
                 ],
                 if is_char_focused {
                     vec![div(
