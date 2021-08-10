@@ -8,6 +8,8 @@ pub enum Msg {
     EditorMsg(editor::Msg),
     KeyDown(web_sys::KeyboardEvent),
     Mouseup(i32, i32),
+    Mousedown(i32, i32),
+    Mousemove(i32, i32),
 }
 
 pub struct App {
@@ -26,6 +28,12 @@ impl App {
             editor: Editor::from_str(&content),
         }
     }
+
+    fn convert_mouse_to_line_col(client_x: i32, client_y: i32) -> (usize, usize) {
+        let col = client_x as f32 / editor::CH_WIDTH as f32;
+        let line = client_y as f32 / editor::CH_HEIGHT as f32;
+        (line.round() as usize, col.round() as usize)
+    }
 }
 
 impl Component<Msg> for App {
@@ -36,6 +44,8 @@ impl Component<Msg> for App {
             let program_clone = program.clone();
             let task_keydown: Closure<dyn Fn(web_sys::Event)> =
                 Closure::wrap(Box::new(move |event: web_sys::Event| {
+                    event.prevent_default();
+                    event.stop_propagation();
                     let ke: KeyboardEvent =
                         event.dyn_into().expect("unable to cast to keyboard event");
                     #[cfg(feature = "with-debug")]
@@ -57,6 +67,34 @@ impl Component<Msg> for App {
                 .add_event_listener_with_callback("mouseup", task_mouseup.as_ref().unchecked_ref())
                 .expect("Unable to attached event listener");
             task_mouseup.forget();
+
+            let program_clone = program.clone();
+            let task_mousedown: Closure<dyn Fn(web_sys::Event)> =
+                Closure::wrap(Box::new(move |e: web_sys::Event| {
+                    let me: MouseEvent = e.dyn_into().expect("unable to cast to mousevent");
+                    program_clone.dispatch(Msg::Mousedown(me.client_x(), me.client_y()));
+                }));
+            window_elm
+                .add_event_listener_with_callback(
+                    "mousedown",
+                    task_mousedown.as_ref().unchecked_ref(),
+                )
+                .expect("Unable to attached event listener");
+            task_mousedown.forget();
+
+            let program_clone = program.clone();
+            let task_mousemove: Closure<dyn Fn(web_sys::Event)> =
+                Closure::wrap(Box::new(move |e: web_sys::Event| {
+                    let me: MouseEvent = e.dyn_into().expect("unable to cast to mousevent");
+                    program_clone.dispatch(Msg::Mousemove(me.client_x(), me.client_y()));
+                }));
+            window_elm
+                .add_event_listener_with_callback(
+                    "mousemove",
+                    task_mousemove.as_ref().unchecked_ref(),
+                )
+                .expect("Unable to attached event listener");
+            task_mousemove.forget();
         })
     }
     fn style(&self) -> Vec<String> {
@@ -81,18 +119,43 @@ impl Component<Msg> for App {
     fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
         match msg {
             Msg::EditorMsg(emsg) => {
-                let should_update_view = self.editor.update(emsg);
-                Cmd::should_update_view(should_update_view)
+                let should_update = self.editor.update(emsg);
+                Cmd::should_update_view(should_update)
             }
-            Msg::Mouseup(_client_x, _client_y) => {
-                let should_update_view = self.editor.update(editor::Msg::StopSelection);
-                Cmd::should_update_view(should_update_view)
+            Msg::Mouseup(client_x, client_y) => {
+                let (line, col) = Self::convert_mouse_to_line_col(client_x, client_y);
+                let should_update = self.editor.update(editor::Msg::EndSelection(line, col));
+                if should_update {
+                    Cmd::measure()
+                } else {
+                    Cmd::no_render()
+                }
+            }
+            Msg::Mousedown(client_x, client_y) => {
+                let (line, col) = Self::convert_mouse_to_line_col(client_x, client_y);
+                let should_update = self.editor.update(editor::Msg::StartSelection(line, col));
+                if should_update {
+                    Cmd::measure()
+                } else {
+                    Cmd::no_render()
+                }
+            }
+            Msg::Mousemove(client_x, client_y) => {
+                let (line, col) = Self::convert_mouse_to_line_col(client_x, client_y);
+                let should_update = self.editor.update(editor::Msg::ToSelection(line, col));
+                if should_update {
+                    Cmd::measure()
+                } else {
+                    Cmd::no_render()
+                }
             }
             Msg::KeyDown(ke) => {
-                let should_update_view = self.editor.update(editor::Msg::KeyDown(ke));
-                let mut cmd = Cmd::should_update_view(should_update_view);
-                cmd.log_measurements = true;
-                cmd
+                let should_update = self.editor.update(editor::Msg::KeyDown(ke));
+                if should_update {
+                    Cmd::measure()
+                } else {
+                    Cmd::no_render()
+                }
             }
         }
     }

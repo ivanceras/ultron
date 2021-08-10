@@ -31,6 +31,8 @@
 - [ ] Scroll the view to when the cursor is not visible on the screen
 - [ ] Drag and drop shapes
 - [ ] Use theming from the futuristic-ui in sauron
+- [ ] Fix bug where letters looks jumbled when TAB is pressed.
+- [ ] Fix when pressing tab the textare lose focus and the tab goes to browser controls.
 
 # Optimization (for sauron, needed for code-editor)
 - [X] Add a specialized `skip(bool)` for html nodes

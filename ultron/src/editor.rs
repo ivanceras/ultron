@@ -14,6 +14,9 @@ use text_buffer::Movement;
 use text_buffer::TextBuffer;
 use unicode_width::UnicodeWidthChar;
 
+pub const CH_WIDTH: u32 = 8;
+pub const CH_HEIGHT: u32 = 16;
+
 pub(crate) mod action;
 mod history;
 mod text_buffer;
@@ -191,7 +194,6 @@ impl Editor {
         self.lines = self
             .text_buffer
             .lines()
-            .filter(|line| line.len_chars() > 0)
             .enumerate()
             .map(|(n_line, line)| {
                 let line_str = String::from_iter(line.chars());
@@ -418,11 +420,17 @@ impl Editor {
                 true
             }
             Msg::StartSelection(line, col) => {
-                self.is_selecting = true;
-                let start_pos = self.text_buffer.line_col_to_pos(line, col);
-                self.text_buffer.selection = Some((start_pos, None));
-                self.reposition_cursor_to_selection();
-                true
+                if self.is_selecting {
+                    self.is_selecting = false;
+                    self.text_buffer.selection = None;
+                    true
+                } else {
+                    self.is_selecting = true;
+                    let start_pos = self.text_buffer.line_col_to_pos(line, col);
+                    self.text_buffer.selection = Some((start_pos, None));
+                    self.reposition_cursor_to_selection();
+                    true
+                }
             }
             Msg::ToSelection(line, col) => {
                 if self.is_selecting {
@@ -432,7 +440,6 @@ impl Editor {
                         .as_mut()
                         .map(|(_from, to)| *to = Some(end_pos));
                     self.reposition_cursor_to_selection();
-                    self.select_textarea();
                     true
                 } else {
                     false
@@ -447,7 +454,6 @@ impl Editor {
                         .as_mut()
                         .map(|(_from, to)| *to = Some(end_pos));
                     self.reposition_cursor_to_selection();
-                    self.select_textarea();
                     true
                 } else {
                     false
@@ -533,18 +539,40 @@ impl Editor {
                 true
             }
         };
-        self.maybe_recompute_lines();
+        self.recompute_lines();
         self.recompute_meta();
         should_update_view
     }
 
     pub fn style(&self) -> Vec<String> {
+        let selection_bg = if let Some(selection_bg) = self.selection_background() {
+            selection_bg
+        } else {
+            Color {
+                r: 100,
+                g: 100,
+                b: 100,
+                a: 100,
+            }
+        };
+
+        let cursor_color = if let Some(cursor_color) = self.cursor_color() {
+            cursor_color
+        } else {
+            Color {
+                r: 255,
+                g: 0,
+                b: 0,
+                a: 255,
+            }
+        };
+
         let css = jss_ns!(COMPONENT_NAME,{
             ".": {
                 "user-select": "none",
                 "-webkit-user-select": "none",
                 "position": "relative",
-                "font-size": px(16),
+                "font-size": px(14),
                 "cursor": "text",
             },
 
@@ -584,20 +612,20 @@ impl Editor {
                 "padding-right": ex(1),
             },
             ".number_wide1 .number": {
-                "width": ex(1),
+                "width": px(1 * CH_WIDTH),
             },
             // when line number is in between: 10 - 99
             ".number_wide2 .number": {
-                "width": ex(2),
+                "width": px(2 * CH_WIDTH),
             },
             // when total lines is in between 100 - 999
             ".number_wide3 .number": {
-                "width": ex(3),
+                "width": px(3 * CH_WIDTH),
             },
             // when total lines is in between 1000 - 9000
             // we don't support beyond this
             ".number_wide4 .number": {
-                "width": ex(4),
+                "width": px(4 * CH_WIDTH),
             },
 
             // line content
@@ -621,8 +649,8 @@ impl Editor {
             },
 
             ".line .ch": {
-                "width": ex(1),
-                "height": ex(2),
+                "width": px(CH_WIDTH),
+                "height": px(CH_HEIGHT),
                 "font-family": "monospace",
                 "font-stretch": "ultra-condensed",
                 "font-variant-numeric": "slashed-zero",
@@ -630,29 +658,29 @@ impl Editor {
                 "font-size-adjust": "none",
                 "font-optical-sizing": "none",
                 "position": "relative",
-                "overflow": "visible",
+                "overflow": "hidden",
                 "align-items": "center",
             },
 
             ".ch.selected": {
-                "background-color": "yellow",
+                "background-color": Self::convert_rgba(selection_bg),
             },
 
             ".ch .cursor": {
                "position": "absolute",
                "left": 0,
-               "height": ex(2),
-               "width" : ex(1),
-               "background-color": "red",
+               "width" : px(CH_WIDTH),
+               "height": px(CH_HEIGHT),
+               "background-color": Self::convert_rgba(cursor_color),
                //"border": "1px solid red",
                //"margin": "-1px",
                "display": "inline",
-               "animation": "cursor_blink-anim 500ms step-end infinite",
+               "animation": "cursor_blink-anim 1000ms step-end infinite",
                //"z-index": 1,
             },
 
             ".ch.wide2 .cursor": {
-                "width": ex(2),
+                "width": px(2 * CH_WIDTH),
             },
 
             // i-beam cursor
@@ -661,15 +689,16 @@ impl Editor {
             },
 
             ".thin_cursor .wide2 .cursor": {
-                "width": px(2),
+                "width": px(2 * CH_WIDTH),
             },
 
             ".block_cursor .cursor": {
-                "width": ex(1),
+                "width": px(CH_WIDTH),
             },
 
             ".line .ch.wide2": {
-                "width": ex(2),
+                "width": px(2 * CH_WIDTH),
+                "font-size": px(12),
             },
 
 
@@ -682,12 +711,6 @@ impl Editor {
             },
 
             "@keyframes cursor_blink-anim": {
-                /*
-              "0%, 100%": {
-                "background-color": "red",
-                "border-color": "red",
-              },
-                */
               "50%": {
                 "background-color": "transparent",
                 "border-color": "transparent",
@@ -904,31 +927,10 @@ impl Editor {
                     key(format!("{}_{}", line_pos, ch.position)),
                     classes_ns_flag([("ch_focused", is_char_focused)]),
                     classes_ns_flag([("selected", is_selected)]),
-                    if is_selected {
-                        if let Some(selection_bg) = self.selection_background() {
-                            style! {
-                                "background-color": Self::convert_rgba(selection_bg)
-                            }
-                        } else {
-                            empty_attr()
-                        }
-                    } else {
-                        empty_attr()
-                    },
                     classes_ns_flag([(class_wide, ch.unicode_width > 1)]),
                 ],
                 if is_char_focused {
-                    vec![div(
-                        vec![
-                            class_ns("cursor"),
-                            if let Some(cursor_color) = self.cursor_color() {
-                                style! { "background-color": Self::convert_rgba(cursor_color) }
-                            } else {
-                                empty_attr()
-                            },
-                        ],
-                        vec![text(ch.ch)],
-                    )]
+                    vec![div(vec![class_ns("cursor")], vec![text(ch.ch)])]
                 } else {
                     vec![text(ch.ch)]
                 },
