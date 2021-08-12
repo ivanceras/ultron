@@ -9,7 +9,7 @@ crate-type = ["rlib","cdylib"]
 
 [dependencies]
 ultron = { path = "../ultron"}
-sauron = { version = "0.39", path = "../../sauron" }
+sauron = { version = "0.39", path = "../../sauron", features = ["with-measure"] }
 log = "0.4"
 console_log = { version = "0.2", features = ["color"]}
 console_error_panic_hook = "0.1"

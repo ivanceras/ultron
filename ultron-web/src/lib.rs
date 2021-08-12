@@ -156,9 +156,10 @@ impl Component<Msg> for App {
         }
     }
 
-    fn measurements(&mut self, measurements: Measurements) -> Cmd<Self, Msg> {
-        self.editor.update_took = Some(measurements.total_time);
-        Cmd::none()
+    fn measurements(&self, measurements: Measurements) -> Cmd<Self, Msg> {
+        Cmd::new(move|program|
+            //let update_took = Some(measurements.total_time);
+            program.dispatch(Msg::EditorMsg(editor::Msg::SetMeasurement(measurements))))
     }
 }
 

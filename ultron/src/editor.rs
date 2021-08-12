@@ -37,6 +37,7 @@ pub enum Msg {
     Mousedown(i32, i32),
     Mousemove(i32, i32),
     Mounted(web_sys::Node),
+    SetMeasurement(Measurements),
 }
 
 const COMPONENT_NAME: &str = "ultron";
@@ -138,9 +139,9 @@ impl Editor {
     }
 
     fn convert_mouse_to_line_col(&self, client_x: i32, client_y: i32) -> (usize, usize) {
-        log::trace!("editor_loc: {},{}", self.editor_x, self.editor_y);
+        //log::trace!("editor_loc: {},{}", self.editor_x, self.editor_y);
         let number_line_offset = self.number_wide as f32 * CH_WIDTH as f32;
-        log::trace!("number_line_offset: {}", number_line_offset);
+        //log::trace!("number_line_offset: {}", number_line_offset);
         let col = (client_x as f32 - self.editor_x - number_line_offset) / CH_WIDTH as f32;
         let line = (client_y as f32 - self.editor_y) / CH_HEIGHT as f32;
         (line.round() as usize, col.round() as usize)
@@ -301,7 +302,7 @@ impl Editor {
         // otherwise delete the character in the cursor
         if let Some((start_pos, Some(end_pos))) = self.text_buffer.normalized_selection() {
             let deleted_text = self.text_buffer.cut_text(start_pos, end_pos);
-            log::trace!("deleted: {}", deleted_text);
+            //log::trace!("deleted: {}", deleted_text);
             self.recorded
                 .delete_selected_forward(start_pos, end_pos, &deleted_text);
             self.text_buffer.selection = None;
@@ -432,9 +433,9 @@ impl Editor {
                 self.update(Msg::EndSelection(line, col))
             }
             Msg::Mousedown(client_x, client_y) => {
-                log::trace!("Mouse is down at {},{}", client_x, client_y);
+                //log::trace!("Mouse is down at {},{}", client_x, client_y);
                 let (line, col) = self.convert_mouse_to_line_col(client_x, client_y);
-                log::trace!("selection should start at {:?}", (line, col));
+                //log::trace!("selection should start at {:?}", (line, col));
                 self.update(Msg::StartSelection(line, col))
             }
             Msg::Mousemove(client_x, client_y) => {
@@ -505,6 +506,10 @@ impl Editor {
                 } else {
                     false
                 }
+            }
+            Msg::SetMeasurement(measurement) => {
+                self.update_took = Some(measurement.total_time);
+                true
             }
             Msg::KeyDown(ke) => {
                 let key = ke.key();
