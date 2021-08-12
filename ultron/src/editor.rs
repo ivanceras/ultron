@@ -67,7 +67,7 @@ pub struct Editor {
     syntax_set: SyntaxSet,
     theme_set: ThemeSet,
     theme_name: String,
-    pub update_took: Option<f64>,
+    pub measurements: Option<Measurements>,
     editor_x: f32,
     editor_y: f32,
 }
@@ -104,6 +104,267 @@ struct Ch {
 }
 
 impl Editor {
+    /// returns bool indicating whether the view should be updated or not
+    pub fn update(&mut self, msg: Msg) -> bool {
+        let should_update_view = match msg {
+            Msg::Mounted(target_node) => {
+                let element: &web_sys::Element = target_node.unchecked_ref();
+                let rect = element.get_bounding_client_rect();
+                self.editor_x = rect.x().round() as f32;
+                self.editor_y = rect.y().round() as f32;
+                false
+            }
+            Msg::Mouseup(client_x, client_y) => {
+                let (line, col) = self.convert_mouse_to_line_col(client_x, client_y);
+                self.update(Msg::EndSelection(line, col))
+            }
+            Msg::Mousedown(client_x, client_y) => {
+                //log::trace!("Mouse is down at {},{}", client_x, client_y);
+                let (line, col) = self.convert_mouse_to_line_col(client_x, client_y);
+                //log::trace!("selection should start at {:?}", (line, col));
+                self.update(Msg::StartSelection(line, col))
+            }
+            Msg::Mousemove(client_x, client_y) => {
+                let (line, col) = self.convert_mouse_to_line_col(client_x, client_y);
+                self.update(Msg::ToSelection(line, col))
+            }
+            Msg::Paste(text_content) => {
+                log::trace!("pasted text: {}", text_content);
+                self.insert_string(&text_content);
+                true
+            }
+            Msg::CopiedSelected => {
+                log::info!("copying works?..");
+                true
+            }
+            Msg::MoveCursor(line, col) => {
+                self.move_at(line, col);
+                true
+            }
+            Msg::MoveCursorToLine(line) => {
+                self.move_to_line(line);
+                true
+            }
+            Msg::StartSelection(line, col) => {
+                if self.is_selecting {
+                    self.is_selecting = false;
+                    self.text_buffer.selection = None;
+                    true
+                } else {
+                    self.is_selecting = true;
+                    let start_pos = self.text_buffer.line_col_to_pos(line, col);
+                    self.text_buffer.selection = Some((start_pos, None));
+                    self.reposition_cursor_to_selection();
+                    true
+                }
+            }
+            Msg::ToSelection(line, col) => {
+                if self.is_selecting {
+                    let end_pos = self.text_buffer.line_col_to_pos(line, col);
+                    self.text_buffer
+                        .selection
+                        .as_mut()
+                        .map(|(_from, to)| *to = Some(end_pos));
+                    self.reposition_cursor_to_selection();
+                    true
+                } else {
+                    false
+                }
+            }
+            Msg::EndSelection(line, col) => {
+                if self.is_selecting {
+                    self.is_selecting = false;
+                    let end_pos = self.text_buffer.line_col_to_pos(line, col);
+                    self.text_buffer
+                        .selection
+                        .as_mut()
+                        .map(|(_from, to)| *to = Some(end_pos));
+                    self.reposition_cursor_to_selection();
+                    true
+                } else {
+                    false
+                }
+            }
+            Msg::StopSelection => {
+                if self.is_selecting {
+                    self.is_selecting = false;
+                    true
+                } else {
+                    false
+                }
+            }
+            Msg::SetMeasurement(measurements) => {
+                self.measurements = Some(measurements);
+                true
+            }
+            Msg::KeyDown(ke) => {
+                let key = ke.key();
+                let ctrl = ke.ctrl_key();
+                match &*key {
+                    "Enter" => {
+                        self.insert('\n');
+                    }
+                    "Backspace" => {
+                        self.delete();
+                    }
+                    "Delete" => {
+                        self.delete_forward();
+                    }
+                    "Tab" => {
+                        // tab is 4 spaces
+                        self.insert_string(&" ".repeat(4));
+                    }
+                    "ArrowUp" => {
+                        self.step(Movement::Up);
+                    }
+                    "ArrowDown" => {
+                        self.step(Movement::Down);
+                    }
+                    "ArrowLeft" => {
+                        self.step(Movement::Left);
+                    }
+                    "ArrowRight" => {
+                        self.step(Movement::Right);
+                    }
+                    "End" => {
+                        self.step(Movement::LineEnd);
+                    }
+                    "Home" => {
+                        self.step(Movement::LineStart);
+                    }
+                    "PageDown" => {
+                        self.step(Movement::PageDown(self.page_size));
+                    }
+                    "PageUp" => {
+                        self.step(Movement::PageUp(self.page_size));
+                    }
+                    _ => {
+                        if key.chars().count() == 1 {
+                            let c = key.chars().next().expect("must be only 1 chr");
+                            match c {
+                                'z' if ctrl => {
+                                    self.undo();
+                                }
+                                'y' if ctrl => {
+                                    self.redo();
+                                }
+                                'c' if ctrl => {
+                                    self.copy();
+                                }
+                                'x' if ctrl => {
+                                    self.cut();
+                                }
+                                'v' if ctrl => {
+                                    //do nothing
+                                    //as paste in the textarea is handled
+                                    //by the on_paste event mapped to Msg::Paste
+                                }
+                                _ => {
+                                    self.insert(c);
+                                }
+                            }
+                        }
+                    }
+                }
+                true
+            }
+        };
+        self.recompute_lines();
+        self.recompute_meta();
+        should_update_view
+    }
+
+    pub fn style(&self) -> Vec<String> {
+        vec![self.generate_style()]
+    }
+
+    pub fn view(&self) -> Node<Msg> {
+        let class_ns = |class_names| jss::class_namespaced(COMPONENT_NAME, class_names);
+        let class_number_wide = format!("number_wide{}", self.number_wide);
+        let t1 = sauron::now();
+        let html = div(
+            vec![
+                class(COMPONENT_NAME),
+                on_mount(|me| Msg::Mounted(me.target_node)),
+            ],
+            vec![
+                textarea(
+                    vec![
+                        class_ns("paste_area"),
+                        if let Some(text_selection) = self.text_selection() {
+                            value(text_selection)
+                        } else {
+                            empty_attr()
+                        },
+                        // focus the textarea at all times
+                        focus(true),
+                        on_paste(|ce| {
+                            let pasted_text = ce
+                                .clipboard_data()
+                                .expect("must have data transfer")
+                                .get_data("text/plain")
+                                .expect("must be text data");
+
+                            let target = ce.target().expect("expecting a target");
+                            let text_area: &HtmlTextAreaElement = target.unchecked_ref();
+                            text_area.set_value("");
+                            Msg::Paste(pasted_text)
+                        }),
+                    ],
+                    vec![],
+                ),
+                div(vec![class_ns("code"), class_ns(&class_number_wide)], {
+                    let t3 = sauron::now();
+                    let all_lines = self
+                        .lines
+                        .iter()
+                        .map(|line| self.view_line(line))
+                        .collect::<Vec<_>>();
+                    let t4 = sauron::now();
+                    //log::debug!("all_lines took: {}ms", t4 - t3);
+                    all_lines
+                }),
+                div(
+                    vec![
+                        class_ns("status"),
+                        if let Some(gutter_bg) = self.gutter_background() {
+                            style! {
+                                "background-color": Self::convert_rgba(gutter_bg),
+                            }
+                        } else {
+                            empty_attr()
+                        },
+                        if let Some(gutter_fg) = self.gutter_foreground() {
+                            style! {
+                                "color": Self::convert_rgba(gutter_fg)
+                            }
+                        } else {
+                            empty_attr()
+                        },
+                    ],
+                    vec![text(format!(
+                        "line: {}, column: {}, {}",
+                        self.current_line + 1,
+                        self.current_col + 1,
+                        if let Some(measurements) = self.measurements {
+                            format!(
+                                "update took: {}ms {:?}",
+                                measurements.total_time, measurements
+                            )
+                        } else {
+                            "".to_string()
+                        }
+                    ))],
+                ),
+            ],
+        );
+        let t2 = sauron::now();
+        log::debug!("view took: {}ms", t2 - t1);
+        html
+    }
+}
+
+impl Editor {
     pub fn from_str(content: &str) -> Self {
         let syntax_set: SyntaxSet = SyntaxSet::load_defaults_newlines();
         let theme_set: ThemeSet = ThemeSet::load_defaults();
@@ -129,7 +390,7 @@ impl Editor {
             syntax_set,
             theme_set,
             theme_name,
-            update_took: None,
+            measurements: None,
             editor_x: f32::NAN,
             editor_y: f32::NAN,
         };
@@ -416,262 +677,6 @@ impl Editor {
             .expect("must have the text area");
         let text_area: HtmlTextAreaElement = textarea_elm.unchecked_into();
         text_area.select();
-    }
-
-    /// returns bool indicating whether the view should be updated or not
-    pub fn update(&mut self, msg: Msg) -> bool {
-        let should_update_view = match msg {
-            Msg::Mounted(target_node) => {
-                let element: &web_sys::Element = target_node.unchecked_ref();
-                let rect = element.get_bounding_client_rect();
-                self.editor_x = rect.x().round() as f32;
-                self.editor_y = rect.y().round() as f32;
-                false
-            }
-            Msg::Mouseup(client_x, client_y) => {
-                let (line, col) = self.convert_mouse_to_line_col(client_x, client_y);
-                self.update(Msg::EndSelection(line, col))
-            }
-            Msg::Mousedown(client_x, client_y) => {
-                //log::trace!("Mouse is down at {},{}", client_x, client_y);
-                let (line, col) = self.convert_mouse_to_line_col(client_x, client_y);
-                //log::trace!("selection should start at {:?}", (line, col));
-                self.update(Msg::StartSelection(line, col))
-            }
-            Msg::Mousemove(client_x, client_y) => {
-                let (line, col) = self.convert_mouse_to_line_col(client_x, client_y);
-                self.update(Msg::ToSelection(line, col))
-            }
-            Msg::Paste(text_content) => {
-                log::trace!("pasted text: {}", text_content);
-                self.insert_string(&text_content);
-                true
-            }
-            Msg::CopiedSelected => {
-                log::info!("copying works?..");
-                true
-            }
-            Msg::MoveCursor(line, col) => {
-                self.move_at(line, col);
-                true
-            }
-            Msg::MoveCursorToLine(line) => {
-                self.move_to_line(line);
-                true
-            }
-            Msg::StartSelection(line, col) => {
-                if self.is_selecting {
-                    self.is_selecting = false;
-                    self.text_buffer.selection = None;
-                    true
-                } else {
-                    self.is_selecting = true;
-                    let start_pos = self.text_buffer.line_col_to_pos(line, col);
-                    self.text_buffer.selection = Some((start_pos, None));
-                    self.reposition_cursor_to_selection();
-                    true
-                }
-            }
-            Msg::ToSelection(line, col) => {
-                if self.is_selecting {
-                    let end_pos = self.text_buffer.line_col_to_pos(line, col);
-                    self.text_buffer
-                        .selection
-                        .as_mut()
-                        .map(|(_from, to)| *to = Some(end_pos));
-                    self.reposition_cursor_to_selection();
-                    true
-                } else {
-                    false
-                }
-            }
-            Msg::EndSelection(line, col) => {
-                if self.is_selecting {
-                    self.is_selecting = false;
-                    let end_pos = self.text_buffer.line_col_to_pos(line, col);
-                    self.text_buffer
-                        .selection
-                        .as_mut()
-                        .map(|(_from, to)| *to = Some(end_pos));
-                    self.reposition_cursor_to_selection();
-                    true
-                } else {
-                    false
-                }
-            }
-            Msg::StopSelection => {
-                if self.is_selecting {
-                    self.is_selecting = false;
-                    true
-                } else {
-                    false
-                }
-            }
-            Msg::SetMeasurement(measurement) => {
-                self.update_took = Some(measurement.total_time);
-                true
-            }
-            Msg::KeyDown(ke) => {
-                let key = ke.key();
-                let ctrl = ke.ctrl_key();
-                match &*key {
-                    "Enter" => {
-                        self.insert('\n');
-                    }
-                    "Backspace" => {
-                        self.delete();
-                    }
-                    "Delete" => {
-                        self.delete_forward();
-                    }
-                    "Tab" => {
-                        // tab is 4 spaces
-                        self.insert_string(&" ".repeat(4));
-                    }
-                    "ArrowUp" => {
-                        self.step(Movement::Up);
-                    }
-                    "ArrowDown" => {
-                        self.step(Movement::Down);
-                    }
-                    "ArrowLeft" => {
-                        self.step(Movement::Left);
-                    }
-                    "ArrowRight" => {
-                        self.step(Movement::Right);
-                    }
-                    "End" => {
-                        self.step(Movement::LineEnd);
-                    }
-                    "Home" => {
-                        self.step(Movement::LineStart);
-                    }
-                    "PageDown" => {
-                        self.step(Movement::PageDown(self.page_size));
-                    }
-                    "PageUp" => {
-                        self.step(Movement::PageUp(self.page_size));
-                    }
-                    _ => {
-                        if key.chars().count() == 1 {
-                            let c = key.chars().next().expect("must be only 1 chr");
-                            match c {
-                                'z' if ctrl => {
-                                    self.undo();
-                                }
-                                'y' if ctrl => {
-                                    self.redo();
-                                }
-                                'c' if ctrl => {
-                                    self.copy();
-                                }
-                                'x' if ctrl => {
-                                    self.cut();
-                                }
-                                'v' if ctrl => {
-                                    //do nothing
-                                    //as paste in the textarea is handled
-                                    //by the on_paste event mapped to Msg::Paste
-                                }
-                                _ => {
-                                    self.insert(c);
-                                }
-                            }
-                        }
-                    }
-                }
-                true
-            }
-        };
-        self.recompute_lines();
-        self.recompute_meta();
-        should_update_view
-    }
-
-    pub fn style(&self) -> Vec<String> {
-        vec![self.generate_style()]
-    }
-
-    pub fn view(&self) -> Node<Msg> {
-        let class_ns = |class_names| jss::class_namespaced(COMPONENT_NAME, class_names);
-        let class_number_wide = format!("number_wide{}", self.number_wide);
-        let t1 = sauron::now();
-        let html = div(
-            vec![
-                class(COMPONENT_NAME),
-                on_mount(|me| Msg::Mounted(me.target_node)),
-            ],
-            vec![
-                textarea(
-                    vec![
-                        class_ns("paste_area"),
-                        if let Some(text_selection) = self.text_selection() {
-                            value(text_selection)
-                        } else {
-                            empty_attr()
-                        },
-                        // focus the textarea at all times
-                        focus(true),
-                        on_paste(|ce| {
-                            let pasted_text = ce
-                                .clipboard_data()
-                                .expect("must have data transfer")
-                                .get_data("text/plain")
-                                .expect("must be text data");
-
-                            let target = ce.target().expect("expecting a target");
-                            let text_area: &HtmlTextAreaElement = target.unchecked_ref();
-                            text_area.set_value("");
-                            Msg::Paste(pasted_text)
-                        }),
-                    ],
-                    vec![],
-                ),
-                div(vec![class_ns("code"), class_ns(&class_number_wide)], {
-                    let t3 = sauron::now();
-                    let all_lines = self
-                        .lines
-                        .iter()
-                        .map(|line| self.view_line(line))
-                        .collect::<Vec<_>>();
-                    let t4 = sauron::now();
-                    //log::debug!("all_lines took: {}ms", t4 - t3);
-                    all_lines
-                }),
-                div(
-                    vec![
-                        class_ns("status"),
-                        if let Some(gutter_bg) = self.gutter_background() {
-                            style! {
-                                "background-color": Self::convert_rgba(gutter_bg),
-                            }
-                        } else {
-                            empty_attr()
-                        },
-                        if let Some(gutter_fg) = self.gutter_foreground() {
-                            style! {
-                                "color": Self::convert_rgba(gutter_fg)
-                            }
-                        } else {
-                            empty_attr()
-                        },
-                    ],
-                    vec![text(format!(
-                        "line: {}, column: {}, {}",
-                        self.current_line + 1,
-                        self.current_col + 1,
-                        if let Some(took) = self.update_took {
-                            format!("update took: {}ms", took)
-                        } else {
-                            "".to_string()
-                        }
-                    ))],
-                ),
-            ],
-        );
-        let t2 = sauron::now();
-        log::debug!("view took: {}ms", t2 - t1);
-        html
     }
 
     fn view_line(&self, line: &Line) -> Node<Msg> {

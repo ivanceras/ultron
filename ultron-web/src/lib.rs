@@ -157,9 +157,9 @@ impl Component<Msg> for App {
     }
 
     fn measurements(&self, measurements: Measurements) -> Cmd<Self, Msg> {
-        Cmd::new(move|program|
-            //let update_took = Some(measurements.total_time);
-            program.dispatch(Msg::EditorMsg(editor::Msg::SetMeasurement(measurements))))
+        Cmd::new(move |program| {
+            program.dispatch(Msg::EditorMsg(editor::Msg::SetMeasurement(measurements)))
+        })
     }
 }
 
