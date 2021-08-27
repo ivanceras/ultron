@@ -114,44 +114,28 @@ impl Component<Msg> for App {
         match msg {
             Msg::EditorMsg(emsg) => {
                 let should_update = self.editor.update(emsg);
-                Cmd::should_update_view(should_update)
+                Cmd::none()
             }
             Msg::Mouseup(client_x, client_y) => {
                 let should_update = self.editor.update(editor::Msg::Mouseup(client_x, client_y));
-                if should_update {
-                    Cmd::measure()
-                } else {
-                    Cmd::no_render()
-                }
+                Cmd::none()
             }
             Msg::Mousedown(client_x, client_y) => {
                 let should_update = self
                     .editor
                     .update(editor::Msg::Mousedown(client_x, client_y));
-                if should_update {
-                    Cmd::measure()
-                } else {
-                    Cmd::no_render()
-                }
+                Cmd::none()
             }
             Msg::Mousemove(client_x, client_y) => {
                 log::trace!("Moving the mouse at: {},{}", client_x, client_y);
                 let should_update = self
                     .editor
                     .update(editor::Msg::Mousemove(client_x, client_y));
-                if should_update {
-                    Cmd::measure()
-                } else {
-                    Cmd::no_render()
-                }
+                Cmd::none()
             }
             Msg::KeyDown(ke) => {
                 let should_update = self.editor.update(editor::Msg::KeyDown(ke));
-                if should_update {
-                    Cmd::measure()
-                } else {
-                    Cmd::no_render()
-                }
+                Cmd::none()
             }
         }
     }

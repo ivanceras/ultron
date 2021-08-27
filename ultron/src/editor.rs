@@ -3,6 +3,7 @@ use sauron::jss;
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
 use sauron::web_sys::HtmlTextAreaElement;
+use sauron::Measurements;
 use std::iter::FromIterator;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::Color;
@@ -38,6 +39,7 @@ pub enum Msg {
     Mousemove(i32, i32),
     Mounted(web_sys::Node),
     SetMeasurement(Measurements),
+    Scrolled((i32, i32)),
 }
 
 const COMPONENT_NAME: &str = "ultron";
@@ -70,6 +72,8 @@ pub struct Editor {
     pub measurements: Option<Measurements>,
     editor_x: f32,
     editor_y: f32,
+    scroll_top: f32,
+    scroll_left: f32,
 }
 
 struct Line {
@@ -112,7 +116,13 @@ impl Editor {
                 let rect = element.get_bounding_client_rect();
                 self.editor_x = rect.x().round() as f32;
                 self.editor_y = rect.y().round() as f32;
-                false
+                true
+            }
+            Msg::Scrolled((scroll_top, scroll_left)) => {
+                self.scroll_top = scroll_top as f32;
+                self.scroll_left = scroll_left as f32;
+                log::trace!("scrolled to: {},{}", scroll_top, scroll_left);
+                true
             }
             Msg::Mouseup(client_x, client_y) => {
                 let (line, col) = self.convert_mouse_to_line_col(client_x, client_y);
@@ -168,7 +178,7 @@ impl Editor {
                     self.reposition_cursor_to_selection();
                     true
                 } else {
-                    false
+                    true
                 }
             }
             Msg::EndSelection(line, col) => {
@@ -182,7 +192,7 @@ impl Editor {
                     self.reposition_cursor_to_selection();
                     true
                 } else {
-                    false
+                    true
                 }
             }
             Msg::StopSelection => {
@@ -190,7 +200,7 @@ impl Editor {
                     self.is_selecting = false;
                     true
                 } else {
-                    false
+                    true
                 }
             }
             Msg::SetMeasurement(measurements) => {
@@ -286,6 +296,7 @@ impl Editor {
             vec![
                 class(COMPONENT_NAME),
                 on_mount(|me| Msg::Mounted(me.target_node)),
+                on_scroll(Msg::Scrolled),
             ],
             vec![
                 textarea(
@@ -313,17 +324,24 @@ impl Editor {
                     ],
                     vec![],
                 ),
-                div(vec![class_ns("code"), class_ns(&class_number_wide)], {
-                    let t3 = sauron::now();
-                    let all_lines = self
-                        .lines
-                        .iter()
-                        .map(|line| self.view_line(line))
-                        .collect::<Vec<_>>();
-                    let t4 = sauron::now();
-                    //log::debug!("all_lines took: {}ms", t4 - t3);
-                    all_lines
-                }),
+                div(
+                    vec![
+                        class_ns("code"),
+                        class_ns(&class_number_wide),
+                        on_scroll(Msg::Scrolled),
+                    ],
+                    {
+                        let t3 = sauron::now();
+                        let all_lines = self
+                            .lines
+                            .iter()
+                            .map(|line| self.view_line(line))
+                            .collect::<Vec<_>>();
+                        let t4 = sauron::now();
+                        //log::debug!("all_lines took: {}ms", t4 - t3);
+                        all_lines
+                    },
+                ),
                 div(
                     vec![
                         class_ns("status"),
@@ -393,19 +411,31 @@ impl Editor {
             measurements: None,
             editor_x: f32::NAN,
             editor_y: f32::NAN,
+            scroll_top: 0.0,
+            scroll_left: 0.0,
         };
         editor.recompute_lines();
         editor.recompute_meta();
         editor
     }
 
+    /// this just converts mouse into line col calculation, it still needs to be corrected
+    /// by actual lines and cols
     fn convert_mouse_to_line_col(&self, client_x: i32, client_y: i32) -> (usize, usize) {
-        //log::trace!("editor_loc: {},{}", self.editor_x, self.editor_y);
+        log::trace!("mouse_loc: {},{}", client_x, client_y);
+        log::trace!("editor_loc: {},{}", self.editor_x, self.editor_y);
         let number_line_offset = self.number_wide as f32 * CH_WIDTH as f32;
-        //log::trace!("number_line_offset: {}", number_line_offset);
-        let col = (client_x as f32 - self.editor_x - number_line_offset) / CH_WIDTH as f32;
-        let line = (client_y as f32 - self.editor_y) / CH_HEIGHT as f32;
-        (line.round() as usize, col.round() as usize)
+        log::trace!("number_line_offset: {}", number_line_offset);
+        let col = (client_x as f32 - self.editor_x - number_line_offset + self.scroll_left)
+            / CH_WIDTH as f32
+            - 1.0;
+        let line = (client_y as f32 - self.editor_y + self.scroll_top) / CH_HEIGHT as f32 - 1.0;
+        let max_line = self.lines.len() as f32;
+        let actual_line = line.clamp(0.0, max_line).round() as usize;
+        let last_col = self.lines[actual_line].last_col as f32;
+        let actual_col = col.clamp(0.0, last_col).round() as usize;
+        log::trace!("actual line col: {},{}", actual_line, actual_col);
+        (actual_line, actual_col)
     }
 
     pub fn set_browser_size(&mut self, width: i32, height: i32) {

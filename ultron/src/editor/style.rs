@@ -32,6 +32,7 @@ impl Editor {
                 "position": "relative",
                 "font-size": px(14),
                 "cursor": "text",
+                "overflow": "auto",
             },
 
             // paste area hack, we don't want to use
@@ -55,11 +56,13 @@ impl Editor {
 
             ".line_block": {
                 "display": "block",
+                "height": px(CH_HEIGHT),
             },
 
             // number and line
             ".number__line": {
                 "display": "flex",
+                "height": px(CH_HEIGHT),
             },
 
             // numbers
@@ -68,6 +71,7 @@ impl Editor {
                 "text-align": "right",
                 "background-color": "cyan",
                 "padding-right": ex(1),
+                "height": px(CH_HEIGHT),
             },
             ".number_wide1 .number": {
                 "width": px(1 * CH_WIDTH),
@@ -90,6 +94,8 @@ impl Editor {
             ".line": {
                 "display": "flex",
                 "flex": "none", // dont compress lines
+                "height": px(CH_HEIGHT),
+                "overflow": "hidden",
             },
 
             ".filler": {
@@ -104,6 +110,8 @@ impl Editor {
             ".range": {
                 "display": "flex",
                 "flex": "none",
+                "height": px(CH_HEIGHT),
+                "overflow": "hidden",
             },
 
             ".line .ch": {
