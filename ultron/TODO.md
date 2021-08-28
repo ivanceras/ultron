@@ -46,3 +46,5 @@
      to this node and when retrieved from `find_nodes` it would be faster
     - [ ] Alternatively, we create a reference to the actual
      created node for all the virtual Node.
+
+- [ ] Big regression in between 0.39 to 0.42, building view used to be 10ms now it's 100ms

@@ -1,4 +1,6 @@
 use super::*;
+use sauron::jss::jss;
+use sauron::jss::jss_ns;
 use syntect::highlighting::Color;
 
 impl Editor {
@@ -25,7 +27,7 @@ impl Editor {
             }
         };
 
-        let css = jss_ns!(COMPONENT_NAME,{
+        let css = jss_ns! {COMPONENT_NAME,
             ".": {
                 "user-select": "none",
                 "-webkit-user-select": "none",
@@ -183,7 +185,7 @@ impl Editor {
               }
             },
 
-        });
+        };
         css
     }
 }

@@ -1,4 +1,6 @@
 use history::Recorded;
+use sauron::html::attributes::class_namespaced;
+use sauron::html::attributes::classes_flag_namespaced;
 use sauron::jss;
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
@@ -205,7 +207,7 @@ impl Editor {
             }
             Msg::SetMeasurement(measurements) => {
                 self.measurements = Some(measurements);
-                true
+                false
             }
             Msg::KeyDown(ke) => {
                 let key = ke.key();
@@ -289,7 +291,7 @@ impl Editor {
     }
 
     pub fn view(&self) -> Node<Msg> {
-        let class_ns = |class_names| jss::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         let class_number_wide = format!("number_wide{}", self.number_wide);
         let t1 = sauron::now();
         let html = div(
@@ -338,7 +340,6 @@ impl Editor {
                             .map(|line| self.view_line(line))
                             .collect::<Vec<_>>();
                         let t4 = sauron::now();
-                        //log::debug!("all_lines took: {}ms", t4 - t3);
                         all_lines
                     },
                 ),
@@ -364,11 +365,8 @@ impl Editor {
                         "line: {}, column: {}, {}",
                         self.current_line + 1,
                         self.current_col + 1,
-                        if let Some(measurements) = self.measurements {
-                            format!(
-                                "update took: {}ms {:?}",
-                                measurements.total_time, measurements
-                            )
+                        if let Some(measurements) = &self.measurements {
+                            format!("update took: {}ms", measurements.total_time)
                         } else {
                             "".to_string()
                         }
@@ -714,10 +712,10 @@ impl Editor {
         let is_current_line = self.current_line == line.line_pos;
         let line_pos = line.line_pos;
 
-        let class_ns = |class_names| jss::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
 
         let classes_ns_flag =
-            |class_name_flags| jss::classes_namespaced_flag(COMPONENT_NAME, class_name_flags);
+            |class_name_flags| classes_flag_namespaced(COMPONENT_NAME, class_name_flags);
 
         let filler_width = self.browser_size.0 as usize - line.line_width;
         let line_last_col = line.last_col;
@@ -761,7 +759,9 @@ impl Editor {
                             .map(|range| self.view_range(line.line_pos, range))
                             .collect::<Vec<_>>();
                         let t6 = sauron::now();
-                        //log::debug!("range in line took: {}ms", t6 - t5);
+                        if t6 - t5 > 10.0 {
+                            log::debug!("range in line took: {}ms", t6 - t5);
+                        }
                         html
                     }),
                     div(
@@ -782,15 +782,15 @@ impl Editor {
             )],
         );
         let t2 = sauron::now();
-        //log::debug!("view line took: {}ms", t2 - t1);
         html
     }
 
     fn view_range(&self, line_pos: usize, range: &HighlightRange) -> Node<Msg> {
-        let class_ns = |class_names| jss::class_namespaced(COMPONENT_NAME, class_names);
+        let t5 = sauron::now();
+        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         let background = range.style.background;
         let foreground = range.style.foreground;
-        div(
+        let html = div(
             vec![
                 class_ns("range"),
                 style! {
@@ -803,16 +803,19 @@ impl Editor {
                 .iter()
                 .map(|ch| self.view_char(line_pos, ch))
                 .collect::<Vec<_>>(),
-        )
+        );
+        let t6 = sauron::now();
+        html
     }
 
     fn view_char(&self, line_pos: usize, ch: &Ch) -> Node<Msg> {
+        let t7 = sauron::now();
         let col_pos = ch.col_pos;
         let is_current_line = self.current_line == line_pos;
-        let class_ns = |class_names| jss::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
 
         let classes_ns_flag =
-            |class_name_flags| jss::classes_namespaced_flag(COMPONENT_NAME, class_name_flags);
+            |class_name_flags| classes_flag_namespaced(COMPONENT_NAME, class_name_flags);
         {
             let class_wide = match ch.unicode_width {
                 1 => "wide1",
@@ -829,7 +832,7 @@ impl Editor {
                     false
                 };
 
-            div(
+            let html = div(
                 vec![
                     class_ns("ch"),
                     attr("pos", ch.position),
@@ -843,7 +846,9 @@ impl Editor {
                 } else {
                     vec![text(ch.ch)]
                 },
-            )
+            );
+            let t8 = sauron::now();
+            html
         }
     }
 }

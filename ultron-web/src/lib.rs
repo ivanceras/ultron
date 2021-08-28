@@ -1,4 +1,5 @@
 //#![deny(warnings)]
+use sauron::jss::jss;
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
 use ultron::editor;
@@ -30,8 +31,8 @@ impl App {
     }
 }
 
-impl Component<Msg> for App {
-    fn init(&self) -> Cmd<Self, Msg> {
+impl Application<Msg> for App {
+    fn init(&mut self) -> Cmd<Self, Msg> {
         Cmd::new(move |program| {
             let window_elm = web_sys::window().expect("no global `window` exists");
 
@@ -91,17 +92,17 @@ impl Component<Msg> for App {
             task_mousemove.forget();
         })
     }
-    fn style(&self) -> Vec<String> {
-        let lib_css = jss!({
+    fn style(&self) -> String {
+        let lib_css = jss! {
             ".app": {
                 "display": "flex",
                 "flex": "none",
                 "width": percent(100),
                 "height": percent(100),
             },
-        });
+        };
 
-        vec![lib_css, self.editor.style().join("\n")]
+        vec![lib_css, self.editor.style().join("\n")].join("\n")
     }
     fn view(&self) -> Node<Msg> {
         div(
@@ -114,36 +115,59 @@ impl Component<Msg> for App {
         match msg {
             Msg::EditorMsg(emsg) => {
                 let should_update = self.editor.update(emsg);
-                Cmd::none()
+                if should_update {
+                    Cmd::none().measure()
+                } else {
+                    Cmd::none().no_render()
+                }
             }
             Msg::Mouseup(client_x, client_y) => {
                 let should_update = self.editor.update(editor::Msg::Mouseup(client_x, client_y));
-                Cmd::none()
+                if should_update {
+                    Cmd::none().measure()
+                } else {
+                    Cmd::none().no_render()
+                }
             }
             Msg::Mousedown(client_x, client_y) => {
                 let should_update = self
                     .editor
                     .update(editor::Msg::Mousedown(client_x, client_y));
-                Cmd::none()
+                if should_update {
+                    Cmd::none().measure()
+                } else {
+                    Cmd::none().no_render()
+                }
             }
             Msg::Mousemove(client_x, client_y) => {
                 log::trace!("Moving the mouse at: {},{}", client_x, client_y);
                 let should_update = self
                     .editor
                     .update(editor::Msg::Mousemove(client_x, client_y));
-                Cmd::none()
+                if should_update {
+                    Cmd::none().measure()
+                } else {
+                    Cmd::none().no_render()
+                }
             }
             Msg::KeyDown(ke) => {
                 let should_update = self.editor.update(editor::Msg::KeyDown(ke));
-                Cmd::none()
+                if should_update {
+                    Cmd::none().measure()
+                } else {
+                    Cmd::none().no_render()
+                }
             }
         }
     }
 
     fn measurements(&self, measurements: Measurements) -> Cmd<Self, Msg> {
         Cmd::new(move |program| {
-            program.dispatch(Msg::EditorMsg(editor::Msg::SetMeasurement(measurements)))
+            program.dispatch(Msg::EditorMsg(editor::Msg::SetMeasurement(
+                measurements.clone(),
+            )))
         })
+        .no_render()
     }
 }
 
