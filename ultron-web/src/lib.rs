@@ -140,7 +140,6 @@ impl Application<Msg> for App {
                 }
             }
             Msg::Mousemove(client_x, client_y) => {
-                log::trace!("Moving the mouse at: {},{}", client_x, client_y);
                 let should_update = self
                     .editor
                     .update(editor::Msg::Mousemove(client_x, client_y));

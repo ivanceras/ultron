@@ -174,6 +174,11 @@ impl TextBuffer {
 
     /// move the cursor to this position
     pub(crate) fn move_to(&mut self, pos: usize) {
+        let pos = if pos >= self.text.len_chars() {
+            self.text.len_chars() - 1
+        } else {
+            pos
+        };
         assert!(pos < self.text.len_chars());
         self.pos = pos;
     }

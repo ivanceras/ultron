@@ -293,8 +293,7 @@ impl Editor {
     pub fn view(&self) -> Node<Msg> {
         let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         let class_number_wide = format!("number_wide{}", self.number_wide);
-        let t1 = sauron::now();
-        let html = div(
+        div(
             vec![
                 class(COMPONENT_NAME),
                 on_mount(|me| Msg::Mounted(me.target_node)),
@@ -332,16 +331,10 @@ impl Editor {
                         class_ns(&class_number_wide),
                         on_scroll(Msg::Scrolled),
                     ],
-                    {
-                        let t3 = sauron::now();
-                        let all_lines = self
-                            .lines
-                            .iter()
-                            .map(|line| self.view_line(line))
-                            .collect::<Vec<_>>();
-                        let t4 = sauron::now();
-                        all_lines
-                    },
+                    self.lines
+                        .iter()
+                        .map(|line| self.view_line(line))
+                        .collect::<Vec<_>>(),
                 ),
                 div(
                     vec![
@@ -366,17 +359,19 @@ impl Editor {
                         self.current_line + 1,
                         self.current_col + 1,
                         if let Some(measurements) = &self.measurements {
-                            format!("update took: {}ms", measurements.total_time)
+                            format!(
+                                "{} patches on {} total nodes took {}ms",
+                                measurements.total_patches,
+                                measurements.view_node_count,
+                                measurements.total_time
+                            )
                         } else {
                             "".to_string()
                         }
                     ))],
                 ),
             ],
-        );
-        let t2 = sauron::now();
-        log::debug!("view took: {}ms", t2 - t1);
-        html
+        )
     }
 }
 
@@ -420,19 +415,15 @@ impl Editor {
     /// this just converts mouse into line col calculation, it still needs to be corrected
     /// by actual lines and cols
     fn convert_mouse_to_line_col(&self, client_x: i32, client_y: i32) -> (usize, usize) {
-        log::trace!("mouse_loc: {},{}", client_x, client_y);
-        log::trace!("editor_loc: {},{}", self.editor_x, self.editor_y);
         let number_line_offset = self.number_wide as f32 * CH_WIDTH as f32;
-        log::trace!("number_line_offset: {}", number_line_offset);
         let col = (client_x as f32 - self.editor_x - number_line_offset + self.scroll_left)
             / CH_WIDTH as f32
             - 1.0;
         let line = (client_y as f32 - self.editor_y + self.scroll_top) / CH_HEIGHT as f32 - 1.0;
-        let max_line = self.lines.len() as f32;
+        let max_line = (self.lines.len() - 1) as f32;
         let actual_line = line.clamp(0.0, max_line).round() as usize;
         let last_col = self.lines[actual_line].last_col as f32;
         let actual_col = col.clamp(0.0, last_col).round() as usize;
-        log::trace!("actual line col: {},{}", actual_line, actual_col);
         (actual_line, actual_col)
     }
 
@@ -708,7 +699,6 @@ impl Editor {
     }
 
     fn view_line(&self, line: &Line) -> Node<Msg> {
-        let t1 = sauron::now();
         let is_current_line = self.current_line == line.line_pos;
         let line_pos = line.line_pos;
 
@@ -719,7 +709,7 @@ impl Editor {
 
         let filler_width = self.browser_size.0 as usize - line.line_width;
         let line_last_col = line.last_col;
-        let html = div(
+        div(
             vec![
                 class_ns("line_block"),
                 classes_ns_flag([("block_cursor", self.use_block_cursor)]),
@@ -752,17 +742,10 @@ impl Editor {
                         vec![text(line.line_pos + 1)],
                     ),
                     div(vec![class_ns("line")], {
-                        let t5 = sauron::now();
-                        let html = line
-                            .highlight_ranges
+                        line.highlight_ranges
                             .iter()
                             .map(|range| self.view_range(line.line_pos, range))
-                            .collect::<Vec<_>>();
-                        let t6 = sauron::now();
-                        if t6 - t5 > 10.0 {
-                            log::debug!("range in line took: {}ms", t6 - t5);
-                        }
-                        html
+                            .collect::<Vec<_>>()
                     }),
                     div(
                         vec![
@@ -780,17 +763,14 @@ impl Editor {
                     ),
                 ],
             )],
-        );
-        let t2 = sauron::now();
-        html
+        )
     }
 
     fn view_range(&self, line_pos: usize, range: &HighlightRange) -> Node<Msg> {
-        let t5 = sauron::now();
         let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         let background = range.style.background;
         let foreground = range.style.foreground;
-        let html = div(
+        div(
             vec![
                 class_ns("range"),
                 style! {
@@ -803,13 +783,10 @@ impl Editor {
                 .iter()
                 .map(|ch| self.view_char(line_pos, ch))
                 .collect::<Vec<_>>(),
-        );
-        let t6 = sauron::now();
-        html
+        )
     }
 
     fn view_char(&self, line_pos: usize, ch: &Ch) -> Node<Msg> {
-        let t7 = sauron::now();
         let col_pos = ch.col_pos;
         let is_current_line = self.current_line == line_pos;
         let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
@@ -832,7 +809,7 @@ impl Editor {
                     false
                 };
 
-            let html = div(
+            div(
                 vec![
                     class_ns("ch"),
                     attr("pos", ch.position),
@@ -846,9 +823,7 @@ impl Editor {
                 } else {
                     vec![text(ch.ch)]
                 },
-            );
-            let t8 = sauron::now();
-            html
+            )
         }
     }
 }
