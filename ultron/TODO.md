@@ -47,4 +47,7 @@
     - [ ] Alternatively, we create a reference to the actual
      created node for all the virtual Node.
 
-- [ ] Big regression in between 0.39 to 0.42, building view used to be 10ms now it's 100ms
+- [X] Big regression in between 0.39 to 0.42, building view used to be 10ms now it's 100ms
+    - Fixed, bug was in the `jss` crate.
+- [ ] Use svgbob StringBuffer as the container of text, since this should be a lightweight editor
+
