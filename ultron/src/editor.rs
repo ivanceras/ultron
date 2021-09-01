@@ -1,22 +1,22 @@
 use history::Recorded;
-use sauron::html::attributes::class_namespaced;
-use sauron::html::attributes::classes_flag_namespaced;
-use sauron::jss;
+
+
+
 use sauron::jss::jss_ns;
 use sauron::prelude::*;
-use sauron::wasm_bindgen::JsCast;
-use sauron::web_sys::HtmlTextAreaElement;
+
+
 use sauron::Measurements;
-use std::iter::FromIterator;
-use syntect::easy::HighlightLines;
+
+
 use syntect::highlighting::Color;
 use syntect::highlighting::Theme;
-use syntect::highlighting::{Style, ThemeSet};
-use syntect::parsing::SyntaxReference;
-use syntect::parsing::SyntaxSet;
-use text_buffer::Movement;
+
+
+
+
 use text_buffer::TextBuffer;
-use unicode_width::UnicodeWidthChar;
+
 
 pub const CH_WIDTH: u32 = 8;
 pub const CH_HEIGHT: u32 = 16;
@@ -62,22 +62,22 @@ impl Component<Msg, ()> for Editor {
     /// returns bool indicating whether the view should be updated or not
     fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
         match msg {
-            Msg::Scrolled((scroll_top, scroll_left)) => {}
-            Msg::Mouseup(client_x, client_y) => {}
-            Msg::Mousedown(client_x, client_y) => {}
-            Msg::Mousemove(client_x, client_y) => {}
-            Msg::Paste(text_content) => {}
+            Msg::Scrolled((_scroll_top, _scroll_left)) => {}
+            Msg::Mouseup(_client_x, _client_y) => {}
+            Msg::Mousedown(_client_x, _client_y) => {}
+            Msg::Mousemove(_client_x, _client_y) => {}
+            Msg::Paste(_text_content) => {}
             Msg::CopiedSelected => {}
-            Msg::MoveCursor(line, col) => {}
-            Msg::MoveCursorToLine(line) => {}
-            Msg::StartSelection(line, col) => {}
-            Msg::ToSelection(line, col) => {}
-            Msg::EndSelection(line, col) => {}
+            Msg::MoveCursor(_line, _col) => {}
+            Msg::MoveCursorToLine(_line) => {}
+            Msg::StartSelection(_line, _col) => {}
+            Msg::ToSelection(_line, _col) => {}
+            Msg::EndSelection(_line, _col) => {}
             Msg::StopSelection => {}
             Msg::SetMeasurement(measurements) => {
                 self.measurements = Some(measurements);
             }
-            Msg::KeyDown(ke) => {}
+            Msg::KeyDown(_ke) => {}
         }
         Effects::none()
     }
@@ -273,7 +273,7 @@ impl Component<Msg, ()> for Editor {
 
 impl Editor {
     pub fn from_str(content: &str) -> Self {
-        let mut editor = Editor {
+        let editor = Editor {
             text_buffer: TextBuffer::from_str(content),
             use_block_cursor: true,
             page_size: 10,

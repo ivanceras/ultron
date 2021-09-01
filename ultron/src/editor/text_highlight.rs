@@ -3,7 +3,7 @@ use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
 use std::iter::FromIterator;
-use std::marker::PhantomData;
+
 use syntect::easy::HighlightLines;
 use syntect::highlighting::Style;
 use syntect::highlighting::Theme;
@@ -197,7 +197,7 @@ impl Highlighter {
         let syntax_set: SyntaxSet = SyntaxSet::load_defaults_newlines();
         let theme_set: ThemeSet = ThemeSet::load_defaults();
         let theme_name = "base16-eighties.dark".to_string();
-        let active_theme = &theme_set.themes[&theme_name];
+        let _active_theme = &theme_set.themes[&theme_name];
 
         Self {
             syntax_set,

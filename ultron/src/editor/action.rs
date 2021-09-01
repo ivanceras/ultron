@@ -12,15 +12,15 @@ pub enum Action {
 }
 
 impl Action {
-    pub fn apply(&self, content: &mut TextBuffer) {
+    pub fn apply(&self, _content: &mut TextBuffer) {
         match *self {
-            Action::Insert(ref s) => {}
-            Action::Delete(ref s) => {}
-            Action::Move(rel) => {}
-            Action::DeleteForward(ref s) => {}
-            Action::InsertForward(ref s) => {}
-            Action::DeleteSelectedForward(start_pos, end_pos, ref _s) => {}
-            Action::InsertStringForward(start_pos, end_pos, ref s) => {}
+            Action::Insert(ref _s) => {}
+            Action::Delete(ref _s) => {}
+            Action::Move(_rel) => {}
+            Action::DeleteForward(ref _s) => {}
+            Action::InsertForward(ref _s) => {}
+            Action::DeleteSelectedForward(_start_pos, _end_pos, ref _s) => {}
+            Action::InsertStringForward(_start_pos, _end_pos, ref _s) => {}
         };
     }
 

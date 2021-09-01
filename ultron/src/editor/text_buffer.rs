@@ -1,12 +1,12 @@
 use crate::editor::text_highlight::TextHighlight;
-use ropey::iter::Chars;
-use ropey::iter::Lines;
-use ropey::Rope;
+
+
+
 use sauron::prelude::*;
-use std::cmp;
-use syntect::easy::HighlightLines;
-use syntect::parsing::SyntaxSet;
-use text_canvas::TextCanvas;
+
+
+
+
 
 #[derive(Clone)]
 pub enum Movement {
@@ -44,8 +44,8 @@ impl TextBuffer {
         match mov {
             Movement::Up => {}
             Movement::Down => {}
-            Movement::PageUp(up) => {}
-            Movement::PageDown(down) => {}
+            Movement::PageUp(_up) => {}
+            Movement::PageDown(_down) => {}
             Movement::Left => {}
             Movement::Right => {}
             Movement::LineStart => {}
@@ -54,7 +54,7 @@ impl TextBuffer {
     }
 
     /// insert character at the left of cursor position
-    pub(crate) fn insert(&mut self, ch: char) {}
+    pub(crate) fn insert(&mut self, _ch: char) {}
 
     pub fn view<MSG>(&self) -> Node<MSG> {
         self.text_highlight.view()
