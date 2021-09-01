@@ -88,7 +88,10 @@ impl Component<Msg, ()> for Editor {
     }
 
     fn view(&self) -> Node<Msg> {
-        div(vec![class(COMPONENT_NAME)], vec![self.text_buffer.view()])
+        div(
+            vec![class(COMPONENT_NAME), on_scroll(Msg::Scrolled)],
+            vec![self.text_buffer.view()],
+        )
     }
 
     fn style(&self) -> String {
