@@ -14,7 +14,7 @@ use unicode_width::UnicodeWidthChar;
 
 /// A text buffer where every insertion of character it will
 /// recompute the highlighting of a line
-pub struct TextHighlight {
+pub struct TextBuffer {
     lines: Vec<Line>,
     highlighter: Highlighter,
     x_pos: usize,
@@ -57,7 +57,7 @@ struct FocusCell {
     cell_index: usize,
 }
 
-impl TextHighlight {
+impl TextBuffer {
     pub fn from_str(content: &str) -> Self {
         let highlighter = Highlighter::default();
         let lines = content
@@ -106,7 +106,7 @@ impl TextHighlight {
 }
 
 /// text manipulation
-impl TextHighlight {
+impl TextBuffer {
     /// the total number of lines of this text canvas
     pub fn total_lines(&self) -> usize {
         self.lines.len()
@@ -276,7 +276,7 @@ impl TextHighlight {
     }
 }
 
-impl TextHighlight {
+impl TextBuffer {
     pub(crate) fn command_insert_char(&mut self, ch: char) {
         self.insert_char(self.x_pos, self.y_pos, ch);
     }
@@ -396,7 +396,7 @@ impl Default for Range {
     }
 }
 
-impl ToString for TextHighlight {
+impl ToString for TextBuffer {
     fn to_string(&self) -> String {
         self.lines
             .iter()

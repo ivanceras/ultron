@@ -1,4 +1,4 @@
-use super::TextHighlight;
+use super::TextBuffer;
 
 #[derive(Clone, Debug)]
 pub enum Action {
@@ -12,7 +12,7 @@ pub enum Action {
 }
 
 impl Action {
-    pub fn apply(&self, _content: &mut TextHighlight) {
+    pub fn apply(&self, _content: &mut TextBuffer) {
         match *self {
             Action::Insert(ref _s) => {}
             Action::Delete(ref _s) => {}

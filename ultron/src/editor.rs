@@ -7,14 +7,14 @@ use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::Measurements;
 use syntect::highlighting::Theme;
-pub use text_highlight::TextHighlight;
+pub use text_buffer::TextBuffer;
 
 pub const CH_WIDTH: u32 = 8;
 pub const CH_HEIGHT: u32 = 16;
 
 pub(crate) mod action;
 mod history;
-mod text_highlight;
+mod text_buffer;
 
 #[derive(Clone, PartialEq)]
 pub enum Msg {
@@ -37,7 +37,7 @@ pub enum Msg {
 pub const COMPONENT_NAME: &str = "ultron";
 
 pub struct Editor {
-    text_buffer: TextHighlight,
+    text_buffer: TextBuffer,
     use_block_cursor: bool,
     /// number of lines in a page, when paging up and down
     page_size: usize,
@@ -260,7 +260,7 @@ impl Component<Msg, ()> for Editor {
 impl Editor {
     pub fn from_str(content: &str) -> Self {
         let editor = Editor {
-            text_buffer: TextHighlight::from_str(content),
+            text_buffer: TextBuffer::from_str(content),
             use_block_cursor: true,
             page_size: 10,
             recorded: Recorded::new(),
