@@ -2,6 +2,7 @@ use crate::editor::text_highlight::TextHighlight;
 use ropey::iter::Chars;
 use ropey::iter::Lines;
 use ropey::Rope;
+use sauron::prelude::*;
 use std::cmp;
 use syntect::easy::HighlightLines;
 use syntect::parsing::SyntaxSet;
@@ -54,4 +55,8 @@ impl TextBuffer {
 
     /// insert character at the left of cursor position
     pub(crate) fn insert(&mut self, ch: char) {}
+
+    pub fn view<MSG>(&self) -> Node<MSG> {
+        self.text_highlight.view()
+    }
 }

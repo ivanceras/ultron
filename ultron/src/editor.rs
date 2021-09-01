@@ -44,7 +44,7 @@ pub enum Msg {
     Scrolled((i32, i32)),
 }
 
-const COMPONENT_NAME: &str = "ultron";
+pub const COMPONENT_NAME: &str = "ultron";
 
 pub struct Editor {
     text_buffer: TextBuffer,
@@ -83,55 +83,7 @@ impl Component<Msg, ()> for Editor {
     }
 
     fn view(&self) -> Node<Msg> {
-        div(vec![], vec![text("hello")])
-    }
-}
-
-impl Editor {
-    pub fn from_str(content: &str) -> Self {
-        let mut editor = Editor {
-            text_buffer: TextBuffer::from_str(content),
-            use_block_cursor: true,
-            page_size: 10,
-            recorded: Recorded::new(),
-            measurements: None,
-            scroll_top: 0.0,
-            scroll_left: 0.0,
-        };
-        editor
-    }
-
-    fn active_theme(&self) -> &Theme {
-        &self.text_buffer.text_highlight.active_theme()
-    }
-
-    fn theme_background(&self) -> Option<Color> {
-        self.active_theme().settings.background
-    }
-
-    fn gutter_background(&self) -> Option<Color> {
-        self.active_theme().settings.gutter
-    }
-
-    fn gutter_foreground(&self) -> Option<Color> {
-        self.active_theme().settings.gutter_foreground
-    }
-
-    #[allow(unused)]
-    fn accent_color(&self) -> Option<Color> {
-        self.active_theme().settings.accent
-    }
-
-    fn selection_background(&self) -> Option<Color> {
-        self.active_theme().settings.selection
-    }
-
-    fn cursor_color(&self) -> Option<Color> {
-        self.active_theme().settings.caret
-    }
-
-    fn convert_rgba(c: Color) -> String {
-        format!("rgba({},{},{},{})", c.r, c.g, c.b, c.a as f32 * 255.0)
+        self.text_buffer.view()
     }
 
     fn style(&self) -> String {
@@ -316,5 +268,53 @@ impl Editor {
             },
 
         }
+    }
+}
+
+impl Editor {
+    pub fn from_str(content: &str) -> Self {
+        let mut editor = Editor {
+            text_buffer: TextBuffer::from_str(content),
+            use_block_cursor: true,
+            page_size: 10,
+            recorded: Recorded::new(),
+            measurements: None,
+            scroll_top: 0.0,
+            scroll_left: 0.0,
+        };
+        editor
+    }
+
+    fn active_theme(&self) -> &Theme {
+        &self.text_buffer.text_highlight.active_theme()
+    }
+
+    fn theme_background(&self) -> Option<Color> {
+        self.active_theme().settings.background
+    }
+
+    fn gutter_background(&self) -> Option<Color> {
+        self.active_theme().settings.gutter
+    }
+
+    fn gutter_foreground(&self) -> Option<Color> {
+        self.active_theme().settings.gutter_foreground
+    }
+
+    #[allow(unused)]
+    fn accent_color(&self) -> Option<Color> {
+        self.active_theme().settings.accent
+    }
+
+    fn selection_background(&self) -> Option<Color> {
+        self.active_theme().settings.selection
+    }
+
+    fn cursor_color(&self) -> Option<Color> {
+        self.active_theme().settings.caret
+    }
+
+    fn convert_rgba(c: Color) -> String {
+        format!("rgba({},{},{},{})", c.r, c.g, c.b, c.a as f32 * 255.0)
     }
 }
