@@ -95,10 +95,10 @@ impl Application<Msg> for App {
     fn style(&self) -> String {
         let lib_css = jss! {
             ".app": {
-                "display": "flex",
-                "flex": "none",
-                "width": percent(100),
-                "height": percent(100),
+                display: "flex",
+                flex: "none",
+                width: percent(100),
+                height: percent(100),
             },
         };
 
