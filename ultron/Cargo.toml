@@ -18,6 +18,7 @@ unicode-width = "0.1"
 text-canvas = { version = "0.1.0", path = "../../text-canvas" }
 percent-encoding = "2.1.0"
 syntect = { version = "4", default-features = false, features = ["default-fancy"] }
+css-colors = "1"
 
 [dependencies.web-sys]
 version = "0.3"

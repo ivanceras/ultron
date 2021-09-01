@@ -1,8 +1,11 @@
+use crate::util;
+use css_colors::rgba;
+use css_colors::Color;
+use css_colors::RGBA;
 use history::Recorded;
 use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::Measurements;
-use syntect::highlighting::Color;
 use syntect::highlighting::Theme;
 pub use text_highlight::TextHighlight;
 
@@ -89,27 +92,11 @@ impl Component<Msg, ()> for Editor {
     }
 
     fn style(&self) -> String {
-        let selection_bg = if let Some(selection_bg) = self.selection_background() {
-            selection_bg
-        } else {
-            Color {
-                r: 100,
-                g: 100,
-                b: 100,
-                a: 100,
-            }
-        };
+        let selection_bg = self
+            .selection_background()
+            .unwrap_or(rgba(100, 100, 100, 0.5));
 
-        let cursor_color = if let Some(cursor_color) = self.cursor_color() {
-            cursor_color
-        } else {
-            Color {
-                r: 255,
-                g: 0,
-                b: 0,
-                a: 255,
-            }
-        };
+        let cursor_color = self.cursor_color().unwrap_or(rgba(255, 0, 0, 1.0));
 
         jss_ns! {COMPONENT_NAME,
             ".": {
@@ -215,7 +202,7 @@ impl Component<Msg, ()> for Editor {
             },
 
             ".ch.selected": {
-                background_color: Self::convert_rgba(selection_bg),
+                background_color:selection_bg.to_css(),
             },
 
             ".ch .cursor": {
@@ -223,7 +210,7 @@ impl Component<Msg, ()> for Editor {
                left: 0,
                width : px(CH_WIDTH),
                height: px(CH_HEIGHT),
-               background_color: Self::convert_rgba(cursor_color),
+               background_color: cursor_color.to_css(),
                display: "inline",
                animation: "cursor_blink-anim 1000ms step-end infinite",
             },
@@ -296,32 +283,31 @@ impl Editor {
         &self.text_buffer.active_theme()
     }
 
-    fn theme_background(&self) -> Option<Color> {
-        self.active_theme().settings.background
+    fn theme_background(&self) -> Option<RGBA> {
+        self.active_theme().settings.background.map(util::to_rgba)
     }
 
-    fn gutter_background(&self) -> Option<Color> {
-        self.active_theme().settings.gutter
+    fn gutter_background(&self) -> Option<RGBA> {
+        self.active_theme().settings.gutter.map(util::to_rgba)
     }
 
-    fn gutter_foreground(&self) -> Option<Color> {
-        self.active_theme().settings.gutter_foreground
+    fn gutter_foreground(&self) -> Option<RGBA> {
+        self.active_theme()
+            .settings
+            .gutter_foreground
+            .map(util::to_rgba)
     }
 
     #[allow(unused)]
-    fn accent_color(&self) -> Option<Color> {
-        self.active_theme().settings.accent
+    fn accent_color(&self) -> Option<RGBA> {
+        self.active_theme().settings.accent.map(util::to_rgba)
     }
 
-    fn selection_background(&self) -> Option<Color> {
-        self.active_theme().settings.selection
+    fn selection_background(&self) -> Option<RGBA> {
+        self.active_theme().settings.selection.map(util::to_rgba)
     }
 
-    fn cursor_color(&self) -> Option<Color> {
-        self.active_theme().settings.caret
-    }
-
-    fn convert_rgba(c: Color) -> String {
-        format!("rgba({},{},{},{})", c.r, c.g, c.b, c.a as f32 * 255.0)
+    fn cursor_color(&self) -> Option<RGBA> {
+        self.active_theme().settings.caret.map(util::to_rgba)
     }
 }
