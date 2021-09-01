@@ -14,41 +14,13 @@ pub enum Action {
 impl Action {
     pub fn apply(&self, content: &mut TextBuffer) {
         match *self {
-            Action::Insert(ref s) => {
-                for c in s.chars() {
-                    content.insert(c);
-                }
-            }
-            Action::Delete(ref s) => {
-                for _ in s.chars() {
-                    content.delete();
-                }
-            }
-            Action::Move(rel) => {
-                let new_position = rel + content.pos() as isize;
-                content.move_to(new_position as usize);
-            }
-            Action::DeleteForward(ref s) => {
-                for _ in s.chars() {
-                    content.delete_forward();
-                }
-            }
-            Action::InsertForward(ref s) => {
-                for c in s.chars() {
-                    content.insert_forward(c);
-                }
-            }
-            Action::DeleteSelectedForward(start_pos, end_pos, ref _s) => {
-                content.move_to(start_pos);
-                content.selection = Some((start_pos, Some(end_pos)));
-                content.delete_selected_forward();
-                content.selection = None;
-            }
-            Action::InsertStringForward(start_pos, end_pos, ref s) => {
-                content.move_to(start_pos);
-                content.insert_string(s);
-                content.selection = Some((start_pos, Some(end_pos)));
-            }
+            Action::Insert(ref s) => {}
+            Action::Delete(ref s) => {}
+            Action::Move(rel) => {}
+            Action::DeleteForward(ref s) => {}
+            Action::InsertForward(ref s) => {}
+            Action::DeleteSelectedForward(start_pos, end_pos, ref _s) => {}
+            Action::InsertStringForward(start_pos, end_pos, ref s) => {}
         };
     }
 

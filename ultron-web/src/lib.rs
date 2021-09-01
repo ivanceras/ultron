@@ -102,7 +102,7 @@ impl Application<Msg> for App {
             },
         };
 
-        vec![lib_css, self.editor.style().join("\n")].join("\n")
+        vec![lib_css, self.editor.style()].join("\n")
     }
     fn view(&self) -> Node<Msg> {
         div(
@@ -114,48 +114,26 @@ impl Application<Msg> for App {
     fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
         match msg {
             Msg::EditorMsg(emsg) => {
-                let should_update = self.editor.update(emsg);
-                if should_update {
-                    Cmd::none().measure()
-                } else {
-                    Cmd::none().no_render()
-                }
+                self.editor.update(emsg);
+                Cmd::none()
             }
             Msg::Mouseup(client_x, client_y) => {
-                let should_update = self.editor.update(editor::Msg::Mouseup(client_x, client_y));
-                if should_update {
-                    Cmd::none().measure()
-                } else {
-                    Cmd::none().no_render()
-                }
+                self.editor.update(editor::Msg::Mouseup(client_x, client_y));
+                Cmd::none()
             }
             Msg::Mousedown(client_x, client_y) => {
-                let should_update = self
-                    .editor
+                self.editor
                     .update(editor::Msg::Mousedown(client_x, client_y));
-                if should_update {
-                    Cmd::none().measure()
-                } else {
-                    Cmd::none().no_render()
-                }
+                Cmd::none()
             }
             Msg::Mousemove(client_x, client_y) => {
-                let should_update = self
-                    .editor
+                self.editor
                     .update(editor::Msg::Mousemove(client_x, client_y));
-                if should_update {
-                    Cmd::none().measure()
-                } else {
-                    Cmd::none().no_render()
-                }
+                Cmd::none()
             }
             Msg::KeyDown(ke) => {
-                let should_update = self.editor.update(editor::Msg::KeyDown(ke));
-                if should_update {
-                    Cmd::none().measure()
-                } else {
-                    Cmd::none().no_render()
-                }
+                self.editor.update(editor::Msg::KeyDown(ke));
+                Cmd::none()
             }
         }
     }
