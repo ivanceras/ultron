@@ -144,8 +144,16 @@ impl Range {
 
     fn view<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let background = self.style.background;
+        let foreground = self.style.foreground;
         div(
-            vec![class_ns("range")],
+            vec![
+                class_ns("range"),
+                style! {
+                    color: format!("rgba({},{},{},{})", foreground.r,foreground.g, foreground.b, (foreground.a as f32/ 255.0)),
+                    background_color: format!("rgba({},{},{},{})", background.r,background.g, background.b, (background.a as f32/ 255.0)),
+                },
+            ],
             self.cells
                 .iter()
                 .map(|cell| cell.view())
