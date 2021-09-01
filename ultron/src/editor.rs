@@ -1,14 +1,11 @@
 use history::Recorded;
-
 use sauron::jss::jss_ns;
 use sauron::prelude::*;
-
 use sauron::Measurements;
-
 use syntect::highlighting::Color;
 use syntect::highlighting::Theme;
-
 use text_buffer::TextBuffer;
+pub use text_highlight::TextHighlight;
 
 pub const CH_WIDTH: u32 = 8;
 pub const CH_HEIGHT: u32 = 16;
@@ -54,24 +51,35 @@ impl Component<Msg, ()> for Editor {
     /// returns bool indicating whether the view should be updated or not
     fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
         match msg {
-            Msg::Scrolled((_scroll_top, _scroll_left)) => {}
-            Msg::Mouseup(_client_x, _client_y) => {}
-            Msg::Mousedown(_client_x, _client_y) => {}
-            Msg::Mousemove(_client_x, _client_y) => {}
-            Msg::Paste(_text_content) => {}
-            Msg::CopiedSelected => {}
-            Msg::MoveCursor(_line, _col) => {}
-            Msg::MoveCursorToLine(_line) => {}
-            Msg::StartSelection(_line, _col) => {}
-            Msg::ToSelection(_line, _col) => {}
-            Msg::EndSelection(_line, _col) => {}
-            Msg::StopSelection => {}
+            Msg::Scrolled((scroll_top, scroll_left)) => {
+                self.scroll_top = scroll_top as f32;
+                self.scroll_left = scroll_left as f32;
+                Effects::none()
+            }
+            Msg::Mouseup(_client_x, _client_y) => Effects::none(),
+            Msg::Mousedown(_client_x, _client_y) => Effects::none(),
+            Msg::Mousemove(_client_x, _client_y) => Effects::none(),
+            Msg::Paste(_text_content) => Effects::none(),
+            Msg::CopiedSelected => Effects::none(),
+            Msg::MoveCursor(_line, _col) => Effects::none(),
+            Msg::MoveCursorToLine(_line) => Effects::none(),
+            Msg::StartSelection(_line, _col) => Effects::none(),
+            Msg::ToSelection(_line, _col) => Effects::none(),
+            Msg::EndSelection(_line, _col) => Effects::none(),
+            Msg::StopSelection => Effects::none(),
             Msg::SetMeasurement(measurements) => {
                 self.measurements = Some(measurements);
+                Effects::none()
             }
-            Msg::KeyDown(_ke) => {}
+            Msg::KeyDown(ke) => {
+                let key = ke.key();
+                if key.chars().count() == 1 {
+                    let c = key.chars().next().expect("must be only 1 chr");
+                    self.text_buffer.insert_char(c);
+                }
+                Effects::none()
+            }
         }
-        Effects::none()
     }
 
     fn view(&self) -> Node<Msg> {

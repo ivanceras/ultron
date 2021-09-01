@@ -1,12 +1,5 @@
 use crate::editor::text_highlight::TextHighlight;
-
-
-
 use sauron::prelude::*;
-
-
-
-
 
 #[derive(Clone)]
 pub enum Movement {
@@ -54,7 +47,9 @@ impl TextBuffer {
     }
 
     /// insert character at the left of cursor position
-    pub(crate) fn insert(&mut self, _ch: char) {}
+    pub(crate) fn insert_char(&mut self, ch: char) {
+        self.text_highlight.insert_char(self.x_pos, self.y_pos, ch);
+    }
 
     pub fn view<MSG>(&self) -> Node<MSG> {
         self.text_highlight.view()
