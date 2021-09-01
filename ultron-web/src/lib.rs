@@ -19,11 +19,6 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
-        //let content = include_str!("../../ultron/src/editor.rs");
-        // FIXME:
-        // optimization: show only the lines
-        // from the file that is viewable by the screen
-        // for, now we will just use files with smaller size
         let content = include_str!("../../ultron/test_data/hello.rs");
         App {
             editor: Editor::from_str(&content),
@@ -119,21 +114,21 @@ impl Application<Msg> for App {
             }
             Msg::Mouseup(client_x, client_y) => {
                 self.editor.update(editor::Msg::Mouseup(client_x, client_y));
-                Cmd::none()
+                Cmd::none().measure()
             }
             Msg::Mousedown(client_x, client_y) => {
                 self.editor
                     .update(editor::Msg::Mousedown(client_x, client_y));
-                Cmd::none()
+                Cmd::none().measure()
             }
             Msg::Mousemove(client_x, client_y) => {
                 self.editor
                     .update(editor::Msg::Mousemove(client_x, client_y));
-                Cmd::none()
+                Cmd::none().no_render()
             }
             Msg::KeyDown(ke) => {
                 self.editor.update(editor::Msg::KeyDown(ke));
-                Cmd::none()
+                Cmd::none().measure()
             }
         }
     }

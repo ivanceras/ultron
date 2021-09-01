@@ -9,7 +9,7 @@ description = "Ultron is a code editor written in rust"
 crate-type = ["rlib","cdylib"]
 
 [dependencies]
-sauron = { version = "0.43", path = "../../sauron", features = [] }
+sauron = { version = "0.43", path = "../../sauron", features = ["with-measure"] }
 console_error_panic_hook = "0.1"
 log = "0.4"
 console_log = { version = "0.2", features = ["color"]}

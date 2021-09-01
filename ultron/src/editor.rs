@@ -57,7 +57,11 @@ impl Component<Msg, ()> for Editor {
                 Effects::none()
             }
             Msg::Mouseup(_client_x, _client_y) => Effects::none(),
-            Msg::Mousedown(_client_x, _client_y) => Effects::none(),
+            Msg::Mousedown(client_x, client_y) => {
+                let (x, y) = self.calculate_position(client_x, client_y);
+                self.text_buffer.set_position(x, y);
+                Effects::none()
+            }
             Msg::Mousemove(_client_x, _client_y) => Effects::none(),
             Msg::Paste(_text_content) => Effects::none(),
             Msg::CopiedSelected => Effects::none(),
@@ -280,6 +284,14 @@ impl Editor {
             scroll_left: 0.0,
         };
         editor
+    }
+
+    fn calculate_position(&self, client_x: i32, client_y: i32) -> (usize, usize) {
+        let col = (client_x as f32 + self.scroll_left) / CH_WIDTH as f32 - 1.0;
+        let line = (client_y as f32 + self.scroll_top) / CH_HEIGHT as f32 - 1.0;
+        let x = col.round() as usize;
+        let y = line.round() as usize;
+        (x, y)
     }
 
     fn active_theme(&self) -> &Theme {

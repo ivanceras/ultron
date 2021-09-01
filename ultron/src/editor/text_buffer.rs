@@ -32,6 +32,10 @@ impl TextBuffer {
             selection_end: None,
         }
     }
+    pub fn set_position(&mut self, x: usize, y: usize) {
+        self.x_pos = x;
+        self.y_pos = y;
+    }
 
     pub(crate) fn step(&mut self, mov: Movement) {
         match mov {
