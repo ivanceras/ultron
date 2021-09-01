@@ -1,5 +1,5 @@
 use super::action::Action;
-use super::TextBuffer;
+use super::TextHighlight;
 use std::collections::VecDeque;
 
 const HISTORY_SIZE: usize = usize::MAX;
@@ -33,7 +33,7 @@ impl Recorded {
         }
     }
 
-    pub(crate) fn undo(&mut self, text_buffer: &mut TextBuffer) {
+    pub(crate) fn undo(&mut self, text_buffer: &mut TextHighlight) {
         let to_undo = match self.history.pop_front() {
             None => return,
             Some(a) => a,
@@ -45,7 +45,7 @@ impl Recorded {
         to_undo.invert().apply(text_buffer);
     }
 
-    pub(crate) fn redo(&mut self, text_buffer: &mut TextBuffer) {
+    pub(crate) fn redo(&mut self, text_buffer: &mut TextHighlight) {
         let to_redo = match self.undone.pop_front() {
             None => return,
             Some(a) => a,

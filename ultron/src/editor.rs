@@ -4,7 +4,6 @@ use sauron::prelude::*;
 use sauron::Measurements;
 use syntect::highlighting::Color;
 use syntect::highlighting::Theme;
-use text_buffer::TextBuffer;
 pub use text_highlight::TextHighlight;
 
 pub const CH_WIDTH: u32 = 8;
@@ -12,7 +11,6 @@ pub const CH_HEIGHT: u32 = 16;
 
 pub(crate) mod action;
 mod history;
-mod text_buffer;
 mod text_highlight;
 
 #[derive(Clone, PartialEq)]
@@ -36,7 +34,7 @@ pub enum Msg {
 pub const COMPONENT_NAME: &str = "ultron";
 
 pub struct Editor {
-    text_buffer: TextBuffer,
+    text_buffer: TextHighlight,
     use_block_cursor: bool,
     /// number of lines in a page, when paging up and down
     page_size: usize,
@@ -79,7 +77,7 @@ impl Component<Msg, ()> for Editor {
                 let key = ke.key();
                 if key.chars().count() == 1 {
                     let c = key.chars().next().expect("must be only 1 chr");
-                    self.text_buffer.insert_char(c);
+                    self.text_buffer.command_insert_char(c);
                 }
                 Effects::none()
             }
@@ -275,7 +273,7 @@ impl Component<Msg, ()> for Editor {
 impl Editor {
     pub fn from_str(content: &str) -> Self {
         let editor = Editor {
-            text_buffer: TextBuffer::from_str(content),
+            text_buffer: TextHighlight::from_str(content),
             use_block_cursor: true,
             page_size: 10,
             recorded: Recorded::new(),
@@ -295,7 +293,7 @@ impl Editor {
     }
 
     fn active_theme(&self) -> &Theme {
-        &self.text_buffer.text_highlight.active_theme()
+        &self.text_buffer.active_theme()
     }
 
     fn theme_background(&self) -> Option<Color> {

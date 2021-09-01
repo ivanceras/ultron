@@ -17,6 +17,10 @@ use unicode_width::UnicodeWidthChar;
 pub struct TextHighlight {
     lines: Vec<Line>,
     highlighter: Highlighter,
+    x_pos: usize,
+    y_pos: usize,
+    selection_start: Option<(usize, usize)>,
+    selection_end: Option<(usize, usize)>,
 }
 
 pub struct Highlighter {
@@ -46,6 +50,13 @@ pub struct Cell {
     width: usize,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct FocusCell {
+    line_index: usize,
+    range_index: usize,
+    cell_index: usize,
+}
+
 impl TextHighlight {
     pub fn from_str(content: &str) -> Self {
         let highlighter = Highlighter::default();
@@ -66,7 +77,14 @@ impl TextHighlight {
                 Line::from_ranges(ranges)
             })
             .collect();
-        Self { lines, highlighter }
+        Self {
+            lines,
+            highlighter,
+            x_pos: 0,
+            y_pos: 0,
+            selection_start: None,
+            selection_end: None,
+        }
     }
 
     pub fn active_theme(&self) -> &Theme {
@@ -75,11 +93,13 @@ impl TextHighlight {
 
     pub fn view<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let focus_cell = self.get_focus_cell();
         div(
             vec![class_ns("code")],
             self.lines
                 .iter()
-                .map(|line| line.view())
+                .enumerate()
+                .map(|(n, line)| line.view_line(focus_cell, n == focus_cell.line_index))
                 .collect::<Vec<_>>(),
         )
     }
@@ -128,6 +148,17 @@ impl TextHighlight {
                 .map(|ranges| ranges.cells.len())
                 .unwrap_or(0),
         )
+    }
+
+    fn get_focus_cell(&self) -> FocusCell {
+        let line_index = self.y_pos;
+        let line = &self.lines[line_index];
+        let (range_index, cell_index) = Self::calc_range_col_insert_position(line, self.x_pos);
+        FocusCell {
+            line_index,
+            range_index,
+            cell_index,
+        }
     }
 
     /// add more lines, used internally
@@ -245,6 +276,16 @@ impl TextHighlight {
     }
 }
 
+impl TextHighlight {
+    pub(crate) fn command_insert_char(&mut self, ch: char) {
+        self.insert_char(self.x_pos, self.y_pos, ch);
+    }
+    pub(crate) fn set_position(&mut self, x: usize, y: usize) {
+        self.x_pos = x;
+        self.y_pos = y;
+    }
+}
+
 impl Line {
     fn push_char(&mut self, ch: char) {
         let cell = Cell::from_char(ch);
@@ -281,13 +322,19 @@ impl Line {
         }
     }
 
-    fn view<MSG>(&self) -> Node<MSG> {
+    fn view_line<MSG>(&self, focus_cell: FocusCell, is_focused: bool) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         div(
             vec![class_ns("line")],
             self.ranges
                 .iter()
-                .map(|range| range.view())
+                .enumerate()
+                .map(|(range_index, range)| {
+                    range.view_range(
+                        focus_cell,
+                        is_focused && focus_cell.range_index == range_index,
+                    )
+                })
                 .collect::<Vec<_>>(),
         )
     }
@@ -316,7 +363,7 @@ impl Range {
         Self::from_cells(other, self.style)
     }
 
-    fn view<MSG>(&self) -> Node<MSG> {
+    fn view_range<MSG>(&self, focus_cell: FocusCell, is_focused: bool) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let background = self.style.background;
         let foreground = self.style.foreground;
@@ -330,7 +377,10 @@ impl Range {
             ],
             self.cells
                 .iter()
-                .map(|cell| cell.view())
+                .enumerate()
+                .map(|(cell_index, cell)| {
+                    cell.view_cell(is_focused && cell_index == focus_cell.cell_index)
+                })
                 .collect::<Vec<_>>(),
         )
     }
@@ -364,9 +414,22 @@ impl Cell {
         }
     }
 
-    fn view<MSG>(&self) -> Node<MSG> {
+    fn view_cell<MSG>(&self, is_focused: bool) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        div(vec![class_ns("ch")], vec![text(self.ch)])
+        let classes_ns_flag = |class_name_flags| {
+            attributes::classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
+        };
+        div(
+            vec![
+                class_ns("ch"),
+                classes_ns_flag([("ch_focused", is_focused)]),
+            ],
+            if is_focused {
+                vec![div(vec![class_ns("cursor")], vec![text(self.ch)])]
+            } else {
+                vec![text(self.ch)]
+            },
+        )
     }
 }
 
