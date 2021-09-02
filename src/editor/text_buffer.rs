@@ -1,8 +1,8 @@
 use crate::editor::COMPONENT_NAME;
 use crate::util;
 use cell::Cell;
-use css_colors::rgba;
-use css_colors::Color;
+
+
 use css_colors::RGBA;
 use line::Line;
 use range::Range;
@@ -239,7 +239,7 @@ impl TextBuffer {
     pub fn delete_char(&mut self, x: usize, y: usize) {
         if let Some(line) = self.lines.get_mut(y) {
             if let Some((range_index, col)) = line.calc_range_cell_index_position(x) {
-                if let Some(mut range) = line.ranges.get_mut(range_index) {
+                if let Some(range) = line.ranges.get_mut(range_index) {
                     if range.cells.get(col).is_some() {
                         range.cells.remove(col);
                     }
@@ -292,7 +292,7 @@ impl TextBuffer {
 
     fn rehighlight_line(&mut self, y: usize) {
         log::trace!("rehighlighting line: {}", y);
-        if let Some(mut line) = self.lines.get_mut(y) {
+        if let Some(line) = self.lines.get_mut(y) {
             line.rehighlight(&self.highlighter);
         }
     }

@@ -1,21 +1,21 @@
-use super::Line;
-use super::Range;
+
+
 use crate::editor::TextBuffer;
 use crate::editor::COMPONENT_NAME;
-use crate::util;
-use css_colors::rgba;
-use css_colors::Color;
-use css_colors::RGBA;
+
+
+
+
 use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
-use std::iter::FromIterator;
-use syntect::easy::HighlightLines;
-use syntect::highlighting::Style;
-use syntect::highlighting::Theme;
-use syntect::highlighting::ThemeSet;
-use syntect::parsing::SyntaxReference;
-use syntect::parsing::SyntaxSet;
+
+
+
+
+
+
+
 use unicode_width::UnicodeWidthChar;
 
 #[derive(Clone, Copy, Debug)]
