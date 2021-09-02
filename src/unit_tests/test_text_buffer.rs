@@ -1,4 +1,4 @@
-use ultron::editor::TextBuffer;
+use crate::editor::TextBuffer;
 #[test]
 fn line_length() {
     let raw = "Hello world";

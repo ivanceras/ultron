@@ -158,6 +158,9 @@ impl Application<Msg> for App {
     }
 }
 
+#[cfg(test)]
+mod unit_tests;
+
 #[cfg(target_arch = "wasm32")]
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
