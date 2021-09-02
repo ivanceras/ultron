@@ -240,9 +240,9 @@ impl TextBuffer {
                     line.ranges.drain(range_index + 1..).collect::<Vec<_>>();
                 rest.insert(0, other);
                 self.insert_line(y + 1, Line::from_ranges(rest));
+            } else {
+                self.insert_line(y, Line::default());
             }
-        } else {
-            self.insert_line(y + 1, Line::default());
         }
     }
 
@@ -280,26 +280,7 @@ impl TextBuffer {
             ch != '\t',
             "tabs should have been pre-processed before this point"
         );
-        let line_gap = if y > self.total_lines() {
-            y - self.total_lines()
-        } else {
-            0
-        };
-
-        if self.total_lines() == 0 {
-            self.add_lines(1);
-        }
-        if line_gap > 0 {
-            self.add_lines(line_gap);
-        }
-        let col_diff = if x > self.lines[y].width {
-            x - self.lines[y].width
-        } else {
-            0
-        };
-        if col_diff > 0 {
-            self.add_col(y, col_diff);
-        }
+        self.ensure_cell_exist(x, y);
 
         let (range_index, cell_index) = self.lines[y]
             .calc_range_cell_index_position(x)
@@ -312,7 +293,26 @@ impl TextBuffer {
         }
     }
 
+    fn ensure_cell_exist(&mut self, x: usize, y: usize) {
+        self.ensure_line_exist(y);
+        let col_diff = x.saturating_sub(self.lines[y].width);
+        if col_diff > 0 {
+            self.add_col(y, col_diff);
+        }
+    }
+
+    fn ensure_line_exist(&mut self, y: usize) {
+        let line_gap = y.saturating_sub(self.total_lines());
+        if self.total_lines() == 0 {
+            self.add_lines(1);
+        }
+        if line_gap > 0 {
+            self.add_lines(line_gap);
+        }
+    }
+
     fn insert_line(&mut self, line_index: usize, line: Line) {
+        self.ensure_line_exist(line_index);
         self.lines.insert(line_index, line);
     }
 
