@@ -1,4 +1,3 @@
-use super::Highlighter;
 use super::Line;
 use super::Range;
 use crate::editor::TextBuffer;

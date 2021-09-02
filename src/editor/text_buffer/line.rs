@@ -1,6 +1,6 @@
 use super::Cell;
-use super::Highlighter;
 use super::Range;
+use super::TextHighlighter;
 use crate::editor::TextBuffer;
 use crate::editor::COMPONENT_NAME;
 use crate::util;
@@ -72,7 +72,7 @@ impl Line {
     }
 
     /// rehighlight this line
-    pub(super) fn rehighlight(&mut self, highlighter: &Highlighter) {
+    pub(super) fn rehighlight(&mut self, highlighter: &TextHighlighter) {
         let line_str = self.text();
         let style_range: Vec<(Style, &str)> = highlighter.highlight(&line_str);
         self.ranges = style_range

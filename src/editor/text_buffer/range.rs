@@ -1,5 +1,4 @@
 use super::Cell;
-use super::Highlighter;
 use super::Line;
 use crate::editor::TextBuffer;
 use crate::editor::COMPONENT_NAME;

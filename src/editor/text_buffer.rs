@@ -26,7 +26,7 @@ mod range;
 /// recompute the highlighting of a line
 pub struct TextBuffer {
     lines: Vec<Line>,
-    highlighter: Highlighter,
+    highlighter: TextHighlighter,
     x_pos: usize,
     y_pos: usize,
     selection_start: Option<(usize, usize)>,
@@ -34,7 +34,7 @@ pub struct TextBuffer {
     focused_cell: Option<FocusCell>,
 }
 
-pub struct Highlighter {
+pub struct TextHighlighter {
     syntax_set: SyntaxSet,
     theme_set: ThemeSet,
     theme_name: String,
@@ -50,7 +50,7 @@ struct FocusCell {
 
 impl TextBuffer {
     pub fn from_str(content: &str) -> Self {
-        let highlighter = Highlighter::default();
+        let highlighter = TextHighlighter::default();
         let lines = content
             .lines()
             .map(|line| {
@@ -331,7 +331,7 @@ impl ToString for TextBuffer {
     }
 }
 
-impl Highlighter {
+impl TextHighlighter {
     fn highlight<'b>(&self, line: &'b str) -> Vec<(Style, &'b str)> {
         let syntax: &SyntaxReference = self
             .syntax_set
@@ -345,7 +345,7 @@ impl Highlighter {
     }
 }
 
-impl Highlighter {
+impl TextHighlighter {
     fn default() -> Self {
         let syntax_set: SyntaxSet = SyntaxSet::load_defaults_newlines();
         let theme_set: ThemeSet = ThemeSet::load_defaults();
