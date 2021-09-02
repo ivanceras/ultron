@@ -1,8 +1,11 @@
 use crate::editor::COMPONENT_NAME;
 use crate::util;
+use cell::Cell;
 use css_colors::rgba;
 use css_colors::Color;
 use css_colors::RGBA;
+use line::Line;
+use range::Range;
 use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
@@ -14,6 +17,10 @@ use syntect::highlighting::ThemeSet;
 use syntect::parsing::SyntaxReference;
 use syntect::parsing::SyntaxSet;
 use unicode_width::UnicodeWidthChar;
+
+mod cell;
+mod line;
+mod range;
 
 /// A text buffer where every insertion of character it will
 /// recompute the highlighting of a line
@@ -31,27 +38,6 @@ pub struct Highlighter {
     syntax_set: SyntaxSet,
     theme_set: ThemeSet,
     theme_name: String,
-}
-
-#[derive(Debug)]
-pub struct Line {
-    ranges: Vec<Range>,
-    /// total width of this line
-    width: usize,
-}
-
-#[derive(Debug)]
-pub struct Range {
-    cells: Vec<Cell>,
-    width: usize,
-    style: Style,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct Cell {
-    ch: char,
-    /// width of this character
-    width: usize,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -335,242 +321,6 @@ impl TextBuffer {
     }
 }
 
-impl Line {
-    /// append to the last range if there is none create a new range
-    fn push_char(&mut self, ch: char) {
-        let cell = Cell::from_char(ch);
-        self.push_cell(cell);
-    }
-
-    fn push_cell(&mut self, cell: Cell) {
-        if let Some(last_range) = self.ranges.last_mut() {
-            self.width += cell.width;
-            last_range.push_cell(cell);
-        } else {
-            let range = Range::from_cells(vec![cell], Style::default());
-            self.push_range(range);
-        }
-    }
-
-    fn push_range(&mut self, range: Range) {
-        self.width += range.width;
-        self.ranges.push(range);
-    }
-
-    fn replace_char(&mut self, range_index: usize, cell_index: usize, ch: char) {
-        if let Some(range) = self.ranges.get_mut(range_index) {
-            self.width -= range.width;
-            let cell = Cell::from_char(ch);
-            range.replace_cell(cell_index, cell);
-            self.width += range.width;
-        }
-    }
-
-    fn insert_char(&mut self, range_index: usize, cell_index: usize, ch: char) {
-        if let Some(range) = self.ranges.get_mut(range_index) {
-            self.width -= range.width;
-            let cell = Cell::from_char(ch);
-            range.insert_cell(cell_index, cell);
-            self.width += range.width;
-        }
-    }
-
-    /// rehighlight this line
-    fn rehighlight(&mut self, highlighter: &Highlighter) {
-        let line_str = self.text();
-        let style_range: Vec<(Style, &str)> = highlighter.highlight(&line_str);
-        self.ranges = style_range
-            .into_iter()
-            .map(|(style, range_str)| {
-                let cells = range_str.chars().map(Cell::from_char).collect();
-                Range::from_cells(cells, style)
-            })
-            .collect();
-    }
-
-    /// get the text content of this line
-    fn text(&self) -> String {
-        String::from_iter(
-            self.ranges
-                .iter()
-                .flat_map(|range| range.cells.iter().map(|cell| cell.ch)),
-        )
-    }
-
-    fn from_ranges(ranges: Vec<Range>) -> Self {
-        Self {
-            width: ranges.iter().map(|range| range.width).sum(),
-            ranges,
-        }
-    }
-
-    /// calcultate which column position for this x relative to the widths
-    fn calc_range_cell_index_position(&self, x: usize) -> Option<(usize, usize)> {
-        println!("calculating range col where x is: {}", x);
-        let mut col_width = 0;
-        for (i, range) in self.ranges.iter().enumerate() {
-            for (j, cell) in range.cells.iter().enumerate() {
-                if col_width >= x {
-                    return Some((i, j));
-                }
-                col_width += cell.width;
-            }
-        }
-        None
-    }
-
-    fn last_range_cell_index(&self) -> (usize, usize) {
-        let line_ranges_len = self.ranges.len();
-        let last = if line_ranges_len > 0 {
-            line_ranges_len - 1
-        } else {
-            0
-        };
-
-        (
-            last,
-            self.ranges
-                .last()
-                .map(|ranges| ranges.cells.len())
-                .unwrap_or(0),
-        )
-    }
-
-    fn view_line<MSG>(&self, text_buffer: &TextBuffer, line_index: usize) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let classes_ns_flag =
-            |class_name_flags| classes_flag_namespaced(COMPONENT_NAME, class_name_flags);
-        let is_focused = text_buffer.is_focused_line(line_index);
-        div(
-            vec![
-                key(line_index),
-                class_ns("number__line"),
-                classes_ns_flag([("line_focused", is_focused)]),
-            ],
-            vec![
-                div(
-                    vec![
-                        class_ns("number"),
-                        if let Some(gutter_bg) = text_buffer.gutter_background() {
-                            style! {
-                                background_color: gutter_bg.to_css(),
-                            }
-                        } else {
-                            empty_attr()
-                        },
-                        if let Some(gutter_fg) = text_buffer.gutter_foreground() {
-                            style! {
-                                color: gutter_fg.to_css(),
-                            }
-                        } else {
-                            empty_attr()
-                        },
-                    ],
-                    vec![text(line_index + 1)],
-                ),
-                div(
-                    vec![class_ns("line")],
-                    self.ranges
-                        .iter()
-                        .enumerate()
-                        .map(|(range_index, range)| {
-                            range.view_range(text_buffer, line_index, range_index)
-                        })
-                        .collect::<Vec<_>>(),
-                ),
-            ],
-        )
-    }
-}
-
-impl Default for Line {
-    fn default() -> Self {
-        Self {
-            ranges: vec![Range::default()],
-            width: 0,
-        }
-    }
-}
-
-impl Range {
-    fn from_cells(cells: Vec<Cell>, style: Style) -> Self {
-        Self {
-            width: cells.iter().map(|cell| cell.width).sum(),
-            cells,
-            style,
-        }
-    }
-
-    fn recalc_width(&mut self) {
-        self.width = self.cells.iter().map(|cell| cell.width).sum();
-    }
-
-    fn push_cell(&mut self, cell: Cell) {
-        self.width += cell.width;
-        self.cells.push(cell);
-    }
-
-    fn replace_cell(&mut self, cell_index: usize, new_cell: Cell) {
-        if let Some(cell) = self.cells.get_mut(cell_index) {
-            self.width -= cell.width;
-            self.width += new_cell.width;
-            *cell = new_cell;
-        }
-    }
-
-    fn insert_cell(&mut self, cell_index: usize, new_cell: Cell) {
-        self.width += new_cell.width;
-        self.cells.insert(cell_index, new_cell);
-    }
-
-    fn split_at(&mut self, cell_index: usize) -> Self {
-        let other = self.cells.split_off(cell_index);
-        Self::from_cells(other, self.style)
-    }
-
-    fn view_range<MSG>(
-        &self,
-        text_buffer: &TextBuffer,
-        line_index: usize,
-        range_index: usize,
-    ) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let classes_ns_flag = |class_name_flags| {
-            attributes::classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
-        };
-        let background = util::to_rgba(self.style.background);
-        let foreground = util::to_rgba(self.style.foreground);
-        let is_focused = text_buffer.is_focused_range(line_index, range_index);
-        div(
-            vec![
-                class_ns("range"),
-                classes_ns_flag([("range_focused", is_focused)]),
-                style! {
-                    color: foreground.to_css(),
-                    background_color: background.to_css(),
-                },
-            ],
-            self.cells
-                .iter()
-                .enumerate()
-                .map(|(cell_index, cell)| {
-                    cell.view_cell(text_buffer, line_index, range_index, cell_index)
-                })
-                .collect::<Vec<_>>(),
-        )
-    }
-}
-
-impl Default for Range {
-    fn default() -> Self {
-        Self {
-            cells: vec![],
-            width: 0,
-            style: Style::default(),
-        }
-    }
-}
-
 impl ToString for TextBuffer {
     fn to_string(&self) -> String {
         self.lines
@@ -578,41 +328,6 @@ impl ToString for TextBuffer {
             .map(|line| line.text())
             .collect::<Vec<_>>()
             .join("\n")
-    }
-}
-
-impl Cell {
-    fn from_char(ch: char) -> Self {
-        Self {
-            width: ch.width().expect("must have a unicode width"),
-            ch,
-        }
-    }
-
-    fn view_cell<MSG>(
-        &self,
-        text_buffer: &TextBuffer,
-        line_index: usize,
-        range_index: usize,
-        cell_index: usize,
-    ) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let classes_ns_flag = |class_name_flags| {
-            attributes::classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
-        };
-        let is_focused = text_buffer.is_focused_cell(line_index, range_index, cell_index);
-        div(
-            vec![
-                class_ns("ch"),
-                classes_ns_flag([("ch_focused", is_focused)]),
-                classes_ns_flag([(&format!("wide{}", self.width), self.width > 1)]),
-            ],
-            if is_focused {
-                vec![div(vec![class_ns("cursor")], vec![text(self.ch)])]
-            } else {
-                vec![text(self.ch)]
-            },
-        )
     }
 }
 

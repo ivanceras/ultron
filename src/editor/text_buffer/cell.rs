@@ -1,0 +1,62 @@
+use super::Highlighter;
+use super::Line;
+use super::Range;
+use crate::editor::TextBuffer;
+use crate::editor::COMPONENT_NAME;
+use crate::util;
+use css_colors::rgba;
+use css_colors::Color;
+use css_colors::RGBA;
+use sauron::html::attributes;
+use sauron::prelude::*;
+use sauron::Node;
+use std::iter::FromIterator;
+use syntect::easy::HighlightLines;
+use syntect::highlighting::Style;
+use syntect::highlighting::Theme;
+use syntect::highlighting::ThemeSet;
+use syntect::parsing::SyntaxReference;
+use syntect::parsing::SyntaxSet;
+use unicode_width::UnicodeWidthChar;
+
+#[derive(Clone, Copy, Debug)]
+pub(super) struct Cell {
+    pub(super) ch: char,
+    /// width of this character
+    pub(super) width: usize,
+}
+
+impl Cell {
+    pub(super) fn from_char(ch: char) -> Self {
+        Self {
+            width: ch.width().expect("must have a unicode width"),
+            ch,
+        }
+    }
+
+    pub(super) fn view_cell<MSG>(
+        &self,
+        text_buffer: &TextBuffer,
+        line_index: usize,
+        range_index: usize,
+        cell_index: usize,
+    ) -> Node<MSG> {
+        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let classes_ns_flag = |class_name_flags| {
+            attributes::classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
+        };
+        let is_focused = text_buffer.is_focused_cell(line_index, range_index, cell_index);
+        div(
+            vec![
+                class_ns("ch"),
+                classes_ns_flag([("ch_focused", is_focused)]),
+                classes_ns_flag([(&format!("wide{}", self.width), self.width > 1)]),
+            ],
+            if is_focused {
+                vec![div(vec![class_ns("cursor")], vec![text(self.ch)])]
+            } else {
+                vec![text(self.ch)]
+            },
+        )
+    }
+}
