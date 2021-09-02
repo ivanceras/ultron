@@ -190,14 +190,16 @@ impl TextBuffer {
     fn find_focused_cell(&self) -> Option<FocusCell> {
         let line_index = self.y_pos;
         if let Some(line) = self.lines.get(line_index) {
-            let (range_index, cell_index) = line.calc_range_cell_index_position(self.x_pos);
-            if let Some(range) = line.ranges.get(range_index) {
-                return Some(FocusCell {
-                    line_index,
-                    range_index,
-                    cell_index,
-                    cell: range.cells.get(cell_index).cloned(),
-                });
+            if let Some((range_index, cell_index)) = line.calc_range_cell_index_position(self.x_pos)
+            {
+                if let Some(range) = line.ranges.get(range_index) {
+                    return Some(FocusCell {
+                        line_index,
+                        range_index,
+                        cell_index,
+                        cell: range.cells.get(cell_index).cloned(),
+                    });
+                }
             }
         }
         return None;
@@ -223,12 +225,16 @@ impl TextBuffer {
     /// break at line y and put the characters after x on the next line
     pub fn break_line(&mut self, x: usize, y: usize) {
         if let Some(line) = self.lines.get_mut(y) {
-            let (range_index, col) = line.calc_range_cell_index_position(x);
+            let (range_index, col) = line
+                .calc_range_cell_index_position(x)
+                .unwrap_or(line.last_range_cell_index());
             if let Some(range_bound) = line.ranges.get_mut(range_index) {
-                let other = range_bound.split_at(col);
+                range_bound.recalc_width();
+                let mut other = range_bound.split_at(col);
+                other.recalc_width();
                 let mut rest = line.ranges.drain(range_index + 1..).collect::<Vec<_>>();
                 rest.insert(0, other);
-                self.lines.insert(y + 1, Line::from_ranges(rest));
+                self.insert_line(y + 1, Line::from_ranges(rest));
             }
         }
     }
@@ -246,10 +252,11 @@ impl TextBuffer {
     /// delete character at this position
     pub fn delete_char(&mut self, x: usize, y: usize) {
         if let Some(line) = self.lines.get_mut(y) {
-            let (range_index, col) = line.calc_range_cell_index_position(x);
-            if let Some(mut range) = line.ranges.get_mut(range_index) {
-                if range.cells.get(col).is_some() {
-                    range.cells.remove(col);
+            if let Some((range_index, col)) = line.calc_range_cell_index_position(x) {
+                if let Some(mut range) = line.ranges.get_mut(range_index) {
+                    if range.cells.get(col).is_some() {
+                        range.cells.remove(col);
+                    }
                 }
             }
         }
@@ -285,7 +292,9 @@ impl TextBuffer {
             self.add_col(y, col_diff);
         }
 
-        let (range_index, cell_index) = self.lines[y].calc_range_cell_index_position(x);
+        let (range_index, cell_index) = self.lines[y]
+            .calc_range_cell_index_position(x)
+            .unwrap_or(self.lines[y].last_range_cell_index());
 
         if is_replace {
             self.lines[y].replace_char(range_index, cell_index, ch);
@@ -296,13 +305,14 @@ impl TextBuffer {
     }
 
     fn rehighlight_line(&mut self, y: usize) {
-        let t1 = sauron::now();
         log::trace!("rehighlighting line: {}", y);
         if let Some(mut line) = self.lines.get_mut(y) {
             line.rehighlight(&self.highlighter);
         }
-        let t2 = sauron::now();
-        log::trace!("rehighlighting line took {}ms", t2 - t2);
+    }
+
+    fn insert_line(&mut self, line_index: usize, line: Line) {
+        self.lines.insert(line_index, line);
     }
 }
 
@@ -395,31 +405,18 @@ impl Line {
     }
 
     /// calcultate which column position for this x relative to the widths
-    fn calc_range_cell_index_position(&self, x: usize) -> (usize, usize) {
+    fn calc_range_cell_index_position(&self, x: usize) -> Option<(usize, usize)> {
         println!("calculating range col where x is: {}", x);
         let mut col_width = 0;
         for (i, range) in self.ranges.iter().enumerate() {
             for (j, cell) in range.cells.iter().enumerate() {
                 if col_width >= x {
-                    return (i, j);
+                    return Some((i, j));
                 }
                 col_width += cell.width;
             }
         }
-        let line_ranges_len = self.ranges.len();
-        let last = if line_ranges_len > 0 {
-            line_ranges_len - 1
-        } else {
-            0
-        };
-
-        (
-            last,
-            self.ranges
-                .last()
-                .map(|ranges| ranges.cells.len())
-                .unwrap_or(0),
-        )
+        None
     }
 
     fn last_range_cell_index(&self) -> (usize, usize) {
@@ -502,6 +499,10 @@ impl Range {
             cells,
             style,
         }
+    }
+
+    fn recalc_width(&mut self) {
+        self.width = self.cells.iter().map(|cell| cell.width).sum();
     }
 
     fn push_cell(&mut self, cell: Cell) {
