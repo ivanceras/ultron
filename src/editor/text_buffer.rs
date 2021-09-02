@@ -211,6 +211,7 @@ impl TextBuffer {
 
     /// add more lines, used internally
     fn add_lines(&mut self, n: usize) {
+        println!("adding {} lines", n);
         for _i in 0..n {
             println!("Adding line...{}", _i);
             self.lines.push(Line::default());
@@ -218,10 +219,11 @@ impl TextBuffer {
     }
 
     /// fill columns at line y putting a space in each of the cells
-    fn add_col(&mut self, y: usize, n: usize) {
+    fn add_cell(&mut self, y: usize, n: usize) {
+        println!("adding {} columns to line {}", n, y);
         let ch = ' ';
         for _i in 0..n {
-            log::trace!("adding to column {}: {:?}", y, ch);
+            println!("adding to column {}: {:?} {}", y, ch, _i);
             self.lines[y].push_char(ch);
         }
     }
@@ -294,25 +296,27 @@ impl TextBuffer {
     }
 
     fn ensure_cell_exist(&mut self, x: usize, y: usize) {
+        println!("ensuring cell exist.. {},{}", x, y);
         self.ensure_line_exist(y);
-        let col_diff = x.saturating_sub(self.lines[y].width);
-        if col_diff > 0 {
-            self.add_col(y, col_diff);
+        println!("now the total lines: {}", self.total_lines());
+        let cell_gap = x.saturating_sub(self.lines[y].width);
+        if cell_gap > 0 {
+            self.add_cell(y, cell_gap);
         }
     }
 
     fn ensure_line_exist(&mut self, y: usize) {
-        let line_gap = y.saturating_sub(self.total_lines());
-        if self.total_lines() == 0 {
-            self.add_lines(1);
-        }
+        dbg!(&y);
+        dbg!(&self.total_lines());
+        let line_gap = y.saturating_add(1).saturating_sub(self.total_lines());
+        dbg!(&line_gap);
         if line_gap > 0 {
             self.add_lines(line_gap);
         }
     }
 
     fn insert_line(&mut self, line_index: usize, line: Line) {
-        self.ensure_line_exist(line_index);
+        self.ensure_line_exist(line_index.saturating_sub(1));
         self.lines.insert(line_index, line);
     }
 
@@ -395,5 +399,18 @@ impl FocusCell {
     }
     fn matched_range(&self, line_index: usize, range_index: usize) -> bool {
         self.line_index == line_index && self.range_index == range_index
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_ensure_line_exist() {
+        let mut buffer = TextBuffer::from_str("");
+        buffer.ensure_line_exist(10);
+        assert!(buffer.lines.get(10).is_some());
+        assert_eq!(buffer.total_lines(), 11);
     }
 }
