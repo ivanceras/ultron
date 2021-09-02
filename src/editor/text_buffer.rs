@@ -308,6 +308,10 @@ impl TextBuffer {
 impl TextBuffer {
     pub(crate) fn command_insert_char(&mut self, ch: char) {
         self.insert_char(self.x_pos, self.y_pos, ch);
+        self.move_right();
+    }
+    pub(crate) fn move_right(&mut self) {
+        self.x_pos += 1;
     }
     pub(crate) fn set_position(&mut self, x: usize, y: usize) {
         self.x_pos = x;
@@ -319,10 +323,15 @@ impl TextBuffer {
 }
 
 impl Line {
+    /// append to the last range if there is none create a new range
     fn push_char(&mut self, ch: char) {
         let cell = Cell::from_char(ch);
-        let range = Range::from_cells(vec![cell], Style::default());
-        self.ranges.push(range);
+        if let Some(last) = self.ranges.last_mut() {
+            last.cells.push(cell);
+        } else {
+            let range = Range::from_cells(vec![cell], Style::default());
+            self.ranges.push(range);
+        }
     }
 
     /// rehighlight this line
@@ -366,6 +375,7 @@ impl Line {
             |class_name_flags| classes_flag_namespaced(COMPONENT_NAME, class_name_flags);
         div(
             vec![
+                key(line_index),
                 class_ns("number__line"),
                 classes_ns_flag([("line_focused", is_focused)]),
             ],
