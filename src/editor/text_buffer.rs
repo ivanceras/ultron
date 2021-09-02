@@ -186,12 +186,19 @@ impl TextBuffer {
 
     fn get_focus_cell(&self) -> FocusCell {
         let line_index = self.y_pos;
-        let line = &self.lines[line_index];
-        let (range_index, cell_index) = Self::calc_range_col_insert_position(line, self.x_pos);
-        FocusCell {
-            line_index,
-            range_index,
-            cell_index,
+        if let Some(line) = self.lines.get(line_index) {
+            let (range_index, cell_index) = Self::calc_range_col_insert_position(line, self.x_pos);
+            FocusCell {
+                line_index,
+                range_index,
+                cell_index,
+            }
+        } else {
+            FocusCell {
+                line_index,
+                range_index: 0,
+                cell_index: 0,
+            }
         }
     }
 
@@ -305,6 +312,9 @@ impl TextBuffer {
     pub(crate) fn set_position(&mut self, x: usize, y: usize) {
         self.x_pos = x;
         self.y_pos = y;
+    }
+    pub(crate) fn get_position(&self) -> (usize, usize) {
+        (self.x_pos, self.y_pos)
     }
 }
 
@@ -510,7 +520,12 @@ impl Highlighter {
     fn default() -> Self {
         let syntax_set: SyntaxSet = SyntaxSet::load_defaults_newlines();
         let theme_set: ThemeSet = ThemeSet::load_defaults();
-        let theme_name = "base16-eighties.dark".to_string();
+        //let theme_name = "Solarized (dark)".to_string();
+        let theme_name = "Solarized (light)".to_string();
+        //let theme_name = "base16-eighties.dark".to_string();
+        //let theme_name = "base16-ocean.dark".to_string();
+        //let theme_name = "base16-mocha.dark".to_string();
+        //let theme_name = "base16-ocean.light".to_string();
         let _active_theme = &theme_set.themes[&theme_name];
 
         Self {

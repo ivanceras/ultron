@@ -3,6 +3,7 @@ use css_colors::rgba;
 use css_colors::Color;
 use css_colors::RGBA;
 use history::Recorded;
+use sauron::html::attributes;
 use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::Measurements;
@@ -43,7 +44,7 @@ pub struct Editor {
     page_size: usize,
     /// for undo and redo
     recorded: Recorded,
-    pub measurements: Option<Measurements>,
+    measurements: Option<Measurements>,
     scroll_top: f32,
     scroll_left: f32,
 }
@@ -73,6 +74,7 @@ impl Component<Msg, ()> for Editor {
             Msg::EndSelection(_line, _col) => Effects::none(),
             Msg::StopSelection => Effects::none(),
             Msg::SetMeasurement(measurements) => {
+                log::trace!("setting measurements: {:#?}", measurements);
                 self.measurements = Some(measurements);
                 Effects::none()
             }
@@ -90,7 +92,7 @@ impl Component<Msg, ()> for Editor {
     fn view(&self) -> Node<Msg> {
         div(
             vec![class(COMPONENT_NAME), on_scroll(Msg::Scrolled)],
-            vec![self.text_buffer.view()],
+            vec![self.text_buffer.view(), self.view_status()],
         )
     }
 
@@ -250,7 +252,6 @@ impl Component<Msg, ()> for Editor {
 
 
             ".status": {
-                background_color: "blue",
                 position: "sticky",
                 bottom: 0,
                 display: "flex",
@@ -298,6 +299,49 @@ impl Editor {
             y
         );
         (x, y)
+    }
+
+    fn view_status<Msg>(&self) -> Node<Msg> {
+        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let (x_pos, y_pos) = self.text_buffer.get_position();
+        div(
+            vec![
+                class_ns("status"),
+                if let Some(gutter_bg) = self.gutter_background() {
+                    style! {
+                        background_color: gutter_bg.to_css(),
+                    }
+                } else {
+                    empty_attr()
+                },
+                if let Some(gutter_fg) = self.gutter_foreground() {
+                    style! {
+                        color: gutter_fg.to_css()
+                    }
+                } else {
+                    empty_attr()
+                },
+            ],
+            vec![
+                span(
+                    vec![],
+                    vec![text!("line: {}, column: {}", y_pos + 1, x_pos + 1)],
+                ),
+                if let Some(measurements) = &self.measurements {
+                    span(
+                        vec![],
+                        vec![text!(
+                            "{} patches on {} total nodes took {}ms",
+                            measurements.total_patches,
+                            measurements.view_node_count,
+                            measurements.total_time
+                        )],
+                    )
+                } else {
+                    text("")
+                },
+            ],
+        )
     }
 
     fn active_theme(&self) -> &Theme {
