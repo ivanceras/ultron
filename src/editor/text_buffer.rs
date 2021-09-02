@@ -214,7 +214,7 @@ impl TextBuffer {
     fn add_col(&mut self, y: usize, n: usize) {
         let ch = ' ';
         for _i in 0..n {
-            println!("adding to column {}: {:?}", y, ch);
+            log::trace!("adding to column {}: {:?}", y, ch);
             self.lines[y].push_char(ch);
         }
     }
@@ -275,26 +275,21 @@ impl TextBuffer {
         if line_gap > 0 {
             self.add_lines(line_gap);
         }
-        let line = &self.lines[y];
-        let col_diff = if x > line.width { x - line.width } else { 0 };
+        let col_diff = if x > self.lines[y].width {
+            x - self.lines[y].width
+        } else {
+            0
+        };
         if col_diff > 0 {
             self.add_col(y, col_diff);
         }
 
-        let ch_width = ch.width().expect("must have a unicode width");
-        let cell = Cell {
-            ch,
-            width: ch_width,
-        };
-
-        let (range_index, char_index) = Self::calc_range_col_insert_position(&self.lines[y], x);
+        let (range_index, cell_index) = Self::calc_range_col_insert_position(&self.lines[y], x);
 
         if is_replace {
-            self.lines[y].ranges[range_index].cells[char_index] = cell
+            self.lines[y].replace_char(range_index, cell_index, ch);
         } else {
-            self.lines[y].ranges[range_index]
-                .cells
-                .insert(char_index, cell);
+            self.lines[y].insert_char(range_index, cell_index, ch);
         }
     }
 
@@ -326,11 +321,39 @@ impl Line {
     /// append to the last range if there is none create a new range
     fn push_char(&mut self, ch: char) {
         let cell = Cell::from_char(ch);
-        if let Some(last) = self.ranges.last_mut() {
-            last.cells.push(cell);
+        self.push_cell(cell);
+    }
+
+    fn push_cell(&mut self, cell: Cell) {
+        if let Some(last_range) = self.ranges.last_mut() {
+            self.width += cell.width;
+            last_range.push_cell(cell);
         } else {
             let range = Range::from_cells(vec![cell], Style::default());
-            self.ranges.push(range);
+            self.push_range(range);
+        }
+    }
+
+    fn push_range(&mut self, range: Range) {
+        self.width += range.width;
+        self.ranges.push(range);
+    }
+
+    fn replace_char(&mut self, range_index: usize, cell_index: usize, ch: char) {
+        if let Some(range) = self.ranges.get_mut(range_index) {
+            self.width -= range.width;
+            let cell = Cell::from_char(ch);
+            range.replace_cell(cell_index, cell);
+            self.width += range.width;
+        }
+    }
+
+    fn insert_char(&mut self, range_index: usize, cell_index: usize, ch: char) {
+        if let Some(range) = self.ranges.get_mut(range_index) {
+            self.width -= range.width;
+            let cell = Cell::from_char(ch);
+            range.insert_cell(cell_index, cell);
+            self.width += range.width;
         }
     }
 
@@ -434,6 +457,24 @@ impl Range {
             cells,
             style,
         }
+    }
+
+    fn push_cell(&mut self, cell: Cell) {
+        self.width += cell.width;
+        self.cells.push(cell);
+    }
+
+    fn replace_cell(&mut self, cell_index: usize, new_cell: Cell) {
+        if let Some(cell) = self.cells.get_mut(cell_index) {
+            self.width -= cell.width;
+            self.width += new_cell.width;
+            *cell = new_cell;
+        }
+    }
+
+    fn insert_cell(&mut self, cell_index: usize, new_cell: Cell) {
+        self.width += new_cell.width;
+        self.cells.insert(cell_index, new_cell);
     }
 
     fn split_at(&mut self, cell_index: usize) -> Self {
