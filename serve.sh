@@ -5,4 +5,4 @@ set -v
 
 . ./build.sh &&\
 
-basic-http-server ./ultron-web -a 0.0.0.0:4001
+basic-http-server  -a 0.0.0.0:4001
