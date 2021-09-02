@@ -248,14 +248,39 @@ impl TextBuffer {
         }
     }
 
+    fn assert_chars(&self, ch: char) {
+        assert!(
+            ch != '\n',
+            "line breaks should have been pre-processed before this point"
+        );
+        assert!(
+            ch != '\t',
+            "tabs should have been pre-processed before this point"
+        );
+    }
+
     /// insert a character at this x and y and move cells after it to the right
     pub fn insert_char(&mut self, x: usize, y: usize, ch: char) {
-        self.add_char(false, x, y, ch);
+        self.assert_chars(ch);
+        self.ensure_cell_exist(x, y);
+
+        let (range_index, cell_index) = self.lines[y]
+            .calc_range_cell_index_position(x)
+            .unwrap_or(self.lines[y].last_range_cell_index());
+
+        self.lines[y].insert_char(range_index, cell_index, ch);
     }
 
     /// replace the character at this location
     pub fn replace_char(&mut self, x: usize, y: usize, ch: char) {
-        self.add_char(true, x, y, ch);
+        self.assert_chars(ch);
+        self.ensure_cell_exist(x, y);
+
+        let (range_index, cell_index) = self.lines[y]
+            .calc_range_cell_index_position(x)
+            .expect("the range_index and cell_index must have existed at this point");
+
+        self.lines[y].replace_char(range_index, cell_index, ch);
     }
 
     /// delete character at this position
@@ -270,28 +295,6 @@ impl TextBuffer {
                     }
                 }
             }
-        }
-    }
-
-    fn add_char(&mut self, is_replace: bool, x: usize, y: usize, ch: char) {
-        assert!(
-            ch != '\n',
-            "line breaks should have been pre-processed before this point"
-        );
-        assert!(
-            ch != '\t',
-            "tabs should have been pre-processed before this point"
-        );
-        self.ensure_cell_exist(x, y);
-
-        let (range_index, cell_index) = self.lines[y]
-            .calc_range_cell_index_position(x)
-            .unwrap_or(self.lines[y].last_range_cell_index());
-
-        if is_replace {
-            self.lines[y].replace_char(range_index, cell_index, ch);
-        } else {
-            self.lines[y].insert_char(range_index, cell_index, ch);
         }
     }
 
