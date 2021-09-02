@@ -120,7 +120,7 @@ impl Component<Msg, ()> for Editor {
             vec![class(COMPONENT_NAME), on_scroll(Msg::Scrolled)],
             vec![
                 self.text_buffer.view(),
-                self.view_status(),
+                self.view_status_line(),
                 view_if(
                     self.text_buffer.is_in_virtual_position(),
                     self.view_virtual_cursor(),
@@ -333,15 +333,6 @@ impl Editor {
         let line = (client_y as f32 + self.scroll_top) / CH_HEIGHT as f32 - 1.0;
         let x = col.round() as usize;
         let y = line.round() as usize;
-        log::trace!(
-            "client_x_y:({},{}) col_line: ({},{}), x_y: ({},{})",
-            client_x,
-            client_y,
-            col,
-            line,
-            x,
-            y
-        );
         (x, y)
     }
 
@@ -371,7 +362,7 @@ impl Editor {
         )
     }
 
-    fn view_status<Msg>(&self) -> Node<Msg> {
+    fn view_status_line<Msg>(&self) -> Node<Msg> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
@@ -397,13 +388,13 @@ impl Editor {
             vec![
                 span(
                     vec![],
-                    vec![text!("({},{}) line, col ", y_pos + 1, x_pos + 1)],
+                    vec![text!("line: {}, col: {}  |", y_pos + 1, x_pos + 1)],
                 ),
                 if let Some(measurements) = &self.measurements {
                     span(
                         vec![],
                         vec![text!(
-                            "| {} patches on {} total nodes, updating took {}ms",
+                            "patches: {} | nodes: {} | update time: {}ms",
                             measurements.total_patches,
                             measurements.view_node_count,
                             measurements.total_time

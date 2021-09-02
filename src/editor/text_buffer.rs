@@ -211,19 +211,15 @@ impl TextBuffer {
 
     /// add more lines, used internally
     fn add_lines(&mut self, n: usize) {
-        println!("adding {} lines", n);
         for _i in 0..n {
-            println!("Adding line...{}", _i);
             self.lines.push(Line::default());
         }
     }
 
     /// fill columns at line y putting a space in each of the cells
     fn add_cell(&mut self, y: usize, n: usize) {
-        println!("adding {} columns to line {}", n, y);
         let ch = ' ';
         for _i in 0..n {
-            println!("adding to column {}: {:?} {}", y, ch, _i);
             self.lines[y].push_char(ch);
         }
     }
@@ -299,9 +295,7 @@ impl TextBuffer {
     }
 
     fn ensure_cell_exist(&mut self, x: usize, y: usize) {
-        println!("ensuring cell exist.. {},{}", x, y);
         self.ensure_line_exist(y);
-        println!("now the total lines: {}", self.total_lines());
         let cell_gap = x.saturating_sub(self.lines[y].width);
         if cell_gap > 0 {
             self.add_cell(y, cell_gap);
@@ -309,10 +303,7 @@ impl TextBuffer {
     }
 
     fn ensure_line_exist(&mut self, y: usize) {
-        dbg!(&y);
-        dbg!(&self.total_lines());
         let line_gap = y.saturating_add(1).saturating_sub(self.total_lines());
-        dbg!(&line_gap);
         if line_gap > 0 {
             self.add_lines(line_gap);
         }

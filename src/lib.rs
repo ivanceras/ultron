@@ -43,8 +43,6 @@ impl Application<Msg> for App {
                     let ke: KeyboardEvent = event
                         .dyn_into()
                         .expect("unable to cast to keyboard event");
-                    #[cfg(feature = "with-debug")]
-                    log::trace!("keydown got: {:?}", ke.code());
                     program_clone.dispatch(Msg::KeyDown(ke));
                 }));
             window_elm
