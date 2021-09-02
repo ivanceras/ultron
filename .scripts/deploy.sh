@@ -7,5 +7,5 @@ dest="../ivanceras.github.io/ultron/"
 . ./build.sh
 
 mkdir -p  "$dest"
-cp -r ultron-web/index.html ultron-web/pkg "$dest"
+cp -r index.html pkg "$dest"
 rm  $dest/pkg/.gitignore

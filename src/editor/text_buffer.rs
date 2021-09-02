@@ -131,7 +131,7 @@ impl TextBuffer {
         self.focused_cell.is_none()
     }
 
-    pub fn active_theme(&self) -> &Theme {
+    pub(crate) fn active_theme(&self) -> &Theme {
         self.text_highlighter.active_theme()
     }
 
@@ -161,7 +161,7 @@ impl TextBuffer {
         self.numberline_wide() + self.numberline_padding_wide()
     }
 
-    pub fn view<MSG>(&self) -> Node<MSG> {
+    pub(crate) fn view<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
@@ -181,12 +181,12 @@ impl TextBuffer {
 /// text manipulation
 impl TextBuffer {
     /// the total number of lines of this text canvas
-    pub fn total_lines(&self) -> usize {
+    pub(crate) fn total_lines(&self) -> usize {
         self.lines.len()
     }
 
     /// the width of the line at line `n`
-    pub fn line_width(&self, n: usize) -> Option<usize> {
+    pub(crate) fn line_width(&self, n: usize) -> Option<usize> {
         self.lines.get(n).map(|l| l.width)
     }
 
@@ -225,7 +225,7 @@ impl TextBuffer {
     }
 
     /// break at line y and put the characters after x on the next line
-    pub fn break_line(&mut self, x: usize, y: usize) {
+    pub(crate) fn break_line(&mut self, x: usize, y: usize) {
         if let Some(line) = self.lines.get_mut(y) {
             let (range_index, col) = line
                 .calc_range_cell_index_position(x)
@@ -256,7 +256,7 @@ impl TextBuffer {
     }
 
     /// insert a character at this x and y and move cells after it to the right
-    pub fn insert_char(&mut self, x: usize, y: usize, ch: char) {
+    pub(crate) fn insert_char(&mut self, x: usize, y: usize, ch: char) {
         self.assert_chars(ch);
         self.ensure_cell_exist(x, y);
 
@@ -268,7 +268,7 @@ impl TextBuffer {
     }
 
     /// replace the character at this location
-    pub fn replace_char(&mut self, x: usize, y: usize, ch: char) {
+    pub(crate) fn replace_char(&mut self, x: usize, y: usize, ch: char) {
         self.assert_chars(ch);
         self.ensure_cell_exist(x, y);
 
@@ -280,7 +280,7 @@ impl TextBuffer {
     }
 
     /// delete character at this position
-    pub fn delete_char(&mut self, x: usize, y: usize) {
+    pub(crate) fn delete_char(&mut self, x: usize, y: usize) {
         if let Some(line) = self.lines.get_mut(y) {
             if let Some((range_index, col)) =
                 line.calc_range_cell_index_position(x)
