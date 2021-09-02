@@ -17,3 +17,8 @@
 - [ ] Scroll the view to when the cursor is not visible on the screen
 - [ ] Drag and drop shapes
 
+## Maintenance
+- [ ] Put the css of each of the component to their own module
+    - line, range, cell
+- [ ] Make Line, Range and Cell implement View
+
