@@ -90,6 +90,27 @@ fn insert_anywhere_line() {
 }
 
 #[test]
+fn insert_anywhere_cell() {
+    let mut buffer = TextBuffer::from_str("");
+    buffer.insert_char(2, 5, 'Y');
+    assert_eq!(buffer.to_string(), "\n\n\n\n\n  Y");
+}
+
+#[test]
+fn insert_anywhere_cell_10_10() {
+    let mut buffer = TextBuffer::from_str("");
+    buffer.insert_char(10, 10, 'Y');
+    assert_eq!(buffer.to_string(), "\n\n\n\n\n\n\n\n\n\n          Y");
+}
+
+#[test]
+fn breaking_line_anywhere_cell_no_effect_on_nosuchline() {
+    let mut buffer = TextBuffer::from_str("");
+    buffer.break_line(2, 5);
+    assert_eq!(buffer.to_string(), "");
+}
+
+#[test]
 fn lines_2() {
     let raw = "Hello\nworld";
     let buffer = TextBuffer::from_str(raw);
