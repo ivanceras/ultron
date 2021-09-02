@@ -76,7 +76,6 @@ impl Component<Msg, ()> for Editor {
             Msg::EndSelection(_line, _col) => Effects::none(),
             Msg::StopSelection => Effects::none(),
             Msg::SetMeasurement(measurements) => {
-                log::trace!("setting measurements: {:#?}", measurements);
                 self.measurements = Some(measurements);
                 Effects::none()
             }
