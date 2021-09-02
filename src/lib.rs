@@ -150,6 +150,7 @@ impl Application<Msg> for App {
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
 pub fn main() {
     console_log::init_with_level(log::Level::Trace).unwrap();

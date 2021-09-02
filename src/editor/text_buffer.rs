@@ -24,6 +24,7 @@ pub struct TextBuffer {
     y_pos: usize,
     selection_start: Option<(usize, usize)>,
     selection_end: Option<(usize, usize)>,
+    focused_cell: Option<FocusCell>,
 }
 
 pub struct Highlighter {
@@ -46,7 +47,7 @@ pub struct Range {
     style: Style,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Cell {
     ch: char,
     /// width of this character
@@ -58,6 +59,7 @@ struct FocusCell {
     line_index: usize,
     range_index: usize,
     cell_index: usize,
+    cell: Option<Cell>,
 }
 
 impl TextBuffer {
@@ -80,14 +82,53 @@ impl TextBuffer {
                 Line::from_ranges(ranges)
             })
             .collect();
-        Self {
+
+        let mut this = Self {
             lines,
             highlighter,
             x_pos: 0,
             y_pos: 0,
             selection_start: None,
             selection_end: None,
+            focused_cell: None,
+        };
+
+        this.calculate_focused_cell();
+        this
+    }
+
+    fn calculate_focused_cell(&mut self) {
+        self.focused_cell = self.find_focused_cell();
+    }
+
+    fn is_focused_line(&self, line_index: usize) -> bool {
+        if let Some(focused_cell) = self.focused_cell {
+            focused_cell.matched_line(line_index)
+        } else {
+            false
         }
+    }
+
+    fn is_focused_range(&self, line_index: usize, range_index: usize) -> bool {
+        if let Some(focused_cell) = self.focused_cell {
+            focused_cell.matched_range(line_index, range_index)
+        } else {
+            false
+        }
+    }
+
+    fn is_focused_cell(&self, line_index: usize, range_index: usize, cell_index: usize) -> bool {
+        if let Some(focused_cell) = self.focused_cell {
+            focused_cell.matched(line_index, range_index, cell_index)
+        } else {
+            false
+        }
+    }
+
+    /// the cursor is in virtual position when the position
+    /// has no character in it.
+    pub(crate) fn is_in_virtual_position(&self) -> bool {
+        self.focused_cell.is_none()
     }
 
     pub fn active_theme(&self) -> &Theme {
@@ -123,20 +164,12 @@ impl TextBuffer {
     pub fn view<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let class_number_wide = format!("number_wide{}", self.numberline_wide());
-        let focus_cell = self.get_focus_cell();
         div(
             vec![class_ns("code"), class_ns(&class_number_wide)],
             self.lines
                 .iter()
                 .enumerate()
-                .map(|(line_index, line)| {
-                    line.view_line(
-                        &self,
-                        focus_cell,
-                        line_index,
-                        line_index == focus_cell.line_index,
-                    )
-                })
+                .map(|(line_index, line)| line.view_line(&self, line_index))
                 .collect::<Vec<_>>(),
         )
     }
@@ -154,52 +187,20 @@ impl TextBuffer {
         self.lines.get(n).map(|l| l.width)
     }
 
-    /// calcultate which column position for this x relative to the widths
-    fn calc_range_col_insert_position(line: &Line, x: usize) -> (usize, usize) {
-        println!("calculating range col where x is: {}", x);
-        let mut col_width = 0;
-        let mut index = 0;
-        for (i, range) in line.ranges.iter().enumerate() {
-            for (j, cell) in range.cells.iter().enumerate() {
-                if col_width >= x {
-                    return (i, j);
-                }
-                col_width += cell.width;
-                index += 1;
-            }
-        }
-        let line_ranges_len = line.ranges.len();
-        let last = if line_ranges_len > 0 {
-            line_ranges_len - 1
-        } else {
-            0
-        };
-
-        (
-            last,
-            line.ranges
-                .last()
-                .map(|ranges| ranges.cells.len())
-                .unwrap_or(0),
-        )
-    }
-
-    fn get_focus_cell(&self) -> FocusCell {
+    fn find_focused_cell(&self) -> Option<FocusCell> {
         let line_index = self.y_pos;
         if let Some(line) = self.lines.get(line_index) {
-            let (range_index, cell_index) = Self::calc_range_col_insert_position(line, self.x_pos);
-            FocusCell {
-                line_index,
-                range_index,
-                cell_index,
-            }
-        } else {
-            FocusCell {
-                line_index,
-                range_index: 0,
-                cell_index: 0,
+            let (range_index, cell_index) = line.calc_range_cell_index_position(self.x_pos);
+            if let Some(range) = line.ranges.get(range_index) {
+                return Some(FocusCell {
+                    line_index,
+                    range_index,
+                    cell_index,
+                    cell: range.cells.get(cell_index).cloned(),
+                });
             }
         }
+        return None;
     }
 
     /// add more lines, used internally
@@ -222,7 +223,7 @@ impl TextBuffer {
     /// break at line y and put the characters after x on the next line
     pub fn break_line(&mut self, x: usize, y: usize) {
         if let Some(line) = self.lines.get_mut(y) {
-            let (range_index, col) = Self::calc_range_col_insert_position(line, x);
+            let (range_index, col) = line.calc_range_cell_index_position(x);
             if let Some(range_bound) = line.ranges.get_mut(range_index) {
                 let other = range_bound.split_at(col);
                 let mut rest = line.ranges.drain(range_index + 1..).collect::<Vec<_>>();
@@ -245,7 +246,7 @@ impl TextBuffer {
     /// delete character at this position
     pub fn delete_char(&mut self, x: usize, y: usize) {
         if let Some(line) = self.lines.get_mut(y) {
-            let (range_index, col) = Self::calc_range_col_insert_position(line, x);
+            let (range_index, col) = line.calc_range_cell_index_position(x);
             if let Some(mut range) = line.ranges.get_mut(range_index) {
                 if range.cells.get(col).is_some() {
                     range.cells.remove(col);
@@ -284,19 +285,24 @@ impl TextBuffer {
             self.add_col(y, col_diff);
         }
 
-        let (range_index, cell_index) = Self::calc_range_col_insert_position(&self.lines[y], x);
+        let (range_index, cell_index) = self.lines[y].calc_range_cell_index_position(x);
 
         if is_replace {
             self.lines[y].replace_char(range_index, cell_index, ch);
         } else {
             self.lines[y].insert_char(range_index, cell_index, ch);
         }
+        self.rehighlight_line(y);
     }
 
     fn rehighlight_line(&mut self, y: usize) {
+        let t1 = sauron::now();
+        log::trace!("rehighlighting line: {}", y);
         if let Some(mut line) = self.lines.get_mut(y) {
             line.rehighlight(&self.highlighter);
         }
+        let t2 = sauron::now();
+        log::trace!("rehighlighting line took {}ms", t2 - t2);
     }
 }
 
@@ -307,10 +313,12 @@ impl TextBuffer {
     }
     pub(crate) fn move_right(&mut self) {
         self.x_pos += 1;
+        self.calculate_focused_cell();
     }
     pub(crate) fn set_position(&mut self, x: usize, y: usize) {
         self.x_pos = x;
         self.y_pos = y;
+        self.calculate_focused_cell();
     }
     pub(crate) fn get_position(&self) -> (usize, usize) {
         (self.x_pos, self.y_pos)
@@ -386,16 +394,56 @@ impl Line {
         }
     }
 
-    fn view_line<MSG>(
-        &self,
-        text_buffer: &TextBuffer,
-        focus_cell: FocusCell,
-        line_index: usize,
-        is_focused: bool,
-    ) -> Node<MSG> {
+    /// calcultate which column position for this x relative to the widths
+    fn calc_range_cell_index_position(&self, x: usize) -> (usize, usize) {
+        println!("calculating range col where x is: {}", x);
+        let mut col_width = 0;
+        for (i, range) in self.ranges.iter().enumerate() {
+            for (j, cell) in range.cells.iter().enumerate() {
+                if col_width >= x {
+                    return (i, j);
+                }
+                col_width += cell.width;
+            }
+        }
+        let line_ranges_len = self.ranges.len();
+        let last = if line_ranges_len > 0 {
+            line_ranges_len - 1
+        } else {
+            0
+        };
+
+        (
+            last,
+            self.ranges
+                .last()
+                .map(|ranges| ranges.cells.len())
+                .unwrap_or(0),
+        )
+    }
+
+    fn last_range_cell_index(&self) -> (usize, usize) {
+        let line_ranges_len = self.ranges.len();
+        let last = if line_ranges_len > 0 {
+            line_ranges_len - 1
+        } else {
+            0
+        };
+
+        (
+            last,
+            self.ranges
+                .last()
+                .map(|ranges| ranges.cells.len())
+                .unwrap_or(0),
+        )
+    }
+
+    fn view_line<MSG>(&self, text_buffer: &TextBuffer, line_index: usize) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let classes_ns_flag =
             |class_name_flags| classes_flag_namespaced(COMPONENT_NAME, class_name_flags);
+        let is_focused = text_buffer.is_focused_line(line_index);
         div(
             vec![
                 key(line_index),
@@ -429,10 +477,7 @@ impl Line {
                         .iter()
                         .enumerate()
                         .map(|(range_index, range)| {
-                            range.view_range(
-                                focus_cell,
-                                is_focused && focus_cell.range_index == range_index,
-                            )
+                            range.view_range(text_buffer, line_index, range_index)
                         })
                         .collect::<Vec<_>>(),
                 ),
@@ -482,13 +527,23 @@ impl Range {
         Self::from_cells(other, self.style)
     }
 
-    fn view_range<MSG>(&self, focus_cell: FocusCell, is_focused: bool) -> Node<MSG> {
+    fn view_range<MSG>(
+        &self,
+        text_buffer: &TextBuffer,
+        line_index: usize,
+        range_index: usize,
+    ) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let classes_ns_flag = |class_name_flags| {
+            attributes::classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
+        };
         let background = util::to_rgba(self.style.background);
         let foreground = util::to_rgba(self.style.foreground);
+        let is_focused = text_buffer.is_focused_range(line_index, range_index);
         div(
             vec![
                 class_ns("range"),
+                classes_ns_flag([("range_focused", is_focused)]),
                 style! {
                     color: foreground.to_css(),
                     background_color: background.to_css(),
@@ -498,7 +553,7 @@ impl Range {
                 .iter()
                 .enumerate()
                 .map(|(cell_index, cell)| {
-                    cell.view_cell(is_focused && cell_index == focus_cell.cell_index)
+                    cell.view_cell(text_buffer, line_index, range_index, cell_index)
                 })
                 .collect::<Vec<_>>(),
         )
@@ -533,11 +588,18 @@ impl Cell {
         }
     }
 
-    fn view_cell<MSG>(&self, is_focused: bool) -> Node<MSG> {
+    fn view_cell<MSG>(
+        &self,
+        text_buffer: &TextBuffer,
+        line_index: usize,
+        range_index: usize,
+        cell_index: usize,
+    ) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let classes_ns_flag = |class_name_flags| {
             attributes::classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
         };
+        let is_focused = text_buffer.is_focused_cell(line_index, range_index, cell_index);
         div(
             vec![
                 class_ns("ch"),
@@ -584,5 +646,19 @@ impl Highlighter {
             theme_set,
             theme_name,
         }
+    }
+}
+
+impl FocusCell {
+    fn matched(&self, line_index: usize, range_index: usize, cell_index: usize) -> bool {
+        self.line_index == line_index
+            && self.range_index == range_index
+            && self.cell_index == cell_index
+    }
+    fn matched_line(&self, line_index: usize) -> bool {
+        self.line_index == line_index
+    }
+    fn matched_range(&self, line_index: usize, range_index: usize) -> bool {
+        self.line_index == line_index && self.range_index == range_index
     }
 }

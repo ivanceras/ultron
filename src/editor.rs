@@ -60,7 +60,7 @@ impl Component<Msg, ()> for Editor {
             }
             Msg::Mouseup(_client_x, _client_y) => Effects::none(),
             Msg::Mousedown(client_x, client_y) => {
-                let (x, y) = self.calculate_position(client_x, client_y);
+                let (x, y) = self.client_to_cursor(client_x, client_y);
                 self.text_buffer.set_position(x, y);
                 Effects::none()
             }
@@ -92,7 +92,14 @@ impl Component<Msg, ()> for Editor {
     fn view(&self) -> Node<Msg> {
         div(
             vec![class(COMPONENT_NAME), on_scroll(Msg::Scrolled)],
-            vec![self.text_buffer.view(), self.view_status()],
+            vec![
+                self.text_buffer.view(),
+                self.view_status(),
+                view_if(
+                    self.text_buffer.is_in_virtual_position(),
+                    self.view_virtual_cursor(),
+                ),
+            ],
         )
     }
 
@@ -214,14 +221,21 @@ impl Component<Msg, ()> for Editor {
                 background_color:selection_bg.to_css(),
             },
 
+            ".virtual_cursor": {
+                position: "absolute",
+                width: px(CH_WIDTH),
+                height: px(CH_HEIGHT),
+                background_color: cursor_color.to_css(),
+            },
+
             ".ch .cursor": {
-               position: "absolute",
-               left: 0,
-               width : px(CH_WIDTH),
-               height: px(CH_HEIGHT),
-               background_color: cursor_color.to_css(),
-               display: "inline",
-               animation: "cursor_blink-anim 1000ms step-end infinite",
+                position: "absolute",
+                left: 0,
+                width : px(CH_WIDTH),
+                height: px(CH_HEIGHT),
+                background_color: cursor_color.to_css(),
+                display: "inline",
+                animation: "cursor_blink-anim 1000ms step-end infinite",
             },
 
             ".ch.wide2 .cursor": {
@@ -239,6 +253,7 @@ impl Component<Msg, ()> for Editor {
             ".block_cursor .cursor": {
                 width: px(CH_WIDTH),
             },
+
 
             ".line .ch.wide2": {
                 width: px(2 * CH_WIDTH),
@@ -283,7 +298,8 @@ impl Editor {
         editor
     }
 
-    fn calculate_position(&self, client_x: i32, client_y: i32) -> (usize, usize) {
+    /// convert screen coordinate to cursor position
+    fn client_to_cursor(&self, client_x: i32, client_y: i32) -> (usize, usize) {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
         let col = (client_x as f32 + self.scroll_left) / CH_WIDTH as f32 - numberline_wide;
         let line = (client_y as f32 + self.scroll_top) / CH_HEIGHT as f32 - 1.0;
@@ -299,6 +315,30 @@ impl Editor {
             y
         );
         (x, y)
+    }
+
+    /// convert current cursor position to client coordinate
+    fn cursor_to_client(&self) -> (i32, i32) {
+        let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
+        let (x, y) = self.text_buffer.get_position();
+        let top = y as i32 * CH_HEIGHT as i32;
+        let left = (x as i32 + numberline_wide as i32) * CH_WIDTH as i32;
+        (left, top)
+    }
+
+    fn view_virtual_cursor(&self) -> Node<Msg> {
+        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let (left, top) = self.cursor_to_client();
+        div(
+            vec![
+                class_ns("virtual_cursor"),
+                style! {
+                    top: px(top),
+                    left: px(left),
+                },
+            ],
+            vec![],
+        )
     }
 
     fn view_status<Msg>(&self) -> Node<Msg> {
