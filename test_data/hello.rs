@@ -5,6 +5,10 @@ fn hello() {
 
     // Print text to the console
     println!("Hello World!");
+
+    let raw = "This is a string
+        that spans
+        multiple lines";
 }
 
 fn main() {

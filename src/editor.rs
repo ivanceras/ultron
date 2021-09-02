@@ -9,6 +9,7 @@ use sauron::prelude::*;
 use sauron::Measurements;
 use syntect::highlighting::Theme;
 pub use text_buffer::TextBuffer;
+pub use text_highlighter::TextHighlighter;
 
 pub const CH_WIDTH: u32 = 8;
 pub const CH_HEIGHT: u32 = 16;
@@ -16,6 +17,7 @@ pub const CH_HEIGHT: u32 = 16;
 pub(crate) mod action;
 mod history;
 mod text_buffer;
+mod text_highlighter;
 
 #[derive(Clone, PartialEq)]
 pub enum Msg {
@@ -80,9 +82,34 @@ impl Component<Msg, ()> for Editor {
             }
             Msg::KeyDown(ke) => {
                 let key = ke.key();
+                match &*key {
+                    "Enter" => {
+                        self.text_buffer.command_break_line();
+                    }
+                    "Backspace" => {
+                        self.text_buffer.command_delete_back();
+                    }
+                    "Delete" => {
+                        self.text_buffer.command_delete_forward();
+                    }
+                    "ArrowUp" => {
+                        self.text_buffer.move_up();
+                    }
+                    "ArrowDown" => {
+                        self.text_buffer.move_down();
+                    }
+                    "ArrowLeft" => {
+                        self.text_buffer.move_left();
+                    }
+                    "ArrowRight" => {
+                        self.text_buffer.move_right();
+                    }
+                    _ => (),
+                }
                 if key.chars().count() == 1 {
                     let c = key.chars().next().expect("must be only 1 chr");
                     self.text_buffer.command_insert_char(c);
+                    self.text_buffer.rehighlight();
                 }
                 Effects::none()
             }
@@ -371,13 +398,13 @@ impl Editor {
             vec![
                 span(
                     vec![],
-                    vec![text!("line: {}, column: {}", y_pos + 1, x_pos + 1)],
+                    vec![text!("({},{}) line, col ", y_pos + 1, x_pos + 1)],
                 ),
                 if let Some(measurements) = &self.measurements {
                     span(
                         vec![],
                         vec![text!(
-                            "{} patches on {} total nodes took {}ms",
+                            "| {} patches on {} total nodes, updating took {}ms",
                             measurements.total_patches,
                             measurements.view_node_count,
                             measurements.total_time

@@ -1,3 +1,4 @@
+pub use super::TextHighlighter;
 use crate::editor::COMPONENT_NAME;
 use crate::util;
 use cell::Cell;
@@ -24,18 +25,12 @@ mod range;
 /// recompute the highlighting of a line
 pub struct TextBuffer {
     lines: Vec<Line>,
-    highlighter: TextHighlighter,
+    text_highlighter: TextHighlighter,
     x_pos: usize,
     y_pos: usize,
     selection_start: Option<(usize, usize)>,
     selection_end: Option<(usize, usize)>,
     focused_cell: Option<FocusCell>,
-}
-
-pub struct TextHighlighter {
-    syntax_set: SyntaxSet,
-    theme_set: ThemeSet,
-    theme_name: String,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -48,13 +43,40 @@ struct FocusCell {
 
 impl TextBuffer {
     pub fn from_str(content: &str) -> Self {
-        let highlighter = TextHighlighter::default();
-        let lines = content
+        let text_highlighter = TextHighlighter::default();
+        let mut this = Self {
+            lines: Self::highlight_content(content, &text_highlighter),
+            text_highlighter,
+            x_pos: 0,
+            y_pos: 0,
+            selection_start: None,
+            selection_end: None,
+            focused_cell: None,
+        };
+
+        this.calculate_focused_cell();
+        this
+    }
+
+    /// rerun highlighter on the content
+    pub(crate) fn rehighlight(&mut self) {
+        self.lines =
+            Self::highlight_content(&self.to_string(), &self.text_highlighter);
+    }
+
+    fn highlight_content(
+        content: &str,
+        text_highlighter: &TextHighlighter,
+    ) -> Vec<Line> {
+        let (mut line_highlighter, syntax_set) =
+            text_highlighter.get_line_highlighter();
+
+        content
             .lines()
             .map(|line| {
                 let line_str = String::from_iter(line.chars());
                 let style_range: Vec<(Style, &str)> =
-                    highlighter.highlight(&line_str);
+                    line_highlighter.highlight(&line_str, syntax_set);
 
                 let ranges: Vec<Range> = style_range
                     .into_iter()
@@ -67,20 +89,7 @@ impl TextBuffer {
 
                 Line::from_ranges(ranges)
             })
-            .collect();
-
-        let mut this = Self {
-            lines,
-            highlighter,
-            x_pos: 0,
-            y_pos: 0,
-            selection_start: None,
-            selection_end: None,
-            focused_cell: None,
-        };
-
-        this.calculate_focused_cell();
-        this
+            .collect()
     }
 
     fn calculate_focused_cell(&mut self) {
@@ -123,7 +132,7 @@ impl TextBuffer {
     }
 
     pub fn active_theme(&self) -> &Theme {
-        self.highlighter.active_theme()
+        self.text_highlighter.active_theme()
     }
 
     fn gutter_background(&self) -> Option<RGBA> {
@@ -232,6 +241,8 @@ impl TextBuffer {
                 rest.insert(0, other);
                 self.insert_line(y + 1, Line::from_ranges(rest));
             }
+        } else {
+            self.insert_line(y + 1, Line::default());
         }
     }
 
@@ -299,28 +310,41 @@ impl TextBuffer {
         } else {
             self.lines[y].insert_char(range_index, cell_index, ch);
         }
-        self.rehighlight_line(y);
-    }
-
-    fn rehighlight_line(&mut self, y: usize) {
-        log::trace!("rehighlighting line: {}", y);
-        if let Some(line) = self.lines.get_mut(y) {
-            line.rehighlight(&self.highlighter);
-        }
     }
 
     fn insert_line(&mut self, line_index: usize, line: Line) {
         self.lines.insert(line_index, line);
     }
+
+    pub(crate) fn get_position(&self) -> (usize, usize) {
+        (self.x_pos, self.y_pos)
+    }
 }
 
+/// Command implementation here
 impl TextBuffer {
     pub(crate) fn command_insert_char(&mut self, ch: char) {
         self.insert_char(self.x_pos, self.y_pos, ch);
         self.move_right();
     }
+    pub(crate) fn move_left(&mut self) {
+        self.x_pos = self.x_pos.saturating_sub(1);
+        self.calculate_focused_cell();
+    }
+    pub(crate) fn move_left_start(&mut self) {
+        self.x_pos = 0;
+        self.calculate_focused_cell();
+    }
     pub(crate) fn move_right(&mut self) {
-        self.x_pos += 1;
+        self.x_pos = self.x_pos.saturating_add(1);
+        self.calculate_focused_cell();
+    }
+    pub(crate) fn move_up(&mut self) {
+        self.y_pos = self.y_pos.saturating_sub(1);
+        self.calculate_focused_cell();
+    }
+    pub(crate) fn move_down(&mut self) {
+        self.y_pos = self.y_pos.saturating_add(1);
         self.calculate_focused_cell();
     }
     pub(crate) fn set_position(&mut self, x: usize, y: usize) {
@@ -328,8 +352,20 @@ impl TextBuffer {
         self.y_pos = y;
         self.calculate_focused_cell();
     }
-    pub(crate) fn get_position(&self) -> (usize, usize) {
-        (self.x_pos, self.y_pos)
+    pub(crate) fn command_break_line(&mut self) {
+        self.break_line(self.x_pos, self.y_pos);
+        self.move_left_start();
+        self.move_down();
+    }
+    pub(crate) fn command_delete_back(&mut self) {
+        if self.x_pos > 0 {
+            self.delete_char(self.x_pos.saturating_sub(1), self.y_pos);
+            self.move_left();
+        }
+    }
+    pub(crate) fn command_delete_forward(&mut self) {
+        self.delete_char(self.x_pos, self.y_pos);
+        self.calculate_focused_cell();
     }
 }
 
@@ -340,41 +376,6 @@ impl ToString for TextBuffer {
             .map(|line| line.text())
             .collect::<Vec<_>>()
             .join("\n")
-    }
-}
-
-impl TextHighlighter {
-    fn highlight<'b>(&self, line: &'b str) -> Vec<(Style, &'b str)> {
-        let syntax: &SyntaxReference = self
-            .syntax_set
-            .find_syntax_by_extension("rs")
-            .expect("unable to find rust syntax reference");
-        let mut highlight_line =
-            HighlightLines::new(syntax, self.active_theme());
-        highlight_line.highlight(line, &self.syntax_set)
-    }
-    fn active_theme(&self) -> &Theme {
-        &self.theme_set.themes[&self.theme_name]
-    }
-}
-
-impl TextHighlighter {
-    fn default() -> Self {
-        let syntax_set: SyntaxSet = SyntaxSet::load_defaults_newlines();
-        let theme_set: ThemeSet = ThemeSet::load_defaults();
-        //let theme_name = "Solarized (dark)".to_string();
-        let theme_name = "Solarized (light)".to_string();
-        //let theme_name = "base16-eighties.dark".to_string();
-        //let theme_name = "base16-ocean.dark".to_string();
-        //let theme_name = "base16-mocha.dark".to_string();
-        //let theme_name = "base16-ocean.light".to_string();
-        let _active_theme = &theme_set.themes[&theme_name];
-
-        Self {
-            syntax_set,
-            theme_set,
-            theme_name,
-        }
     }
 }
 

@@ -73,19 +73,6 @@ impl Line {
         }
     }
 
-    /// rehighlight this line
-    pub(super) fn rehighlight(&mut self, highlighter: &TextHighlighter) {
-        let line_str = self.text();
-        let style_range: Vec<(Style, &str)> = highlighter.highlight(&line_str);
-        self.ranges = style_range
-            .into_iter()
-            .map(|(style, range_str)| {
-                let cells = range_str.chars().map(Cell::from_char).collect();
-                Range::from_cells(cells, style)
-            })
-            .collect();
-    }
-
     /// get the text content of this line
     pub(super) fn text(&self) -> String {
         String::from_iter(
