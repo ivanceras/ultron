@@ -1,6 +1,8 @@
 use crate::editor::COMPONENT_NAME;
 use crate::util;
+use css_colors::rgba;
 use css_colors::Color;
+use css_colors::RGBA;
 use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
@@ -92,15 +94,49 @@ impl TextBuffer {
         self.highlighter.active_theme()
     }
 
+    fn gutter_background(&self) -> Option<RGBA> {
+        self.active_theme().settings.gutter.map(util::to_rgba)
+    }
+
+    fn gutter_foreground(&self) -> Option<RGBA> {
+        self.active_theme()
+            .settings
+            .gutter_foreground
+            .map(util::to_rgba)
+    }
+
+    /// how wide the numberline based on the character lengths of the number
+    fn numberline_wide(&self) -> usize {
+        self.lines.len().to_string().len()
+    }
+
+    /// the padding of the number line width
+    pub(crate) fn numberline_padding_wide(&self) -> usize {
+        1
+    }
+
+    /// This is the total width of the number line
+    pub(crate) fn get_numberline_wide(&self) -> usize {
+        self.numberline_wide() + self.numberline_padding_wide()
+    }
+
     pub fn view<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let class_number_wide = format!("number_wide{}", self.numberline_wide());
         let focus_cell = self.get_focus_cell();
         div(
-            vec![class_ns("code")],
+            vec![class_ns("code"), class_ns(&class_number_wide)],
             self.lines
                 .iter()
                 .enumerate()
-                .map(|(n, line)| line.view_line(focus_cell, n == focus_cell.line_index))
+                .map(|(line_index, line)| {
+                    line.view_line(
+                        &self,
+                        focus_cell,
+                        line_index,
+                        line_index == focus_cell.line_index,
+                    )
+                })
                 .collect::<Vec<_>>(),
         )
     }
@@ -308,20 +344,56 @@ impl Line {
         }
     }
 
-    fn view_line<MSG>(&self, focus_cell: FocusCell, is_focused: bool) -> Node<MSG> {
+    fn view_line<MSG>(
+        &self,
+        text_buffer: &TextBuffer,
+        focus_cell: FocusCell,
+        line_index: usize,
+        is_focused: bool,
+    ) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let classes_ns_flag =
+            |class_name_flags| classes_flag_namespaced(COMPONENT_NAME, class_name_flags);
         div(
-            vec![class_ns("line")],
-            self.ranges
-                .iter()
-                .enumerate()
-                .map(|(range_index, range)| {
-                    range.view_range(
-                        focus_cell,
-                        is_focused && focus_cell.range_index == range_index,
-                    )
-                })
-                .collect::<Vec<_>>(),
+            vec![
+                class_ns("number__line"),
+                classes_ns_flag([("line_focused", is_focused)]),
+            ],
+            vec![
+                div(
+                    vec![
+                        class_ns("number"),
+                        if let Some(gutter_bg) = text_buffer.gutter_background() {
+                            style! {
+                                background_color: gutter_bg.to_css(),
+                            }
+                        } else {
+                            empty_attr()
+                        },
+                        if let Some(gutter_fg) = text_buffer.gutter_foreground() {
+                            style! {
+                                color: gutter_fg.to_css(),
+                            }
+                        } else {
+                            empty_attr()
+                        },
+                    ],
+                    vec![text(line_index + 1)],
+                ),
+                div(
+                    vec![class_ns("line")],
+                    self.ranges
+                        .iter()
+                        .enumerate()
+                        .map(|(range_index, range)| {
+                            range.view_range(
+                                focus_cell,
+                                is_focused && focus_cell.range_index == range_index,
+                            )
+                        })
+                        .collect::<Vec<_>>(),
+                ),
+            ],
         )
     }
 }
@@ -409,6 +481,7 @@ impl Cell {
             vec![
                 class_ns("ch"),
                 classes_ns_flag([("ch_focused", is_focused)]),
+                classes_ns_flag([(&format!("wide{}", self.width), self.width > 1)]),
             ],
             if is_focused {
                 vec![div(vec![class_ns("cursor")], vec![text(self.ch)])]

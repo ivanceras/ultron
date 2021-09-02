@@ -100,6 +100,7 @@ impl Component<Msg, ()> for Editor {
             .unwrap_or(rgba(100, 100, 100, 0.5));
 
         let cursor_color = self.cursor_color().unwrap_or(rgba(255, 0, 0, 1.0));
+        let theme_background = self.theme_background().unwrap_or(rgba(0, 0, 255, 1.0));
 
         jss_ns! {COMPONENT_NAME,
             ".": {
@@ -129,6 +130,7 @@ impl Component<Msg, ()> for Editor {
 
             ".code": {
                 position: "relative",
+                background: theme_background.to_css(),
             },
 
             ".line_block": {
@@ -147,7 +149,7 @@ impl Component<Msg, ()> for Editor {
                 flex: "none", // dont compress the numbers
                 text_align: "right",
                 background_color: "cyan",
-                padding_right: ex(1),
+                padding_right: px(CH_WIDTH * self.text_buffer.numberline_padding_wide() as u32),
                 height: px(CH_HEIGHT),
             },
             ".number_wide1 .number": {
@@ -162,9 +164,12 @@ impl Component<Msg, ()> for Editor {
                 width: px(3 * CH_WIDTH),
             },
             // when total lines is in between 1000 - 9000
-            // we don't support beyond this
             ".number_wide4 .number": {
                 width: px(4 * CH_WIDTH),
+            },
+            // 10000 - 90000
+            ".number_wide5 .number": {
+                width: px(5 * CH_WIDTH),
             },
 
             // line content
@@ -180,7 +185,6 @@ impl Component<Msg, ()> for Editor {
             },
 
             ".line_focused": {
-                background_color: "pink",
             },
 
             ".range": {
@@ -221,14 +225,13 @@ impl Component<Msg, ()> for Editor {
             ".ch.wide2 .cursor": {
                 width: px(2 * CH_WIDTH),
             },
+            ".ch.wide3 .cursor": {
+                width: px(3 * CH_WIDTH),
+            },
 
             // i-beam cursor
             ".thin_cursor .cursor": {
                 width: px(2),
-            },
-
-            ".thin_cursor .wide2 .cursor": {
-                width: px(2 * CH_WIDTH),
             },
 
             ".block_cursor .cursor": {
@@ -237,6 +240,11 @@ impl Component<Msg, ()> for Editor {
 
             ".line .ch.wide2": {
                 width: px(2 * CH_WIDTH),
+                font_size: px(12),
+            },
+
+            ".line .ch.wide3": {
+                width: px(3 * CH_WIDTH),
                 font_size: px(12),
             },
 
@@ -275,10 +283,20 @@ impl Editor {
     }
 
     fn calculate_position(&self, client_x: i32, client_y: i32) -> (usize, usize) {
-        let col = (client_x as f32 + self.scroll_left) / CH_WIDTH as f32 - 1.0;
+        let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
+        let col = (client_x as f32 + self.scroll_left) / CH_WIDTH as f32 - numberline_wide;
         let line = (client_y as f32 + self.scroll_top) / CH_HEIGHT as f32 - 1.0;
         let x = col.round() as usize;
         let y = line.round() as usize;
+        log::trace!(
+            "client_x_y:({},{}) col_line: ({},{}), x_y: ({},{})",
+            client_x,
+            client_y,
+            col,
+            line,
+            x,
+            y
+        );
         (x, y)
     }
 
