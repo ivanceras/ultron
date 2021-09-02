@@ -109,7 +109,8 @@ impl Component<Msg, ()> for Editor {
             .unwrap_or(rgba(100, 100, 100, 0.5));
 
         let cursor_color = self.cursor_color().unwrap_or(rgba(255, 0, 0, 1.0));
-        let theme_background = self.theme_background().unwrap_or(rgba(0, 0, 255, 1.0));
+        let theme_background =
+            self.theme_background().unwrap_or(rgba(0, 0, 255, 1.0));
 
         jss_ns! {COMPONENT_NAME,
             ".": {
@@ -301,7 +302,8 @@ impl Editor {
     /// convert screen coordinate to cursor position
     fn client_to_cursor(&self, client_x: i32, client_y: i32) -> (usize, usize) {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
-        let col = (client_x as f32 + self.scroll_left) / CH_WIDTH as f32 - numberline_wide;
+        let col = (client_x as f32 + self.scroll_left) / CH_WIDTH as f32
+            - numberline_wide;
         let line = (client_y as f32 + self.scroll_top) / CH_HEIGHT as f32 - 1.0;
         let x = col.round() as usize;
         let y = line.round() as usize;
@@ -327,7 +329,9 @@ impl Editor {
     }
 
     fn view_virtual_cursor(&self) -> Node<Msg> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| {
+            attributes::class_namespaced(COMPONENT_NAME, class_names)
+        };
         let (left, top) = self.cursor_to_client();
         div(
             vec![
@@ -342,7 +346,9 @@ impl Editor {
     }
 
     fn view_status<Msg>(&self) -> Node<Msg> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| {
+            attributes::class_namespaced(COMPONENT_NAME, class_names)
+        };
         let (x_pos, y_pos) = self.text_buffer.get_position();
         div(
             vec![

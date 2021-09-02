@@ -1,21 +1,12 @@
 use super::Cell;
-
 use crate::editor::TextBuffer;
 use crate::editor::COMPONENT_NAME;
 use crate::util;
-
 use css_colors::Color;
-
 use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
-
-
 use syntect::highlighting::Style;
-
-
-
-
 
 #[derive(Debug)]
 pub(super) struct Range {
@@ -66,9 +57,14 @@ impl Range {
         line_index: usize,
         range_index: usize,
     ) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| {
+            attributes::class_namespaced(COMPONENT_NAME, class_names)
+        };
         let classes_ns_flag = |class_name_flags| {
-            attributes::classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
+            attributes::classes_flag_namespaced(
+                COMPONENT_NAME,
+                class_name_flags,
+            )
         };
         let background = util::to_rgba(self.style.background);
         let foreground = util::to_rgba(self.style.foreground);
@@ -86,7 +82,12 @@ impl Range {
                 .iter()
                 .enumerate()
                 .map(|(cell_index, cell)| {
-                    cell.view_cell(text_buffer, line_index, range_index, cell_index)
+                    cell.view_cell(
+                        text_buffer,
+                        line_index,
+                        range_index,
+                        cell_index,
+                    )
                 })
                 .collect::<Vec<_>>(),
         )

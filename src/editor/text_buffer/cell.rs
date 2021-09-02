@@ -1,21 +1,8 @@
-
-
 use crate::editor::TextBuffer;
 use crate::editor::COMPONENT_NAME;
-
-
-
-
 use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
-
-
-
-
-
-
-
 use unicode_width::UnicodeWidthChar;
 
 #[derive(Clone, Copy, Debug)]
@@ -40,16 +27,25 @@ impl Cell {
         range_index: usize,
         cell_index: usize,
     ) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let classes_ns_flag = |class_name_flags| {
-            attributes::classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
+        let class_ns = |class_names| {
+            attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
-        let is_focused = text_buffer.is_focused_cell(line_index, range_index, cell_index);
+        let classes_ns_flag = |class_name_flags| {
+            attributes::classes_flag_namespaced(
+                COMPONENT_NAME,
+                class_name_flags,
+            )
+        };
+        let is_focused =
+            text_buffer.is_focused_cell(line_index, range_index, cell_index);
         div(
             vec![
                 class_ns("ch"),
                 classes_ns_flag([("ch_focused", is_focused)]),
-                classes_ns_flag([(&format!("wide{}", self.width), self.width > 1)]),
+                classes_ns_flag([(
+                    &format!("wide{}", self.width),
+                    self.width > 1,
+                )]),
             ],
             if is_focused {
                 vec![div(vec![class_ns("cursor")], vec![text(self.ch)])]

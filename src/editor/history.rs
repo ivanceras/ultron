@@ -74,7 +74,12 @@ impl Recorded {
         c
     }
 
-    pub(crate) fn delete_selected_forward(&mut self, start_pos: usize, end_pos: usize, s: &str) {
+    pub(crate) fn delete_selected_forward(
+        &mut self,
+        start_pos: usize,
+        end_pos: usize,
+        s: &str,
+    ) {
         if !s.is_empty() {
             self.record(Action::DeleteSelectedForward(
                 start_pos,
@@ -84,7 +89,12 @@ impl Recorded {
         }
     }
 
-    pub(crate) fn insert_string(&mut self, start_pos: usize, end_pos: usize, s: &str) {
+    pub(crate) fn insert_string(
+        &mut self,
+        start_pos: usize,
+        end_pos: usize,
+        s: &str,
+    ) {
         if !s.is_empty() {
             self.record(Action::InsertStringForward(
                 start_pos,

@@ -1,8 +1,6 @@
 use crate::editor::COMPONENT_NAME;
 use crate::util;
 use cell::Cell;
-
-
 use css_colors::RGBA;
 use line::Line;
 use range::Range;
@@ -55,12 +53,14 @@ impl TextBuffer {
             .lines()
             .map(|line| {
                 let line_str = String::from_iter(line.chars());
-                let style_range: Vec<(Style, &str)> = highlighter.highlight(&line_str);
+                let style_range: Vec<(Style, &str)> =
+                    highlighter.highlight(&line_str);
 
                 let ranges: Vec<Range> = style_range
                     .into_iter()
                     .map(|(style, range_str)| {
-                        let cells = range_str.chars().map(Cell::from_char).collect();
+                        let cells =
+                            range_str.chars().map(Cell::from_char).collect();
                         Range::from_cells(cells, style)
                     })
                     .collect();
@@ -103,7 +103,12 @@ impl TextBuffer {
         }
     }
 
-    fn is_focused_cell(&self, line_index: usize, range_index: usize, cell_index: usize) -> bool {
+    fn is_focused_cell(
+        &self,
+        line_index: usize,
+        range_index: usize,
+        cell_index: usize,
+    ) -> bool {
         if let Some(focused_cell) = self.focused_cell {
             focused_cell.matched(line_index, range_index, cell_index)
         } else {
@@ -148,8 +153,11 @@ impl TextBuffer {
     }
 
     pub fn view<MSG>(&self) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let class_number_wide = format!("number_wide{}", self.numberline_wide());
+        let class_ns = |class_names| {
+            attributes::class_namespaced(COMPONENT_NAME, class_names)
+        };
+        let class_number_wide =
+            format!("number_wide{}", self.numberline_wide());
         div(
             vec![class_ns("code"), class_ns(&class_number_wide)],
             self.lines
@@ -176,7 +184,8 @@ impl TextBuffer {
     fn find_focused_cell(&self) -> Option<FocusCell> {
         let line_index = self.y_pos;
         if let Some(line) = self.lines.get(line_index) {
-            if let Some((range_index, cell_index)) = line.calc_range_cell_index_position(self.x_pos)
+            if let Some((range_index, cell_index)) =
+                line.calc_range_cell_index_position(self.x_pos)
             {
                 if let Some(range) = line.ranges.get(range_index) {
                     return Some(FocusCell {
@@ -218,7 +227,8 @@ impl TextBuffer {
                 range_bound.recalc_width();
                 let mut other = range_bound.split_at(col);
                 other.recalc_width();
-                let mut rest = line.ranges.drain(range_index + 1..).collect::<Vec<_>>();
+                let mut rest =
+                    line.ranges.drain(range_index + 1..).collect::<Vec<_>>();
                 rest.insert(0, other);
                 self.insert_line(y + 1, Line::from_ranges(rest));
             }
@@ -238,7 +248,9 @@ impl TextBuffer {
     /// delete character at this position
     pub fn delete_char(&mut self, x: usize, y: usize) {
         if let Some(line) = self.lines.get_mut(y) {
-            if let Some((range_index, col)) = line.calc_range_cell_index_position(x) {
+            if let Some((range_index, col)) =
+                line.calc_range_cell_index_position(x)
+            {
                 if let Some(range) = line.ranges.get_mut(range_index) {
                     if range.cells.get(col).is_some() {
                         range.cells.remove(col);
@@ -337,7 +349,8 @@ impl TextHighlighter {
             .syntax_set
             .find_syntax_by_extension("rs")
             .expect("unable to find rust syntax reference");
-        let mut highlight_line = HighlightLines::new(syntax, self.active_theme());
+        let mut highlight_line =
+            HighlightLines::new(syntax, self.active_theme());
         highlight_line.highlight(line, &self.syntax_set)
     }
     fn active_theme(&self) -> &Theme {
@@ -366,7 +379,12 @@ impl TextHighlighter {
 }
 
 impl FocusCell {
-    fn matched(&self, line_index: usize, range_index: usize, cell_index: usize) -> bool {
+    fn matched(
+        &self,
+        line_index: usize,
+        range_index: usize,
+        cell_index: usize,
+    ) -> bool {
         self.line_index == line_index
             && self.range_index == range_index
             && self.cell_index == cell_index

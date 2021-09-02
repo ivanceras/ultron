@@ -3,20 +3,12 @@ use super::Range;
 use super::TextHighlighter;
 use crate::editor::TextBuffer;
 use crate::editor::COMPONENT_NAME;
-
-
 use css_colors::Color;
-
 use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
 use std::iter::FromIterator;
-
 use syntect::highlighting::Style;
-
-
-
-
 
 #[derive(Debug)]
 pub(super) struct Line {
@@ -53,7 +45,12 @@ impl Line {
         self.ranges.push(range);
     }
 
-    pub(super) fn replace_char(&mut self, range_index: usize, cell_index: usize, ch: char) {
+    pub(super) fn replace_char(
+        &mut self,
+        range_index: usize,
+        cell_index: usize,
+        ch: char,
+    ) {
         if let Some(range) = self.ranges.get_mut(range_index) {
             self.width -= range.width;
             let cell = Cell::from_char(ch);
@@ -62,7 +59,12 @@ impl Line {
         }
     }
 
-    pub(super) fn insert_char(&mut self, range_index: usize, cell_index: usize, ch: char) {
+    pub(super) fn insert_char(
+        &mut self,
+        range_index: usize,
+        cell_index: usize,
+        ch: char,
+    ) {
         if let Some(range) = self.ranges.get_mut(range_index) {
             self.width -= range.width;
             let cell = Cell::from_char(ch);
@@ -94,7 +96,10 @@ impl Line {
     }
 
     /// calcultate which column position for this x relative to the widths
-    pub(super) fn calc_range_cell_index_position(&self, x: usize) -> Option<(usize, usize)> {
+    pub(super) fn calc_range_cell_index_position(
+        &self,
+        x: usize,
+    ) -> Option<(usize, usize)> {
         println!("calculating range col where x is: {}", x);
         let mut col_width = 0;
         for (i, range) in self.ranges.iter().enumerate() {
@@ -125,10 +130,17 @@ impl Line {
         )
     }
 
-    pub(super) fn view_line<MSG>(&self, text_buffer: &TextBuffer, line_index: usize) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let classes_ns_flag =
-            |class_name_flags| classes_flag_namespaced(COMPONENT_NAME, class_name_flags);
+    pub(super) fn view_line<MSG>(
+        &self,
+        text_buffer: &TextBuffer,
+        line_index: usize,
+    ) -> Node<MSG> {
+        let class_ns = |class_names| {
+            attributes::class_namespaced(COMPONENT_NAME, class_names)
+        };
+        let classes_ns_flag = |class_name_flags| {
+            classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
+        };
         let is_focused = text_buffer.is_focused_line(line_index);
         div(
             vec![
@@ -140,14 +152,16 @@ impl Line {
                 div(
                     vec![
                         class_ns("number"),
-                        if let Some(gutter_bg) = text_buffer.gutter_background() {
+                        if let Some(gutter_bg) = text_buffer.gutter_background()
+                        {
                             style! {
                                 background_color: gutter_bg.to_css(),
                             }
                         } else {
                             empty_attr()
                         },
-                        if let Some(gutter_fg) = text_buffer.gutter_foreground() {
+                        if let Some(gutter_fg) = text_buffer.gutter_foreground()
+                        {
                             style! {
                                 color: gutter_fg.to_css(),
                             }
@@ -163,7 +177,11 @@ impl Line {
                         .iter()
                         .enumerate()
                         .map(|(range_index, range)| {
-                            range.view_range(text_buffer, line_index, range_index)
+                            range.view_range(
+                                text_buffer,
+                                line_index,
+                                range_index,
+                            )
                         })
                         .collect::<Vec<_>>(),
                 ),
