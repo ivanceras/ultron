@@ -1,9 +1,10 @@
 use crate::editor::COMPONENT_NAME;
+use crate::util;
+use css_colors::Color;
 use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
 use std::iter::FromIterator;
-
 use syntect::easy::HighlightLines;
 use syntect::highlighting::Style;
 use syntect::highlighting::Theme;
@@ -131,9 +132,6 @@ impl TextBuffer {
                 index += 1;
             }
         }
-        dbg!(&x);
-        dbg!(&line);
-
         let line_ranges_len = line.ranges.len();
         let last = if line_ranges_len > 0 {
             line_ranges_len - 1
@@ -167,7 +165,6 @@ impl TextBuffer {
             println!("Adding line...{}", _i);
             self.lines.push(Line::default());
         }
-        dbg!(&self.lines);
     }
 
     /// fill columns at line y putting a space in each of the cells
@@ -204,9 +201,8 @@ impl TextBuffer {
 
     /// delete character at this position
     pub fn delete_char(&mut self, x: usize, y: usize) {
-        dbg!(&self.lines);
         if let Some(line) = self.lines.get_mut(y) {
-            let (range_index, col) = dbg!(Self::calc_range_col_insert_position(line, x));
+            let (range_index, col) = Self::calc_range_col_insert_position(line, x);
             if let Some(mut range) = line.ranges.get_mut(range_index) {
                 if range.cells.get(col).is_some() {
                     range.cells.remove(col);
@@ -229,7 +225,6 @@ impl TextBuffer {
         } else {
             0
         };
-        dbg!(&line_gap);
 
         if self.total_lines() == 0 {
             self.add_lines(1);
@@ -239,7 +234,6 @@ impl TextBuffer {
         }
         let line = &self.lines[y];
         let col_diff = if x > line.width { x - line.width } else { 0 };
-        dbg!(&col_diff);
         if col_diff > 0 {
             self.add_col(y, col_diff);
         }
@@ -250,15 +244,7 @@ impl TextBuffer {
             width: ch_width,
         };
 
-        dbg!(&x);
-        dbg!(&y);
-
-        let (range_index, char_index) =
-            dbg!(Self::calc_range_col_insert_position(&self.lines[y], x));
-
-        dbg!(&self.lines);
-
-        dbg!(&self.lines[y]);
+        let (range_index, char_index) = Self::calc_range_col_insert_position(&self.lines[y], x);
 
         if is_replace {
             self.lines[y].ranges[range_index].cells[char_index] = cell
@@ -365,14 +351,14 @@ impl Range {
 
     fn view_range<MSG>(&self, focus_cell: FocusCell, is_focused: bool) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let background = self.style.background;
-        let foreground = self.style.foreground;
+        let background = util::to_rgba(self.style.background);
+        let foreground = util::to_rgba(self.style.foreground);
         div(
             vec![
                 class_ns("range"),
                 style! {
-                    color: format!("rgba({},{},{},{})", foreground.r,foreground.g, foreground.b, (foreground.a as f32/ 255.0)),
-                    background_color: format!("rgba({},{},{},{})", background.r,background.g, background.b, (background.a as f32/ 255.0)),
+                    color: foreground.to_css(),
+                    background_color: background.to_css(),
                 },
             ],
             self.cells
