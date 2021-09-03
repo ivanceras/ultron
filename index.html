@@ -1,6 +1,8 @@
+<!doctype html>
 <html>
   <head>
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Code editor</title>
     <style type="text/css">
         body {
@@ -12,8 +14,11 @@
   </head>
   <body>
     <script type=module>
-      import init from './pkg/ultron.js';
-      init().catch(console.error);
+      import wasm_bindgen from './pkg/ultron.js';
+      async function start(){
+        await wasm_bindgen().catch(console.error);
+      }
+      start();
     </script>
   </body>
 </html>
