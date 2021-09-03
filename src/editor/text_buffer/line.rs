@@ -121,6 +121,7 @@ impl Line {
         &self,
         text_buffer: &TextBuffer,
         line_index: usize,
+        show_line_numbers: bool,
     ) -> Node<MSG> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
@@ -136,27 +137,32 @@ impl Line {
                 classes_ns_flag([("line_focused", is_focused)]),
             ],
             vec![
-                div(
-                    vec![
-                        class_ns("number"),
-                        if let Some(gutter_bg) = text_buffer.gutter_background()
-                        {
-                            style! {
-                                background_color: gutter_bg.to_css(),
-                            }
-                        } else {
-                            empty_attr()
-                        },
-                        if let Some(gutter_fg) = text_buffer.gutter_foreground()
-                        {
-                            style! {
-                                color: gutter_fg.to_css(),
-                            }
-                        } else {
-                            empty_attr()
-                        },
-                    ],
-                    vec![text(line_index + 1)],
+                view_if(
+                    show_line_numbers,
+                    div(
+                        vec![
+                            class_ns("number"),
+                            if let Some(gutter_bg) =
+                                text_buffer.gutter_background()
+                            {
+                                style! {
+                                    background_color: gutter_bg.to_css(),
+                                }
+                            } else {
+                                empty_attr()
+                            },
+                            if let Some(gutter_fg) =
+                                text_buffer.gutter_foreground()
+                            {
+                                style! {
+                                    color: gutter_fg.to_css(),
+                                }
+                            } else {
+                                empty_attr()
+                            },
+                        ],
+                        vec![text(line_index + 1)],
+                    ),
                 ),
                 div(
                     vec![class_ns("line")],

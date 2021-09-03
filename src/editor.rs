@@ -1,4 +1,5 @@
 use crate::util;
+use crate::Options;
 use css_colors::rgba;
 use css_colors::Color;
 use css_colors::RGBA;
@@ -40,6 +41,7 @@ pub enum Msg {
 pub const COMPONENT_NAME: &str = "ultron";
 
 pub struct Editor {
+    options: Options,
     text_buffer: TextBuffer,
     use_block_cursor: bool,
     /// number of lines in a page, when paging up and down
@@ -120,7 +122,7 @@ impl Component<Msg, ()> for Editor {
             vec![class(COMPONENT_NAME), on_scroll(Msg::Scrolled)],
             vec![
                 self.text_buffer.view(),
-                self.view_status_line(),
+                view_if(self.options.show_status_line, self.view_status_line()),
                 view_if(
                     self.text_buffer.is_in_virtual_position(),
                     self.view_virtual_cursor(),
@@ -314,6 +316,7 @@ impl Component<Msg, ()> for Editor {
 impl Editor {
     pub fn from_str(content: &str) -> Self {
         let editor = Editor {
+            options: Options::default(),
             text_buffer: TextBuffer::from_str(content),
             use_block_cursor: true,
             page_size: 10,
@@ -323,6 +326,12 @@ impl Editor {
             scroll_left: 0.0,
         };
         editor
+    }
+
+    pub fn set_options(&mut self, options: Options) {
+        self.options = options;
+        self.text_buffer
+            .show_line_numbers(self.options.show_line_numbers);
     }
 
     /// convert screen coordinate to cursor position

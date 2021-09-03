@@ -31,6 +31,7 @@ pub struct TextBuffer {
     selection_start: Option<(usize, usize)>,
     selection_end: Option<(usize, usize)>,
     focused_cell: Option<FocusCell>,
+    show_line_numbers: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -52,10 +53,15 @@ impl TextBuffer {
             selection_start: None,
             selection_end: None,
             focused_cell: None,
+            show_line_numbers: true,
         };
 
         this.calculate_focused_cell();
         this
+    }
+
+    pub fn show_line_numbers(&mut self, show: bool) {
+        self.show_line_numbers = show;
     }
 
     /// rerun highlighter on the content
@@ -148,7 +154,11 @@ impl TextBuffer {
 
     /// how wide the numberline based on the character lengths of the number
     fn numberline_wide(&self) -> usize {
-        self.lines.len().to_string().len()
+        if self.show_line_numbers {
+            self.lines.len().to_string().len()
+        } else {
+            0
+        }
     }
 
     /// the padding of the number line width
@@ -158,7 +168,11 @@ impl TextBuffer {
 
     /// This is the total width of the number line
     pub(crate) fn get_numberline_wide(&self) -> usize {
-        self.numberline_wide() + self.numberline_padding_wide()
+        if self.show_line_numbers {
+            self.numberline_wide() + self.numberline_padding_wide()
+        } else {
+            0
+        }
     }
 
     pub(crate) fn view<MSG>(&self) -> Node<MSG> {
@@ -172,7 +186,9 @@ impl TextBuffer {
             self.lines
                 .iter()
                 .enumerate()
-                .map(|(line_index, line)| line.view_line(&self, line_index))
+                .map(|(line_index, line)| {
+                    line.view_line(&self, line_index, self.show_line_numbers)
+                })
                 .collect::<Vec<_>>(),
         )
     }

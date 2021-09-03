@@ -38,5 +38,6 @@ features = [
 
 
 [features]
-# use this feature if only want to support latest browsers
-with-navigator-clipboard = [] 
+default = ["standalone", "with-navigator-clipboard"]
+with-navigator-clipboard = [] # use this feature if only want to support latest browsers
+standalone = [] # run the ultron editor as a standalone web app

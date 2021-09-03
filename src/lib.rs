@@ -1,11 +1,26 @@
 //#![deny(warnings)]
-use editor::Editor;
+pub use editor::Editor;
 use sauron::jss::jss;
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
 
 pub mod editor;
 mod util;
+
+#[derive(Clone, Copy, Debug)]
+pub struct Options {
+    pub show_line_numbers: bool,
+    pub show_status_line: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            show_line_numbers: true,
+            show_status_line: true,
+        }
+    }
+}
 
 pub enum Msg {
     EditorMsg(editor::Msg),
@@ -112,7 +127,7 @@ impl Application<Msg> for App {
             },
         };
 
-        vec![lib_css, self.editor.style()].join("\n")
+        [lib_css, self.editor.style()].join("\n")
     }
     fn view(&self) -> Node<Msg> {
         div(
@@ -166,6 +181,7 @@ mod unit_tests;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+#[cfg(feature = "standalone")]
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
 pub fn main() {
