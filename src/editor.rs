@@ -40,7 +40,7 @@ pub enum Msg {
 
 pub const COMPONENT_NAME: &str = "ultron";
 
-pub struct Editor {
+pub struct Editor<XMSG> {
     options: Options,
     text_buffer: TextBuffer,
     use_block_cursor: bool,
@@ -51,11 +51,12 @@ pub struct Editor {
     measurements: Option<Measurements>,
     scroll_top: f32,
     scroll_left: f32,
+    change_listeners: Vec<Callback<String, XMSG>>,
 }
 
-impl Component<Msg, ()> for Editor {
+impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
     /// returns bool indicating whether the view should be updated or not
-    fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
+    fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
             Msg::Scrolled((scroll_top, scroll_left)) => {
                 self.scroll_top = scroll_top as f32;
@@ -111,6 +112,14 @@ impl Component<Msg, ()> for Editor {
                     let c = key.chars().next().expect("must be only 1 chr");
                     self.text_buffer.command_insert_char(c);
                     self.text_buffer.rehighlight();
+                    let external_msgs = self
+                        .change_listeners
+                        .iter()
+                        .map(|listener| {
+                            listener.emit(self.text_buffer.to_string())
+                        })
+                        .collect();
+                    return Effects::with_external(external_msgs);
                 }
                 Effects::none()
             }
@@ -313,7 +322,7 @@ impl Component<Msg, ()> for Editor {
     }
 }
 
-impl Editor {
+impl<XMSG> Editor<XMSG> {
     pub fn from_str(content: &str) -> Self {
         let editor = Editor {
             options: Options::default(),
@@ -324,14 +333,25 @@ impl Editor {
             measurements: None,
             scroll_top: 0.0,
             scroll_left: 0.0,
+            change_listeners: vec![],
         };
         editor
     }
 
-    pub fn set_options(&mut self, options: Options) {
+    pub fn with_options(mut self, options: Options) -> Self {
         self.options = options;
         self.text_buffer
             .show_line_numbers(self.options.show_line_numbers);
+        self
+    }
+
+    pub fn on_change<F>(mut self, f: F) -> Self
+    where
+        F: Fn(String) -> XMSG + 'static,
+    {
+        let cb = Callback::from(f);
+        self.change_listeners.push(cb);
+        self
     }
 
     /// convert screen coordinate to cursor position

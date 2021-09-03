@@ -31,7 +31,7 @@ pub enum Msg {
 }
 
 pub struct App {
-    editor: Editor,
+    editor: Editor<Msg>,
 }
 
 impl App {
