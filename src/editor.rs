@@ -51,11 +51,12 @@ pub struct Editor<XMSG> {
     measurements: Option<Measurements>,
     scroll_top: f32,
     scroll_left: f32,
+    /// Other components can listen to the an event.
+    /// When the content of the text editor changes, the change listener will be emitted
     change_listeners: Vec<Callback<String, XMSG>>,
 }
 
 impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
-    /// returns bool indicating whether the view should be updated or not
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
             Msg::Scrolled((scroll_top, scroll_left)) => {
@@ -315,7 +316,13 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
               "50%": {
                 background_color: "transparent",
                 border_color: "transparent",
-              }
+              },
+
+              "100%": {
+                background_color: cursor_color.to_css(),
+                border_color: "transparent",
+              },
+
             },
 
         }
@@ -323,10 +330,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 }
 
 impl<XMSG> Editor<XMSG> {
-    pub fn from_str(content: &str) -> Self {
+    pub fn from_str(content: &str, syntax_token: &str) -> Self {
         let editor = Editor {
             options: Options::default(),
-            text_buffer: TextBuffer::from_str(content),
+            text_buffer: TextBuffer::from_str(content, syntax_token),
             use_block_cursor: true,
             page_size: 10,
             recorded: Recorded::new(),
@@ -365,7 +372,7 @@ impl<XMSG> Editor<XMSG> {
         (x, y)
     }
 
-    /// convert current cursor position to client coordinate
+    /// convert current cursor position to client coordinate relative to the editor div
     fn cursor_to_client(&self) -> (i32, i32) {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
         let (x, y) = self.text_buffer.get_position();

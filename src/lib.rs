@@ -39,7 +39,7 @@ impl App {
         let content = include_str!("../test_data/hello.rs");
         //let content = include_str!("../test_data/svgbob.md");
         App {
-            editor: Editor::from_str(&content),
+            editor: Editor::from_str(&content, "rust"),
         }
     }
 }

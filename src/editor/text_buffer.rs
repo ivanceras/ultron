@@ -32,6 +32,8 @@ pub struct TextBuffer {
     selection_end: Option<(usize, usize)>,
     focused_cell: Option<FocusCell>,
     show_line_numbers: bool,
+    /// the language to be used for highlighting the content
+    syntax_token: String,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -43,10 +45,14 @@ struct FocusCell {
 }
 
 impl TextBuffer {
-    pub fn from_str(content: &str) -> Self {
+    pub fn from_str(content: &str, syntax_token: &str) -> Self {
         let text_highlighter = TextHighlighter::default();
         let mut this = Self {
-            lines: Self::highlight_content(content, &text_highlighter),
+            lines: Self::highlight_content(
+                content,
+                &text_highlighter,
+                syntax_token,
+            ),
             text_highlighter,
             x_pos: 0,
             y_pos: 0,
@@ -54,6 +60,7 @@ impl TextBuffer {
             selection_end: None,
             focused_cell: None,
             show_line_numbers: true,
+            syntax_token: syntax_token.to_string(),
         };
 
         this.calculate_focused_cell();
@@ -66,16 +73,20 @@ impl TextBuffer {
 
     /// rerun highlighter on the content
     pub(crate) fn rehighlight(&mut self) {
-        self.lines =
-            Self::highlight_content(&self.to_string(), &self.text_highlighter);
+        self.lines = Self::highlight_content(
+            &self.to_string(),
+            &self.text_highlighter,
+            &self.syntax_token,
+        );
     }
 
     fn highlight_content(
         content: &str,
         text_highlighter: &TextHighlighter,
+        syntax_token: &str,
     ) -> Vec<Line> {
         let (mut line_highlighter, syntax_set) =
-            text_highlighter.get_line_highlighter();
+            text_highlighter.get_line_highlighter(syntax_token);
 
         content
             .lines()

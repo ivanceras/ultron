@@ -21,7 +21,6 @@ impl Default for TextHighlighter {
         //let theme_name = "base16-ocean.dark".to_string();
         //let theme_name = "base16-mocha.dark".to_string();
         //let theme_name = "base16-ocean.light".to_string();
-        let _active_theme = &theme_set.themes[&theme_name];
 
         Self {
             syntax_set,
@@ -32,11 +31,14 @@ impl Default for TextHighlighter {
 }
 
 impl TextHighlighter {
-    pub(super) fn get_line_highlighter(&self) -> (HighlightLines, &SyntaxSet) {
+    pub(super) fn get_line_highlighter(
+        &self,
+        syntax_token: &str,
+    ) -> (HighlightLines, &SyntaxSet) {
         let syntax: &SyntaxReference = self
             .syntax_set
-            .find_syntax_by_extension("rs")
-            .expect("unable to find rust syntax reference");
+            .find_syntax_by_token(syntax_token)
+            .unwrap_or_else(|| self.syntax_set.find_syntax_plain_text());
         (
             HighlightLines::new(syntax, self.active_theme()),
             &self.syntax_set,
