@@ -426,7 +426,7 @@ impl<XMSG> Editor<XMSG> {
                             "patches: {} | nodes: {} | update time: {}ms",
                             measurements.total_patches,
                             measurements.view_node_count,
-                            measurements.total_time
+                            measurements.total_time.round()
                         )],
                     )
                 } else {
