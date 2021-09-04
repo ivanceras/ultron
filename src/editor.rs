@@ -245,7 +245,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             ".line .ch": {
                 width: px(CH_WIDTH),
                 height: px(CH_HEIGHT),
-                font_family: "monospace",
                 font_stretch: "ultra-condensed",
                 font_variant_numeric: "slashed-zero",
                 font_kerning: "none",
@@ -254,6 +253,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 position: "relative",
                 overflow: "hidden",
                 align_items: "center",
+                line_height: 1,
             },
 
             ".ch.selected": {
@@ -296,12 +296,12 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 
             ".line .ch.wide2": {
                 width: px(2 * CH_WIDTH),
-                font_size: px(12),
+                font_size: px(13),
             },
 
             ".line .ch.wide3": {
                 width: px(3 * CH_WIDTH),
-                font_size: px(12),
+                font_size: px(13),
             },
 
 
