@@ -25,7 +25,7 @@ mod text_highlighter;
 pub enum Msg {
     TextareaMounted(web_sys::Node),
     EditorMounted(web_sys::Node),
-    KeyDown(web_sys::KeyboardEvent),
+    Keydown(web_sys::KeyboardEvent),
     TextareaKeydown(web_sys::KeyboardEvent),
     MoveCursor(usize, usize),
     MoveCursorToLine(usize),
@@ -125,7 +125,25 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::TextareaInput(input) => {
                 let char_count = input.chars().count();
-                if char_count == 1 && self.last_char_count == Some(0) {
+                log::trace!(
+                    "last char count: {:?}, current char count: {}",
+                    self.last_char_count,
+                    char_count
+                );
+
+                // for chrome:
+                // detect if the typed in character was a composed and becomes 1 unicode character
+                let char_count_decreased =
+                    if let Some(last_char_count) = self.last_char_count {
+                        last_char_count > 1
+                    } else {
+                        false
+                    };
+                // firefox doesn't register compose key strokes as input
+                // if there were 1 char then it was cleared
+                let was_cleared = self.last_char_count == Some(0);
+
+                if char_count == 1 && (was_cleared || char_count_decreased) {
                     let c = input.chars().next().expect("must be only 1 chr");
                     log::trace!("TextareaInput with 1 char: {}", c);
                     self.composed_key = Some(c);
@@ -177,7 +195,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 self.measurements = Some(measurements);
                 Effects::none()
             }
-            Msg::KeyDown(ke) => {
+            Msg::Keydown(ke) => {
                 let key = ke.key();
                 log::trace!("from window keydown: {}", key);
                 self.process_keypresses(&ke);
@@ -509,17 +527,21 @@ impl<XMSG> Editor<XMSG> {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
         let (editor_x, editor_y) =
             self.editor_offset.expect("must have editor offset");
+        log::trace!("client coordinate: {},{}", client_x, client_y);
         log::trace!("editor offset: {},{}", editor_x, editor_y);
-        log::trace!("client offset: {},{}", client_x, client_y);
+        log::trace!(
+            "window scroll: {}, {}",
+            self.window_scroll_left,
+            self.window_scroll_top
+        );
         let col = (client_x as f32 - editor_x + self.window_scroll_left)
             / CH_WIDTH as f32
             - numberline_wide;
         let line = (client_y as f32 - editor_y + self.window_scroll_top)
-            / CH_HEIGHT as f32
-            - 1.0;
+            / CH_HEIGHT as f32;
         log::trace!("col line: {},{}", col, line);
-        let x = col.round() as usize;
-        let y = line.round() as usize;
+        let x = col.floor() as usize;
+        let y = line.floor() as usize;
         log::trace!("x y: {},{}", x, y);
         (x, y)
     }

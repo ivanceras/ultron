@@ -3,6 +3,7 @@ pub use editor::Editor;
 use sauron::jss::jss;
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
+use sauron::Window;
 
 pub mod editor;
 mod util;
@@ -25,11 +26,11 @@ impl Default for Options {
 pub enum Msg {
     WindowScrolled((i32, i32)),
     EditorMsg(editor::Msg),
-    KeyDown(web_sys::KeyboardEvent),
+    Keydown(web_sys::KeyboardEvent),
     Mouseup(i32, i32),
     Mousedown(i32, i32),
     Mousemove(i32, i32),
-    Paste(String),
+    NoOp,
 }
 
 pub struct App {
@@ -48,107 +49,25 @@ impl App {
 
 impl Application<Msg> for App {
     fn init(&mut self) -> Cmd<Self, Msg> {
-        Cmd::new(move |program| {
-            let window_elm =
-                web_sys::window().expect("no global `window` exists");
-
-            /*
-            let program_clone = program.clone();
-            let task_keydown: Closure<dyn Fn(web_sys::Event)> =
-                Closure::wrap(Box::new(move |event: web_sys::Event| {
-                    let ke: KeyboardEvent = event
-                        .clone()
-                        .dyn_into()
-                        .expect("unable to cast to keyboard event");
-                    if ke.key() == "Tab" {
-                        event.prevent_default();
-                        event.stop_propagation();
-                        program_clone.dispatch(Msg::KeyDown(ke.clone()));
-                    }
-                }));
-            window_elm
-                .add_event_listener_with_callback(
-                    "keydown",
-                    task_keydown.as_ref().unchecked_ref(),
-                )
-                .expect("Unable to attached event listener");
-            task_keydown.forget();
-            */
-
-            let program_clone = program.clone();
-            let task_mouseup: Closure<dyn Fn(web_sys::Event)> =
-                Closure::wrap(Box::new(move |e: web_sys::Event| {
-                    let me: MouseEvent =
-                        e.dyn_into().expect("unable to cast to mousevent");
-                    program_clone
-                        .dispatch(Msg::Mouseup(me.client_x(), me.client_y()));
-                }));
-            window_elm
-                .add_event_listener_with_callback(
-                    "mouseup",
-                    task_mouseup.as_ref().unchecked_ref(),
-                )
-                .expect("Unable to attached event listener");
-            task_mouseup.forget();
-
-            let program_clone = program.clone();
-            let task_mousedown: Closure<dyn Fn(web_sys::Event)> =
-                Closure::wrap(Box::new(move |e: web_sys::Event| {
-                    let me: MouseEvent =
-                        e.dyn_into().expect("unable to cast to mousevent");
-                    program_clone
-                        .dispatch(Msg::Mousedown(me.client_x(), me.client_y()));
-                }));
-            window_elm
-                .add_event_listener_with_callback(
-                    "mousedown",
-                    task_mousedown.as_ref().unchecked_ref(),
-                )
-                .expect("Unable to attached event listener");
-            task_mousedown.forget();
-
-            let program_clone = program.clone();
-            let task_mousemove: Closure<dyn Fn(web_sys::Event)> =
-                Closure::wrap(Box::new(move |e: web_sys::Event| {
-                    let me: MouseEvent =
-                        e.dyn_into().expect("unable to cast to mousevent");
-                    program_clone
-                        .dispatch(Msg::Mousemove(me.client_x(), me.client_y()));
-                }));
-            window_elm
-                .add_event_listener_with_callback(
-                    "mousemove",
-                    task_mousemove.as_ref().unchecked_ref(),
-                )
-                .expect("Unable to attached event listener");
-            task_mousemove.forget();
-
-            let program_clone = program.clone();
-            let task_paste: Closure<dyn Fn(web_sys::Event)> =
-                Closure::wrap(Box::new(move |e: web_sys::Event| {
-                    let ce: ClipboardEvent = e
-                        .dyn_into()
-                        .expect("unable to cast to clipboard event");
-
-                    let pasted_text = ce
-                        .clipboard_data()
-                        .expect("must have data transfer")
-                        .get_data("text/plain")
-                        .expect("must be text data");
-
-                    program_clone.dispatch(Msg::Paste(pasted_text));
-                }));
-            window_elm
-                .add_event_listener_with_callback(
-                    "paste",
-                    task_paste.as_ref().unchecked_ref(),
-                )
-                .expect("Unable to attached event listener");
-            task_paste.forget();
-        })
-        .append(vec![sauron::Window::add_event_listeners(vec![
+        Window::add_event_listeners(vec![
             on_scroll(Msg::WindowScrolled),
-        ])])
+            on_mousemove(|me| Msg::Mousemove(me.client_x(), me.client_y())),
+            on_mousedown(|me| Msg::Mousedown(me.client_x(), me.client_y())),
+            on_mouseup(|me| Msg::Mouseup(me.client_x(), me.client_y())),
+            on("keydown", |event| {
+                let event = event.as_web().expect("must be a web event");
+                let ke: KeyboardEvent = event
+                    .clone()
+                    .dyn_into()
+                    .expect("unable to cast to keyboard event");
+                if ke.key() == "Tab" {
+                    event.prevent_default();
+                    event.stop_propagation();
+                    Msg::Keydown(ke.clone());
+                }
+                Msg::NoOp
+            }),
+        ])
     }
     fn style(&self) -> String {
         let lib_css = jss! {
@@ -197,18 +116,11 @@ impl Application<Msg> for App {
                     .update(editor::Msg::Mousemove(client_x, client_y));
                 Cmd::none().no_render()
             }
-            Msg::KeyDown(ke) => {
-                self.editor.update(editor::Msg::KeyDown(ke));
+            Msg::Keydown(ke) => {
+                self.editor.update(editor::Msg::Keydown(ke));
                 Cmd::none().measure()
             }
-            Msg::Paste(content) => {
-                log::trace!(
-                    "Triggered in window... paste content: {}",
-                    content
-                );
-                //self.editor.update(editor::Msg::Paste(content));
-                Cmd::none()
-            }
+            Msg::NoOp => Cmd::none().no_render(),
         }
     }
 
