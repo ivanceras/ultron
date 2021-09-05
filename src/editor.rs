@@ -7,6 +7,7 @@ use history::Recorded;
 use sauron::html::attributes;
 use sauron::jss::jss_ns;
 use sauron::prelude::*;
+use sauron::wasm_bindgen::JsCast;
 use sauron::Measurements;
 use syntect::highlighting::Theme;
 pub use text_buffer::TextBuffer;
@@ -22,7 +23,10 @@ mod text_highlighter;
 
 #[derive(Clone, PartialEq)]
 pub enum Msg {
+    TextareaMounted(web_sys::Node),
+    EditorMounted(web_sys::Node),
     KeyDown(web_sys::KeyboardEvent),
+    TextareaKeydown(web_sys::KeyboardEvent),
     MoveCursor(usize, usize),
     MoveCursorToLine(usize),
     StartSelection(usize, usize),
@@ -36,6 +40,8 @@ pub enum Msg {
     Mousemove(i32, i32),
     SetMeasurement(Measurements),
     Scrolled((i32, i32)),
+    WindowScrolled((i32, i32)),
+    TextareaInput(String),
 }
 
 pub const COMPONENT_NAME: &str = "ultron";
@@ -51,17 +57,101 @@ pub struct Editor<XMSG> {
     measurements: Option<Measurements>,
     scroll_top: f32,
     scroll_left: f32,
+    window_scroll_top: f32,
+    window_scroll_left: f32,
     /// Other components can listen to the an event.
     /// When the content of the text editor changes, the change listener will be emitted
     change_listeners: Vec<Callback<String, XMSG>>,
+    change_notify_listeners: Vec<Callback<(), XMSG>>,
+    hidden_textarea: Option<web_sys::HtmlTextAreaElement>,
+    editor_element: Option<web_sys::Element>,
+    composed_key: Option<char>,
+    last_char_count: Option<usize>,
+    editor_offset: Option<(f32, f32)>,
+}
+
+impl<XMSG> Editor<XMSG> {
+    pub fn from_str(content: &str, syntax_token: &str) -> Self {
+        let editor = Editor {
+            options: Options::default(),
+            text_buffer: TextBuffer::from_str(content, syntax_token),
+            use_block_cursor: true,
+            page_size: 10,
+            recorded: Recorded::new(),
+            measurements: None,
+            scroll_top: 0.0,
+            scroll_left: 0.0,
+            window_scroll_top: 0.0,
+            window_scroll_left: 0.0,
+            change_listeners: vec![],
+            change_notify_listeners: vec![],
+            hidden_textarea: None,
+            editor_element: None,
+            composed_key: None,
+            last_char_count: None,
+            editor_offset: None,
+        };
+        editor
+    }
 }
 
 impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
+            Msg::EditorMounted(target_node) => {
+                let element: &web_sys::Element = target_node.unchecked_ref();
+                let rect = element.get_bounding_client_rect();
+                let editor_x = rect.x().round() as f32;
+                let editor_y = rect.y().round() as f32;
+                log::trace!("editor offset: ({},{})", editor_x, editor_y);
+                self.editor_element = Some(element.clone());
+                self.editor_offset = Some((editor_x, editor_y));
+                Effects::none()
+            }
+            Msg::TextareaMounted(target_node) => {
+                log::trace!("textare mounted: {:?}", target_node);
+                self.hidden_textarea = Some(target_node.unchecked_into());
+                Effects::none()
+            }
+            Msg::WindowScrolled((scroll_top, scroll_left)) => {
+                self.window_scroll_top = scroll_top as f32;
+                self.window_scroll_left = scroll_left as f32;
+                Effects::none()
+            }
             Msg::Scrolled((scroll_top, scroll_left)) => {
                 self.scroll_top = scroll_top as f32;
                 self.scroll_left = scroll_left as f32;
+                Effects::none()
+            }
+            Msg::TextareaInput(input) => {
+                let char_count = input.chars().count();
+                if char_count == 1 && self.last_char_count == Some(0) {
+                    let c = input.chars().next().expect("must be only 1 chr");
+                    log::trace!("TextareaInput with 1 char: {}", c);
+                    self.composed_key = Some(c);
+                    log::trace!("last char count: {:?}", self.last_char_count);
+                    self.command_insert_char(c);
+                    self.clear_hidden_textarea();
+                }
+                self.last_char_count = Some(char_count);
+                Effects::none()
+            }
+            Msg::TextareaKeydown(ke) => {
+                // don't process key presses when
+                // CTRL key is pressed.
+                if !ke.ctrl_key() {
+                    let key = ke.key();
+                    log::trace!("from textarea keydown");
+                    self.process_keypresses(&ke);
+                    if key.chars().count() == 1 {
+                        let c = key.chars().next().expect("must be only 1 chr");
+                        log::trace!("TextareaKeydown: {}", c);
+                        self.command_insert_char(c);
+                        self.clear_hidden_textarea();
+                        let extern_msgs = self.emit_on_change_listeners();
+                        return Effects::with_external(extern_msgs);
+                    }
+                }
                 Effects::none()
             }
             Msg::Mouseup(_client_x, _client_y) => Effects::none(),
@@ -71,7 +161,11 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 Effects::none()
             }
             Msg::Mousemove(_client_x, _client_y) => Effects::none(),
-            Msg::Paste(_text_content) => Effects::none(),
+            Msg::Paste(text_content) => {
+                log::trace!("pasted text: {}", text_content);
+                self.command_insert_text(&text_content);
+                Effects::none()
+            }
             Msg::CopiedSelected => Effects::none(),
             Msg::MoveCursor(_line, _col) => Effects::none(),
             Msg::MoveCursorToLine(_line) => Effects::none(),
@@ -85,42 +179,14 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::KeyDown(ke) => {
                 let key = ke.key();
-                match &*key {
-                    "Enter" => {
-                        self.text_buffer.command_break_line();
-                    }
-                    "Backspace" => {
-                        self.text_buffer.command_delete_back();
-                    }
-                    "Delete" => {
-                        self.text_buffer.command_delete_forward();
-                    }
-                    "ArrowUp" => {
-                        self.text_buffer.move_up();
-                    }
-                    "ArrowDown" => {
-                        self.text_buffer.move_down();
-                    }
-                    "ArrowLeft" => {
-                        self.text_buffer.move_left();
-                    }
-                    "ArrowRight" => {
-                        self.text_buffer.move_right();
-                    }
-                    _ => (),
-                }
+                log::trace!("from window keydown: {}", key);
+                self.process_keypresses(&ke);
                 if key.chars().count() == 1 {
                     let c = key.chars().next().expect("must be only 1 chr");
                     self.text_buffer.command_insert_char(c);
                     self.text_buffer.rehighlight();
-                    let external_msgs = self
-                        .change_listeners
-                        .iter()
-                        .map(|listener| {
-                            listener.emit(self.text_buffer.to_string())
-                        })
-                        .collect();
-                    return Effects::with_external(external_msgs);
+                    let extern_msgs = self.emit_on_change_listeners();
+                    return Effects::with_external(extern_msgs);
                 }
                 Effects::none()
             }
@@ -129,8 +195,13 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 
     fn view(&self) -> Node<Msg> {
         div(
-            vec![class(COMPONENT_NAME), on_scroll(Msg::Scrolled)],
             vec![
+                class(COMPONENT_NAME),
+                on_scroll(Msg::Scrolled),
+                on_mount(|mount| Msg::EditorMounted(mount.target_node)),
+            ],
+            vec![
+                self.view_hidden_textarea(),
                 self.text_buffer.view(),
                 view_if(self.options.show_status_line, self.view_status_line()),
                 view_if(
@@ -159,21 +230,22 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 cursor: "text",
                 width: percent(100),
                 height: percent(100),
-                overflow: "auto",
+                //overflow: "auto",
             },
 
             // paste area hack, we don't want to use
             // the clipboard read api, since it needs permission from the user
             // create a textarea instead, where it is focused all the time
             // so, pasting will be intercepted from this textarea
-            ".paste_area": {
+            ".hidden_textarea": {
                 resize: "none",
                 height: 0,
-                position: "sticky",
-                top: 0,
-                left: 0,
+                position: "absolute",
                 padding: 0,
-                border:0,
+                width: px(1000),
+                height: px(10),
+                border:format!("{} solid black",px(1)),
+                opacity: 0.4,
             },
 
             ".code": {
@@ -330,21 +402,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 }
 
 impl<XMSG> Editor<XMSG> {
-    pub fn from_str(content: &str, syntax_token: &str) -> Self {
-        let editor = Editor {
-            options: Options::default(),
-            text_buffer: TextBuffer::from_str(content, syntax_token),
-            use_block_cursor: true,
-            page_size: 10,
-            recorded: Recorded::new(),
-            measurements: None,
-            scroll_top: 0.0,
-            scroll_left: 0.0,
-            change_listeners: vec![],
-        };
-        editor
-    }
-
     pub fn with_options(mut self, options: Options) -> Self {
         self.options = options;
         self.text_buffer
@@ -352,6 +409,51 @@ impl<XMSG> Editor<XMSG> {
         self
     }
 
+    fn command_insert_char(&mut self, ch: char) {
+        self.text_buffer.command_insert_char(ch);
+        self.text_buffer.rehighlight();
+    }
+
+    fn command_insert_text(&mut self, text: &str) {
+        self.text_buffer.command_insert_text(text);
+        self.text_buffer.rehighlight();
+    }
+
+    fn process_keypresses(&mut self, ke: &web_sys::KeyboardEvent) {
+        let key = ke.key();
+        match &*key {
+            "Tab" => {
+                self.refocus_hidden_textarea();
+            }
+            "Enter" => {
+                self.text_buffer.command_break_line();
+            }
+            "Backspace" => {
+                self.text_buffer.command_delete_back();
+            }
+            "Delete" => {
+                self.text_buffer.command_delete_forward();
+            }
+            "ArrowUp" => {
+                self.text_buffer.move_up();
+            }
+            "ArrowDown" => {
+                self.text_buffer.move_down();
+            }
+            "ArrowLeft" => {
+                self.text_buffer.move_left();
+            }
+            "ArrowRight" => {
+                self.text_buffer.move_right();
+            }
+            _ => (),
+        }
+    }
+
+    /// Attach a callback to this editor where it is invoked when the content is changed.
+    ///
+    /// Note:The content is extracted into string and used as a parameter to the function.
+    /// This may be a costly operation when the editor has lot of text on it.
     pub fn on_change<F>(mut self, f: F) -> Self
     where
         F: Fn(String) -> XMSG + 'static,
@@ -361,14 +463,64 @@ impl<XMSG> Editor<XMSG> {
         self
     }
 
+    /// Attach an callback to this editor where it is invoked when the content is changed.
+    /// The callback function just notifies the parent component that uses the Editor component.
+    /// It will be up to the parent component to extract the content of the editor manually.
+    ///
+    /// This is intended to be used in a debounced or throttled functionality where the component
+    /// decides when to do an expensive operation based on time and recency.
+    ///
+    ///
+    pub fn on_change_notify<F>(mut self, f: F) -> Self
+    where
+        F: Fn(()) -> XMSG + 'static,
+    {
+        let cb = Callback::from(f);
+        self.change_notify_listeners.push(cb);
+        self
+    }
+
+    fn emit_on_change_listeners(&self) -> Vec<XMSG> {
+        let mut extern_msgs: Vec<XMSG> = if !self.change_listeners.is_empty() {
+            let content = self.text_buffer.to_string();
+            self.change_listeners
+                .iter()
+                .map(|listener| listener.emit(content.clone()))
+                .collect()
+        } else {
+            vec![]
+        };
+
+        let extern_notify_msgs: Vec<XMSG> =
+            if !self.change_notify_listeners.is_empty() {
+                self.change_notify_listeners
+                    .iter()
+                    .map(|notify| notify.emit(()))
+                    .collect()
+            } else {
+                vec![]
+            };
+        extern_msgs.extend(extern_notify_msgs);
+        extern_msgs
+    }
+
     /// convert screen coordinate to cursor position
     fn client_to_cursor(&self, client_x: i32, client_y: i32) -> (usize, usize) {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
-        let col = (client_x as f32 + self.scroll_left) / CH_WIDTH as f32
+        let (editor_x, editor_y) =
+            self.editor_offset.expect("must have editor offset");
+        log::trace!("editor offset: {},{}", editor_x, editor_y);
+        log::trace!("client offset: {},{}", client_x, client_y);
+        let col = (client_x as f32 - editor_x + self.window_scroll_left)
+            / CH_WIDTH as f32
             - numberline_wide;
-        let line = (client_y as f32 + self.scroll_top) / CH_HEIGHT as f32 - 1.0;
+        let line = (client_y as f32 - editor_y + self.window_scroll_top)
+            / CH_HEIGHT as f32
+            - 1.0;
+        log::trace!("col line: {},{}", col, line);
         let x = col.round() as usize;
         let y = line.round() as usize;
+        log::trace!("x y: {},{}", x, y);
         (x, y)
     }
 
@@ -376,9 +528,62 @@ impl<XMSG> Editor<XMSG> {
     fn cursor_to_client(&self) -> (i32, i32) {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
         let (x, y) = self.text_buffer.get_position();
+
         let top = y as i32 * CH_HEIGHT as i32;
         let left = (x as i32 + numberline_wide as i32) * CH_WIDTH as i32;
+
         (left, top)
+    }
+
+    fn view_hidden_textarea(&self) -> Node<Msg> {
+        let class_ns = |class_names| {
+            attributes::class_namespaced(COMPONENT_NAME, class_names)
+        };
+        let (cursor_x, cursor_y) = self.cursor_to_client();
+        textarea(
+            vec![
+                class_ns("hidden_textarea"),
+                on_mount(|mount| Msg::TextareaMounted(mount.target_node)),
+                on_paste(|ce| {
+                    let pasted_text = ce
+                        .clipboard_data()
+                        .expect("must have data transfer")
+                        .get_data("text/plain")
+                        .expect("must be text data");
+                    log::trace!(
+                        "paste triggered from textarea: {}",
+                        pasted_text
+                    );
+                    Msg::Paste(pasted_text)
+                }),
+                on_keydown(Msg::TextareaKeydown),
+                focus(true),
+                autofocus(true),
+                attr("autocorrect", "off"),
+                autocapitalize("none"),
+                autocomplete("off"),
+                spellcheck("off"),
+                on_input(|input| Msg::TextareaInput(input.value)),
+                style! {
+                    top: px(cursor_y),
+                    left: px(cursor_x),
+                    z_index: 99,
+                },
+            ],
+            vec![],
+        )
+    }
+
+    fn refocus_hidden_textarea(&self) {
+        if let Some(element) = &self.hidden_textarea {
+            element.focus();
+        }
+    }
+
+    fn clear_hidden_textarea(&self) {
+        if let Some(element) = &self.hidden_textarea {
+            element.set_value("");
+        }
     }
 
     fn view_virtual_cursor(&self) -> Node<Msg> {

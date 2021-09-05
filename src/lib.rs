@@ -23,11 +23,13 @@ impl Default for Options {
 }
 
 pub enum Msg {
+    WindowScrolled((i32, i32)),
     EditorMsg(editor::Msg),
     KeyDown(web_sys::KeyboardEvent),
     Mouseup(i32, i32),
     Mousedown(i32, i32),
     Mousemove(i32, i32),
+    Paste(String),
 }
 
 pub struct App {
@@ -50,15 +52,19 @@ impl Application<Msg> for App {
             let window_elm =
                 web_sys::window().expect("no global `window` exists");
 
+            /*
             let program_clone = program.clone();
             let task_keydown: Closure<dyn Fn(web_sys::Event)> =
                 Closure::wrap(Box::new(move |event: web_sys::Event| {
-                    event.prevent_default();
-                    event.stop_propagation();
                     let ke: KeyboardEvent = event
+                        .clone()
                         .dyn_into()
                         .expect("unable to cast to keyboard event");
-                    program_clone.dispatch(Msg::KeyDown(ke));
+                    if ke.key() == "Tab" {
+                        event.prevent_default();
+                        event.stop_propagation();
+                        program_clone.dispatch(Msg::KeyDown(ke.clone()));
+                    }
                 }));
             window_elm
                 .add_event_listener_with_callback(
@@ -67,6 +73,7 @@ impl Application<Msg> for App {
                 )
                 .expect("Unable to attached event listener");
             task_keydown.forget();
+            */
 
             let program_clone = program.clone();
             let task_mouseup: Closure<dyn Fn(web_sys::Event)> =
@@ -115,7 +122,33 @@ impl Application<Msg> for App {
                 )
                 .expect("Unable to attached event listener");
             task_mousemove.forget();
+
+            let program_clone = program.clone();
+            let task_paste: Closure<dyn Fn(web_sys::Event)> =
+                Closure::wrap(Box::new(move |e: web_sys::Event| {
+                    let ce: ClipboardEvent = e
+                        .dyn_into()
+                        .expect("unable to cast to clipboard event");
+
+                    let pasted_text = ce
+                        .clipboard_data()
+                        .expect("must have data transfer")
+                        .get_data("text/plain")
+                        .expect("must be text data");
+
+                    program_clone.dispatch(Msg::Paste(pasted_text));
+                }));
+            window_elm
+                .add_event_listener_with_callback(
+                    "paste",
+                    task_paste.as_ref().unchecked_ref(),
+                )
+                .expect("Unable to attached event listener");
+            task_paste.forget();
         })
+        .append(vec![sauron::Window::add_event_listeners(vec![
+            on_scroll(Msg::WindowScrolled),
+        ])])
     }
     fn style(&self) -> String {
         let lib_css = jss! {
@@ -138,6 +171,14 @@ impl Application<Msg> for App {
 
     fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
         match msg {
+            Msg::WindowScrolled((scroll_top, scroll_left)) => {
+                log::trace!("scrolled: {},{}", scroll_top, scroll_left);
+                self.editor.update(editor::Msg::WindowScrolled((
+                    scroll_top,
+                    scroll_left,
+                )));
+                Cmd::none()
+            }
             Msg::EditorMsg(emsg) => {
                 self.editor.update(emsg);
                 Cmd::none()
@@ -159,6 +200,14 @@ impl Application<Msg> for App {
             Msg::KeyDown(ke) => {
                 self.editor.update(editor::Msg::KeyDown(ke));
                 Cmd::none().measure()
+            }
+            Msg::Paste(content) => {
+                log::trace!(
+                    "Triggered in window... paste content: {}",
+                    content
+                );
+                //self.editor.update(editor::Msg::Paste(content));
+                Cmd::none()
             }
         }
     }

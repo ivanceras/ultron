@@ -16,6 +16,7 @@ use syntect::highlighting::ThemeSet;
 use syntect::parsing::SyntaxReference;
 use syntect::parsing::SyntaxSet;
 use unicode_width::UnicodeWidthChar;
+use unicode_width::UnicodeWidthStr;
 
 mod cell;
 mod line;
@@ -294,6 +295,29 @@ impl TextBuffer {
         self.lines[y].insert_char(range_index, cell_index, ch);
     }
 
+    pub(crate) fn insert_text(&mut self, x: usize, y: usize, text: &str) {
+        let mut new_line = y;
+        let mut new_col = x;
+        let lines: Vec<&str> = text.lines().collect();
+        let is_multi_line = lines.len() > 1;
+        if is_multi_line {
+            self.break_line(x, y);
+        }
+        for line in lines {
+            for ch in line.chars() {
+                let width = ch.width().unwrap_or_else(|| {
+                    panic!("must have a unicode width for {:?}", ch)
+                });
+                self.insert_char(new_col, new_line, ch);
+                new_col += width;
+            }
+            new_col = 0;
+            new_line += 1;
+            self.break_line(new_col, new_line);
+            self.y_pos = new_line;
+        }
+    }
+
     /// replace the character at this location
     pub(crate) fn replace_char(&mut self, x: usize, y: usize, ch: char) {
         self.assert_chars(ch);
@@ -350,7 +374,12 @@ impl TextBuffer {
 impl TextBuffer {
     pub(crate) fn command_insert_char(&mut self, ch: char) {
         self.insert_char(self.x_pos, self.y_pos, ch);
-        self.move_right();
+        let width = ch.width().expect("must have a unicode width");
+        self.move_x(width);
+    }
+    pub(crate) fn command_insert_text(&mut self, text: &str) {
+        self.insert_text(self.x_pos, self.y_pos, text);
+        self.move_x(text.width());
     }
     pub(crate) fn move_left(&mut self) {
         self.x_pos = self.x_pos.saturating_sub(1);
@@ -362,6 +391,10 @@ impl TextBuffer {
     }
     pub(crate) fn move_right(&mut self) {
         self.x_pos = self.x_pos.saturating_add(1);
+        self.calculate_focused_cell();
+    }
+    pub(crate) fn move_x(&mut self, x: usize) {
+        self.x_pos = self.x_pos.saturating_add(x);
         self.calculate_focused_cell();
     }
     pub(crate) fn move_up(&mut self) {
