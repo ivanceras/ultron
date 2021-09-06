@@ -13,6 +13,9 @@ pub struct Options {
     pub show_line_numbers: bool,
     pub show_status_line: bool,
     pub show_cursor: bool,
+    /// use spans instead of div when rendering ranges
+    /// this is used when doing a static site rendering
+    pub use_spans: bool,
 }
 
 impl Default for Options {
@@ -21,6 +24,7 @@ impl Default for Options {
             show_line_numbers: true,
             show_status_line: true,
             show_cursor: true,
+            use_spans: false,
         }
     }
 }

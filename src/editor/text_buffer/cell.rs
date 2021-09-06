@@ -38,20 +38,42 @@ impl Cell {
         };
         let is_focused =
             text_buffer.is_focused_cell(line_index, range_index, cell_index);
-        div(
-            vec![
-                class_ns("ch"),
-                classes_ns_flag([("ch_focused", is_focused)]),
-                classes_ns_flag([(
-                    &format!("wide{}", self.width),
-                    self.width > 1,
-                )]),
-            ],
-            if text_buffer.options.show_cursor && is_focused {
-                vec![div(vec![class_ns("cursor")], vec![text(self.ch)])]
-            } else {
-                vec![text(self.ch)]
-            },
-        )
+        if text_buffer.options.use_spans {
+            span(
+                vec![
+                    class_ns("ch"),
+                    classes_ns_flag([("ch_focused", is_focused)]),
+                    classes_ns_flag([(
+                        &format!("wide{}", self.width),
+                        self.width > 1,
+                    )]),
+                ],
+                vec![self.view_ch(text_buffer)],
+            )
+        } else {
+            div(
+                vec![
+                    class_ns("ch"),
+                    classes_ns_flag([("ch_focused", is_focused)]),
+                    classes_ns_flag([(
+                        &format!("wide{}", self.width),
+                        self.width > 1,
+                    )]),
+                ],
+                if text_buffer.options.show_cursor && is_focused {
+                    vec![div(vec![class_ns("cursor")], vec![text(self.ch)])]
+                } else {
+                    vec![text(self.ch)]
+                },
+            )
+        }
+    }
+
+    fn view_ch<MSG>(&self, text_buffer: &TextBuffer) -> Node<MSG> {
+        if self.ch.is_whitespace() && text_buffer.options.use_spans {
+            text("&nbsp;")
+        } else {
+            text(self.ch)
+        }
     }
 }

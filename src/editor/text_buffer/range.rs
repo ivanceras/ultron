@@ -6,6 +6,7 @@ use css_colors::Color;
 use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
+use std::iter::FromIterator;
 use syntect::highlighting::Style;
 
 #[derive(Debug)]
@@ -22,6 +23,10 @@ impl Range {
             cells,
             style,
         }
+    }
+
+    pub(super) fn text(&self) -> String {
+        String::from_iter(self.cells.iter().map(|cell| cell.ch))
     }
 
     pub(super) fn recalc_width(&mut self) {
@@ -69,29 +74,58 @@ impl Range {
         let background = util::to_rgba(self.style.background);
         let foreground = util::to_rgba(self.style.foreground);
         let is_focused = text_buffer.is_focused_range(line_index, range_index);
-        div(
-            vec![
-                class_ns("range"),
-                classes_ns_flag([("range_focused", is_focused)]),
-                style! {
-                    color: foreground.to_css(),
-                    background_color: background.to_css(),
-                },
-            ],
-            self.cells
-                .iter()
-                .enumerate()
-                .map(|(cell_index, cell)| {
-                    cell.view_cell(
-                        text_buffer,
-                        line_index,
-                        range_index,
-                        cell_index,
-                    )
-                })
-                .collect::<Vec<_>>(),
-        )
+        if text_buffer.options.use_spans {
+            // this is for static syntax highlighter
+            span(
+                vec![
+                    class_ns("range"),
+                    classes_ns_flag([("range_focused", is_focused)]),
+                    style! {
+                        color: foreground.to_css(),
+                        background_color: background.to_css(),
+                    },
+                ],
+                self.cells
+                    .iter()
+                    .enumerate()
+                    .map(|(cell_index, cell)| {
+                        cell.view_cell(
+                            text_buffer,
+                            line_index,
+                            range_index,
+                            cell_index,
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            )
+        } else {
+            // this is for active editor
+            div(
+                vec![
+                    class_ns("range"),
+                    classes_ns_flag([("range_focused", is_focused)]),
+                    style! {
+                        color: foreground.to_css(),
+                        background_color: background.to_css(),
+                    },
+                ],
+                self.cells
+                    .iter()
+                    .enumerate()
+                    .map(|(cell_index, cell)| {
+                        cell.view_cell(
+                            text_buffer,
+                            line_index,
+                            range_index,
+                            cell_index,
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            )
+        }
     }
+
+    fn view_range_using_div() {}
 }
 
 impl Default for Range {

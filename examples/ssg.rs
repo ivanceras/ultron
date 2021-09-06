@@ -11,6 +11,7 @@ fn main() {
             show_line_numbers: true,
             show_status_line: false,
             show_cursor: false,
+            use_spans: true,
         });
     let html = page(editor).render_to_string();
     std::fs::create_dir_all("out").expect("must create dir");
