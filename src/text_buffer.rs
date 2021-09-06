@@ -1,4 +1,4 @@
-pub use super::TextHighlighter;
+use crate::editor::TextHighlighter;
 use crate::editor::CH_HEIGHT;
 use crate::editor::CH_WIDTH;
 use crate::editor::COMPONENT_NAME;

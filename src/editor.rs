@@ -1,5 +1,6 @@
 use crate::util;
 use crate::Options;
+use crate::TextBuffer;
 use css_colors::rgba;
 use css_colors::Color;
 use css_colors::RGBA;
@@ -11,7 +12,6 @@ use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
 use sauron::Measurements;
 use syntect::highlighting::Theme;
-pub use text_buffer::TextBuffer;
 pub use text_highlighter::TextHighlighter;
 
 pub const CH_WIDTH: u32 = 8;
@@ -19,7 +19,6 @@ pub const CH_HEIGHT: u32 = 16;
 
 pub(crate) mod action;
 mod history;
-mod text_buffer;
 mod text_highlighter;
 
 #[derive(Clone, PartialEq, Debug)]

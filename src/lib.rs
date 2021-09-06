@@ -4,8 +4,10 @@ use sauron::jss::jss;
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
 use sauron::Window;
+pub use text_buffer::TextBuffer;
 
 pub mod editor;
+mod text_buffer;
 mod util;
 
 #[derive(Clone, Copy, Debug)]

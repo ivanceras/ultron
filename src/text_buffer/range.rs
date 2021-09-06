@@ -1,7 +1,7 @@
 use super::Cell;
-use crate::editor::TextBuffer;
 use crate::editor::COMPONENT_NAME;
 use crate::util;
+use crate::TextBuffer;
 use css_colors::Color;
 use sauron::html::attributes;
 use sauron::prelude::*;

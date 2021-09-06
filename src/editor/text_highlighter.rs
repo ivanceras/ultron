@@ -31,7 +31,7 @@ impl Default for TextHighlighter {
 }
 
 impl TextHighlighter {
-    pub(super) fn get_line_highlighter(
+    pub(crate) fn get_line_highlighter(
         &self,
         syntax_token: &str,
     ) -> (HighlightLines, &SyntaxSet) {
@@ -45,7 +45,7 @@ impl TextHighlighter {
         )
     }
 
-    pub(super) fn active_theme(&self) -> &Theme {
+    pub(crate) fn active_theme(&self) -> &Theme {
         &self.theme_set.themes[&self.theme_name]
     }
 }

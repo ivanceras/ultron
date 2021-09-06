@@ -1,5 +1,5 @@
-use crate::editor::TextBuffer;
 use crate::editor::COMPONENT_NAME;
+use crate::TextBuffer;
 use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
