@@ -1,0 +1,31 @@
+[package]
+name = "ultron"
+version = "0.1.0"
+authors = ["Jovansonlee Cesar <ivanceras@gmail.com>"]
+edition = "2018"
+description = "Ultron is a code editor written in rust"
+
+[dependencies]
+sauron = { version = "0.43", path = "../../../sauron", features = [] }
+log = "0.4"
+unicode-width = "0.1"
+percent-encoding = "2.1.0"
+syntect = { version = "4", default-features = false, features = ["default-fancy"] }
+css-colors = "1"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    "Window", 
+    "Navigator", 
+    "Clipboard", 
+    "DataTransfer", 
+    "HtmlDocument",
+    "DomRect",
+    "Element",
+]
+
+
+[features]
+default = ["with-navigator-clipboard"]
+with-navigator-clipboard = [] # use this feature if only want to support latest browsers

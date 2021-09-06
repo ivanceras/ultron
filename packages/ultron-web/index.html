@@ -15,12 +15,12 @@
             background-color: rgba(0,43,54,1.0);
         }
     </style>
-    <link rel="modulepreload" href="./pkg/ultron.js">
-    <link rel="modulepreload" href="./pkg/ultron_bg.wasm">
+    <link rel="modulepreload" href="./pkg/ultron_web.js">
+    <link rel="modulepreload" href="./pkg/ultron_web_bg.wasm">
   </head>
   <body>
     <script type=module>
-      import wasm_bindgen from './pkg/ultron.js';
+      import wasm_bindgen from './pkg/ultron_web.js';
       async function start(){
         await wasm_bindgen().catch(console.error);
       }

@@ -1,12 +1,11 @@
-use sauron::html::attributes;
-use sauron::html::tags::style;
-use sauron::jss::jss;
-use sauron::prelude::*;
+use ultron::sauron::html::attributes;
+use ultron::sauron::html::tags::style;
+use ultron::sauron::jss::jss;
+use ultron::sauron::prelude::*;
 use ultron::Options;
 use ultron::TextBuffer;
 
-fn main() {
-    let content = include_str!("../test_data/hello.rs");
+pub fn render<MSG>(content: &str) -> Node<MSG> {
     let options = Options {
         show_line_numbers: true,
         show_status_line: false,
@@ -14,12 +13,14 @@ fn main() {
         use_spans: true,
     };
     let buffer = TextBuffer::from_str(options, content, "rust");
-    let html = page(buffer).render_to_string();
-    std::fs::create_dir_all("out").expect("must create dir");
-    std::fs::write("out/hello.html", html);
+    page(buffer)
 }
 
-fn page(buffer: TextBuffer) -> Node<()> {
+pub fn render_to_string(content: &str) -> String {
+    render::<()>(content).render_to_string()
+}
+
+fn page<MSG>(buffer: TextBuffer) -> Node<MSG> {
     html(
         vec![],
         vec![

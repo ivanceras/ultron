@@ -1,35 +1,10 @@
-//#![deny(warnings)]
-pub use editor::Editor;
-use sauron::jss::jss;
-use sauron::prelude::*;
-use sauron::wasm_bindgen::JsCast;
-use sauron::Window;
-pub use text_buffer::TextBuffer;
-
-pub mod editor;
-mod text_buffer;
-mod util;
-
-#[derive(Clone, Copy, Debug)]
-pub struct Options {
-    pub show_line_numbers: bool,
-    pub show_status_line: bool,
-    pub show_cursor: bool,
-    /// use spans instead of div when rendering ranges
-    /// this is used when doing a static site rendering
-    pub use_spans: bool,
-}
-
-impl Default for Options {
-    fn default() -> Self {
-        Self {
-            show_line_numbers: true,
-            show_status_line: true,
-            show_cursor: true,
-            use_spans: true,
-        }
-    }
-}
+use ultron::editor;
+use ultron::sauron::jss::jss;
+use ultron::sauron::prelude::*;
+use ultron::sauron::wasm_bindgen::JsCast;
+use ultron::sauron::Window;
+use ultron::Editor;
+use ultron::TextBuffer;
 
 #[derive(Debug, Clone)]
 pub enum Msg {
@@ -48,8 +23,8 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
-        let content = include_str!("../test_data/hello.rs");
-        //let content = include_str!("../test_data/svgbob.md");
+        let content = include_str!("../../../test_data/hello.rs");
+        //let content = include_str!("../../../test_data/svgbob.md");
         App {
             editor: Editor::from_str(&content, "rust"),
         }
@@ -144,15 +119,11 @@ impl Application<Msg> for App {
     }
 }
 
-#[cfg(test)]
-mod unit_tests;
-
 #[cfg(target_arch = "wasm32")]
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[cfg(feature = "standalone")]
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
 pub fn main() {
