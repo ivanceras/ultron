@@ -1,24 +1,25 @@
+use sauron::html::attributes;
 use sauron::html::tags::style;
 use sauron::jss::jss;
 use sauron::prelude::*;
-use ultron::Editor;
 use ultron::Options;
+use ultron::TextBuffer;
 
 fn main() {
     let content = include_str!("../test_data/hello.rs");
-    let editor =
-        Editor::<()>::from_str(content, "rust").with_options(Options {
-            show_line_numbers: true,
-            show_status_line: false,
-            show_cursor: false,
-            use_spans: true,
-        });
-    let html = page(editor).render_to_string();
+    let options = Options {
+        show_line_numbers: true,
+        show_status_line: false,
+        show_cursor: false,
+        use_spans: true,
+    };
+    let buffer = TextBuffer::from_str(options, content, "rust");
+    let html = page(buffer).render_to_string();
     std::fs::create_dir_all("out").expect("must create dir");
     std::fs::write("out/hello.html", html);
 }
 
-fn page(editor: Editor<()>) -> Node<ultron::editor::Msg> {
+fn page(buffer: TextBuffer) -> Node<()> {
     html(
         vec![],
         vec![
@@ -32,18 +33,30 @@ fn page(editor: Editor<()>) -> Node<ultron::editor::Msg> {
                         ],
                         vec![],
                     ),
+                    meta(
+                        vec![
+                            attributes::name("viewport"),
+                            content("width=device-width, initial-scale=1"),
+                        ],
+                        vec![],
+                    ),
                     style(
                         vec![r#type("text/css")],
                         vec![text(jss! {
                             "body": {
-                                font_family: "monospace"
+                                font_family: "monospace",
+                                font_size: px(14),
+                                cursor: "text",
+                                width: percent(100),
+                                height: percent(100),
+                                margin: 0,
                             }
                         })],
                     ),
-                    style(vec![r#type("text/css")], vec![text(editor.style())]),
+                    style(vec![r#type("text/css")], vec![text(buffer.style())]),
                 ],
             ),
-            html::body(vec![], vec![editor.view()]),
+            html::body(vec![], vec![buffer.view()]),
         ],
     )
 }

@@ -238,6 +238,8 @@ impl TextBuffer {
             ".code": {
                 position: "relative",
                 background: theme_background.to_css(),
+                font_size: px(14),
+                cursor: "text",
             },
 
             ".line_block": {
