@@ -18,8 +18,11 @@ pub struct Options {
     pub show_status_line: bool,
     pub show_cursor: bool,
     /// use spans instead of div when rendering ranges
+    /// and characters
     /// this is used when doing a static site rendering
     pub use_spans: bool,
+    /// when used for ssg, whitespace will be rendered as &nbsp;
+    pub use_for_ssg: bool,
 }
 
 impl Default for Options {
@@ -28,7 +31,8 @@ impl Default for Options {
             show_line_numbers: true,
             show_status_line: true,
             show_cursor: true,
-            use_spans: true,
+            use_spans: false,
+            use_for_ssg: false,
         }
     }
 }

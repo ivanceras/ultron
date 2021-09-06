@@ -49,9 +49,12 @@ impl Cell {
                     )]),
                 ],
                 if text_buffer.options.show_cursor && is_focused {
-                    vec![div(vec![class_ns("cursor")], vec![self.view_ch()])]
+                    vec![div(
+                        vec![class_ns("cursor")],
+                        vec![self.view_ch(text_buffer)],
+                    )]
                 } else {
-                    vec![self.view_ch()]
+                    vec![self.view_ch(text_buffer)]
                 },
             )
         } else {
@@ -65,16 +68,19 @@ impl Cell {
                     )]),
                 ],
                 if text_buffer.options.show_cursor && is_focused {
-                    vec![div(vec![class_ns("cursor")], vec![self.view_ch()])]
+                    vec![div(
+                        vec![class_ns("cursor")],
+                        vec![self.view_ch(text_buffer)],
+                    )]
                 } else {
-                    vec![self.view_ch()]
+                    vec![self.view_ch(text_buffer)]
                 },
             )
         }
     }
 
-    fn view_ch<MSG>(&self) -> Node<MSG> {
-        if self.ch.is_whitespace() {
+    fn view_ch<MSG>(&self, text_buffer: &TextBuffer) -> Node<MSG> {
+        if text_buffer.options.use_for_ssg && self.ch.is_whitespace() {
             safe_html("&nbsp;")
         } else {
             text(self.ch)

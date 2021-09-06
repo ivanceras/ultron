@@ -11,6 +11,7 @@ pub fn render<MSG>(content: &str) -> Node<MSG> {
         show_status_line: false,
         show_cursor: false,
         use_spans: true,
+        use_for_ssg: true,
     };
     let buffer = TextBuffer::from_str(options, content, "rust");
     page(buffer)
