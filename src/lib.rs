@@ -12,6 +12,7 @@ mod util;
 pub struct Options {
     pub show_line_numbers: bool,
     pub show_status_line: bool,
+    pub show_cursor: bool,
 }
 
 impl Default for Options {
@@ -19,6 +20,7 @@ impl Default for Options {
         Self {
             show_line_numbers: true,
             show_status_line: true,
+            show_cursor: true,
         }
     }
 }

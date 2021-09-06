@@ -47,7 +47,7 @@ impl Cell {
                     self.width > 1,
                 )]),
             ],
-            if is_focused {
+            if text_buffer.options.show_cursor && is_focused {
                 vec![div(vec![class_ns("cursor")], vec![text(self.ch)])]
             } else {
                 vec![text(self.ch)]

@@ -1,6 +1,7 @@
 pub use super::TextHighlighter;
 use crate::editor::COMPONENT_NAME;
 use crate::util;
+use crate::Options;
 use cell::Cell;
 use css_colors::RGBA;
 use line::Line;
@@ -25,6 +26,7 @@ mod range;
 /// A text buffer where every insertion of character it will
 /// recompute the highlighting of a line
 pub struct TextBuffer {
+    options: Options,
     lines: Vec<Line>,
     text_highlighter: TextHighlighter,
     x_pos: usize,
@@ -32,7 +34,6 @@ pub struct TextBuffer {
     selection_start: Option<(usize, usize)>,
     selection_end: Option<(usize, usize)>,
     focused_cell: Option<FocusCell>,
-    show_line_numbers: bool,
     /// the language to be used for highlighting the content
     syntax_token: String,
 }
@@ -46,7 +47,11 @@ struct FocusCell {
 }
 
 impl TextBuffer {
-    pub fn from_str(content: &str, syntax_token: &str) -> Self {
+    pub fn from_str(
+        options: Options,
+        content: &str,
+        syntax_token: &str,
+    ) -> Self {
         let text_highlighter = TextHighlighter::default();
         let mut this = Self {
             lines: Self::highlight_content(
@@ -60,7 +65,7 @@ impl TextBuffer {
             selection_start: None,
             selection_end: None,
             focused_cell: None,
-            show_line_numbers: true,
+            options,
             syntax_token: syntax_token.to_string(),
         };
 
@@ -68,8 +73,8 @@ impl TextBuffer {
         this
     }
 
-    pub fn show_line_numbers(&mut self, show: bool) {
-        self.show_line_numbers = show;
+    pub fn set_options(&mut self, options: Options) {
+        self.options = options;
     }
 
     /// rerun highlighter on the content
@@ -166,7 +171,7 @@ impl TextBuffer {
 
     /// how wide the numberline based on the character lengths of the number
     fn numberline_wide(&self) -> usize {
-        if self.show_line_numbers {
+        if self.options.show_line_numbers {
             self.lines.len().to_string().len()
         } else {
             0
@@ -180,7 +185,7 @@ impl TextBuffer {
 
     /// This is the total width of the number line
     pub(crate) fn get_numberline_wide(&self) -> usize {
-        if self.show_line_numbers {
+        if self.options.show_line_numbers {
             self.numberline_wide() + self.numberline_padding_wide()
         } else {
             0
@@ -198,9 +203,7 @@ impl TextBuffer {
             self.lines
                 .iter()
                 .enumerate()
-                .map(|(line_index, line)| {
-                    line.view_line(&self, line_index, self.show_line_numbers)
-                })
+                .map(|(line_index, line)| line.view_line(&self, line_index))
                 .collect::<Vec<_>>(),
         )
     }

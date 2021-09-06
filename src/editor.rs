@@ -73,9 +73,10 @@ pub struct Editor<XMSG> {
 
 impl<XMSG> Editor<XMSG> {
     pub fn from_str(content: &str, syntax_token: &str) -> Self {
+        let options = Options::default();
         let editor = Editor {
-            options: Options::default(),
-            text_buffer: TextBuffer::from_str(content, syntax_token),
+            options,
+            text_buffer: TextBuffer::from_str(options, content, syntax_token),
             use_block_cursor: true,
             page_size: 10,
             recorded: Recorded::new(),
@@ -224,7 +225,8 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 self.text_buffer.view(),
                 view_if(self.options.show_status_line, self.view_status_line()),
                 view_if(
-                    self.text_buffer.is_in_virtual_position(),
+                    self.options.show_cursor
+                        && self.text_buffer.is_in_virtual_position(),
                     self.view_virtual_cursor(),
                 ),
             ],
@@ -242,14 +244,11 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 
         jss_ns! {COMPONENT_NAME,
             ".": {
-                user_select: "none",
-                "-webkit-user-select": "none",
                 position: "relative",
                 font_size: px(14),
                 cursor: "text",
                 width: percent(100),
                 height: percent(100),
-                //overflow: "auto",
             },
 
             // paste area hack, we don't want to use
@@ -299,6 +298,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 background_color: "cyan",
                 padding_right: px(CH_WIDTH * self.text_buffer.numberline_padding_wide() as u32),
                 height: px(CH_HEIGHT),
+                user_select: "none",
             },
             ".number_wide1 .number": {
                 width: px(1 * CH_WIDTH),
@@ -354,6 +354,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 overflow: "hidden",
                 align_items: "center",
                 line_height: 1,
+            },
+
+            ".line .ch::selection": {
+                "background-color": selection_bg.to_css(),
             },
 
             ".ch.selected": {
@@ -432,8 +436,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 impl<XMSG> Editor<XMSG> {
     pub fn with_options(mut self, options: Options) -> Self {
         self.options = options;
-        self.text_buffer
-            .show_line_numbers(self.options.show_line_numbers);
+        self.text_buffer.set_options(options);
         self
     }
 
@@ -664,19 +667,13 @@ impl<XMSG> Editor<XMSG> {
                 },
             ],
             vec![
-                span(
-                    vec![],
-                    vec![text!("line: {}, col: {}  |", y_pos + 1, x_pos + 1)],
-                ),
+                text!("line: {}, col: {}  |", y_pos + 1, x_pos + 1),
                 if let Some(measurements) = &self.measurements {
-                    span(
-                        vec![],
-                        vec![text!(
-                            "patches: {} | nodes: {} | update time: {}ms",
-                            measurements.total_patches,
-                            measurements.view_node_count,
-                            measurements.total_time.round()
-                        )],
+                    text!(
+                        "patches: {} | nodes: {} | update time: {}ms",
+                        measurements.total_patches,
+                        measurements.view_node_count,
+                        measurements.total_time.round()
                     )
                 } else {
                     text("")

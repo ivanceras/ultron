@@ -3,6 +3,7 @@ use super::Range;
 use super::TextHighlighter;
 use crate::editor::TextBuffer;
 use crate::editor::COMPONENT_NAME;
+use crate::Options;
 use css_colors::Color;
 use sauron::html::attributes;
 use sauron::prelude::*;
@@ -121,7 +122,6 @@ impl Line {
         &self,
         text_buffer: &TextBuffer,
         line_index: usize,
-        show_line_numbers: bool,
     ) -> Node<MSG> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
@@ -138,7 +138,7 @@ impl Line {
             ],
             vec![
                 view_if(
-                    show_line_numbers,
+                    text_buffer.options.show_line_numbers,
                     div(
                         vec![
                             class_ns("number"),

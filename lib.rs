@@ -5,6 +5,8 @@ use sauron::wasm_bindgen::JsCast;
 use ultron::editor;
 use ultron::editor::Editor;
 
+pub use sauron;
+
 pub enum Msg {
     EditorMsg(editor::Msg),
     KeyDown(web_sys::KeyboardEvent),
@@ -29,40 +31,52 @@ impl App {
 impl Application<Msg> for App {
     fn init(&mut self) -> Cmd<Self, Msg> {
         Cmd::new(move |program| {
-            let window_elm = web_sys::window().expect("no global `window` exists");
+            let window_elm =
+                web_sys::window().expect("no global `window` exists");
 
             let program_clone = program.clone();
             let task_keydown: Closure<dyn Fn(web_sys::Event)> =
                 Closure::wrap(Box::new(move |event: web_sys::Event| {
                     event.prevent_default();
                     event.stop_propagation();
-                    let ke: KeyboardEvent =
-                        event.dyn_into().expect("unable to cast to keyboard event");
+                    let ke: KeyboardEvent = event
+                        .dyn_into()
+                        .expect("unable to cast to keyboard event");
                     #[cfg(feature = "with-debug")]
                     log::trace!("keydown got: {:?}", ke.code());
                     program_clone.dispatch(Msg::KeyDown(ke));
                 }));
             window_elm
-                .add_event_listener_with_callback("keydown", task_keydown.as_ref().unchecked_ref())
+                .add_event_listener_with_callback(
+                    "keydown",
+                    task_keydown.as_ref().unchecked_ref(),
+                )
                 .expect("Unable to attached event listener");
             task_keydown.forget();
 
             let program_clone = program.clone();
             let task_mouseup: Closure<dyn Fn(web_sys::Event)> =
                 Closure::wrap(Box::new(move |e: web_sys::Event| {
-                    let me: MouseEvent = e.dyn_into().expect("unable to cast to mousevent");
-                    program_clone.dispatch(Msg::Mouseup(me.client_x(), me.client_y()));
+                    let me: MouseEvent =
+                        e.dyn_into().expect("unable to cast to mousevent");
+                    program_clone
+                        .dispatch(Msg::Mouseup(me.client_x(), me.client_y()));
                 }));
             window_elm
-                .add_event_listener_with_callback("mouseup", task_mouseup.as_ref().unchecked_ref())
+                .add_event_listener_with_callback(
+                    "mouseup",
+                    task_mouseup.as_ref().unchecked_ref(),
+                )
                 .expect("Unable to attached event listener");
             task_mouseup.forget();
 
             let program_clone = program.clone();
             let task_mousedown: Closure<dyn Fn(web_sys::Event)> =
                 Closure::wrap(Box::new(move |e: web_sys::Event| {
-                    let me: MouseEvent = e.dyn_into().expect("unable to cast to mousevent");
-                    program_clone.dispatch(Msg::Mousedown(me.client_x(), me.client_y()));
+                    let me: MouseEvent =
+                        e.dyn_into().expect("unable to cast to mousevent");
+                    program_clone
+                        .dispatch(Msg::Mousedown(me.client_x(), me.client_y()));
                 }));
             window_elm
                 .add_event_listener_with_callback(
@@ -75,8 +89,10 @@ impl Application<Msg> for App {
             let program_clone = program.clone();
             let task_mousemove: Closure<dyn Fn(web_sys::Event)> =
                 Closure::wrap(Box::new(move |e: web_sys::Event| {
-                    let me: MouseEvent = e.dyn_into().expect("unable to cast to mousevent");
-                    program_clone.dispatch(Msg::Mousemove(me.client_x(), me.client_y()));
+                    let me: MouseEvent =
+                        e.dyn_into().expect("unable to cast to mousevent");
+                    program_clone
+                        .dispatch(Msg::Mousemove(me.client_x(), me.client_y()));
                 }));
             window_elm
                 .add_event_listener_with_callback(
