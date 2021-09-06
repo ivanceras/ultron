@@ -1,12 +1,17 @@
 pub use super::TextHighlighter;
+use crate::editor::CH_HEIGHT;
+use crate::editor::CH_WIDTH;
 use crate::editor::COMPONENT_NAME;
 use crate::util;
 use crate::Options;
 use cell::Cell;
+use css_colors::rgba;
+use css_colors::Color;
 use css_colors::RGBA;
 use line::Line;
 use range::Range;
 use sauron::html::attributes;
+use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::Node;
 use std::iter::FromIterator;
@@ -158,15 +163,27 @@ impl TextBuffer {
         self.text_highlighter.active_theme()
     }
 
-    fn gutter_background(&self) -> Option<RGBA> {
+    pub(crate) fn gutter_background(&self) -> Option<RGBA> {
         self.active_theme().settings.gutter.map(util::to_rgba)
     }
 
-    fn gutter_foreground(&self) -> Option<RGBA> {
+    pub(crate) fn gutter_foreground(&self) -> Option<RGBA> {
         self.active_theme()
             .settings
             .gutter_foreground
             .map(util::to_rgba)
+    }
+
+    pub(crate) fn theme_background(&self) -> Option<RGBA> {
+        self.active_theme().settings.background.map(util::to_rgba)
+    }
+
+    pub(crate) fn selection_background(&self) -> Option<RGBA> {
+        self.active_theme().settings.selection.map(util::to_rgba)
+    }
+
+    pub(crate) fn cursor_color(&self) -> Option<RGBA> {
+        self.active_theme().settings.caret.map(util::to_rgba)
     }
 
     /// how wide the numberline based on the character lengths of the number
@@ -206,6 +223,164 @@ impl TextBuffer {
                 .map(|(line_index, line)| line.view_line(&self, line_index))
                 .collect::<Vec<_>>(),
         )
+    }
+
+    pub fn style(&self) -> String {
+        let selection_bg = self
+            .selection_background()
+            .unwrap_or(rgba(100, 100, 100, 0.5));
+
+        let cursor_color = self.cursor_color().unwrap_or(rgba(255, 0, 0, 1.0));
+        let theme_background =
+            self.theme_background().unwrap_or(rgba(0, 0, 255, 1.0));
+
+        jss_ns! {COMPONENT_NAME,
+            ".code": {
+                position: "relative",
+                background: theme_background.to_css(),
+            },
+
+            ".line_block": {
+                display: "block",
+                height: px(CH_HEIGHT),
+            },
+
+            // number and line
+            ".number__line": {
+                display: "flex",
+                height: px(CH_HEIGHT),
+            },
+
+            // numbers
+            ".number": {
+                flex: "none", // dont compress the numbers
+                text_align: "right",
+                background_color: "cyan",
+                padding_right: px(CH_WIDTH * self.numberline_padding_wide() as u32),
+                height: px(CH_HEIGHT),
+                user_select: "none",
+            },
+            ".number_wide1 .number": {
+                width: px(1 * CH_WIDTH),
+            },
+            // when line number is in between: 10 - 99
+            ".number_wide2 .number": {
+                width: px(2 * CH_WIDTH),
+            },
+            // when total lines is in between 100 - 999
+            ".number_wide3 .number": {
+                width: px(3 * CH_WIDTH),
+            },
+            // when total lines is in between 1000 - 9000
+            ".number_wide4 .number": {
+                width: px(4 * CH_WIDTH),
+            },
+            // 10000 - 90000
+            ".number_wide5 .number": {
+                width: px(5 * CH_WIDTH),
+            },
+
+            // line content
+            ".line": {
+                flex: "none", // dont compress lines
+                height: px(CH_HEIGHT),
+                overflow: "hidden",
+                display: "inline-block",
+            },
+
+            ".filler": {
+                width: percent(100),
+            },
+
+            ".line_focused": {
+            },
+
+            ".range": {
+                flex: "none",
+                height: px(CH_HEIGHT),
+                overflow: "hidden",
+                display: "inline-block",
+            },
+
+            ".line .ch": {
+                width: px(CH_WIDTH),
+                height: px(CH_HEIGHT),
+                font_stretch: "ultra-condensed",
+                font_variant_numeric: "slashed-zero",
+                font_kerning: "none",
+                font_size_adjust: "none",
+                font_optical_sizing: "none",
+                position: "relative",
+                overflow: "hidden",
+                align_items: "center",
+                line_height: 1,
+                display: "inline-block",
+            },
+
+            ".line .ch::selection": {
+                "background-color": selection_bg.to_css(),
+            },
+
+            ".ch.selected": {
+                background_color:selection_bg.to_css(),
+            },
+
+            ".virtual_cursor": {
+                position: "absolute",
+                width: px(CH_WIDTH),
+                height: px(CH_HEIGHT),
+                background_color: cursor_color.to_css(),
+            },
+
+            ".ch .cursor": {
+                position: "absolute",
+                left: 0,
+                width : px(CH_WIDTH),
+                height: px(CH_HEIGHT),
+                background_color: cursor_color.to_css(),
+                display: "inline",
+                animation: "cursor_blink-anim 1000ms step-end infinite",
+            },
+
+            ".ch.wide2 .cursor": {
+                width: px(2 * CH_WIDTH),
+            },
+            ".ch.wide3 .cursor": {
+                width: px(3 * CH_WIDTH),
+            },
+
+            // i-beam cursor
+            ".thin_cursor .cursor": {
+                width: px(2),
+            },
+
+            ".block_cursor .cursor": {
+                width: px(CH_WIDTH),
+            },
+
+
+            ".line .ch.wide2": {
+                width: px(2 * CH_WIDTH),
+                font_size: px(13),
+            },
+
+            ".line .ch.wide3": {
+                width: px(3 * CH_WIDTH),
+                font_size: px(13),
+            },
+
+            "@keyframes cursor_blink-anim": {
+              "50%": {
+                background_color: "transparent",
+                border_color: "transparent",
+              },
+
+              "100%": {
+                background_color: cursor_color.to_css(),
+                border_color: "transparent",
+              },
+            },
+        }
     }
 }
 

@@ -239,14 +239,20 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 
     fn style(&self) -> String {
         let selection_bg = self
+            .text_buffer
             .selection_background()
             .unwrap_or(rgba(100, 100, 100, 0.5));
 
-        let cursor_color = self.cursor_color().unwrap_or(rgba(255, 0, 0, 1.0));
-        let theme_background =
-            self.theme_background().unwrap_or(rgba(0, 0, 255, 1.0));
+        let cursor_color = self
+            .text_buffer
+            .cursor_color()
+            .unwrap_or(rgba(255, 0, 0, 1.0));
+        let theme_background = self
+            .text_buffer
+            .theme_background()
+            .unwrap_or(rgba(0, 0, 255, 1.0));
 
-        jss_ns! {COMPONENT_NAME,
+        let css = jss_ns! {COMPONENT_NAME,
             ".": {
                 position: "relative",
                 font_size: px(14),
@@ -279,141 +285,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 height: 0,
             },
 
-            ".code": {
-                position: "relative",
-                background: theme_background.to_css(),
-            },
-
-            ".line_block": {
-                display: "block",
-                height: px(CH_HEIGHT),
-            },
-
-            // number and line
-            ".number__line": {
-                display: "flex",
-                height: px(CH_HEIGHT),
-            },
-
-            // numbers
-            ".number": {
-                flex: "none", // dont compress the numbers
-                text_align: "right",
-                background_color: "cyan",
-                padding_right: px(CH_WIDTH * self.text_buffer.numberline_padding_wide() as u32),
-                height: px(CH_HEIGHT),
-                user_select: "none",
-            },
-            ".number_wide1 .number": {
-                width: px(1 * CH_WIDTH),
-            },
-            // when line number is in between: 10 - 99
-            ".number_wide2 .number": {
-                width: px(2 * CH_WIDTH),
-            },
-            // when total lines is in between 100 - 999
-            ".number_wide3 .number": {
-                width: px(3 * CH_WIDTH),
-            },
-            // when total lines is in between 1000 - 9000
-            ".number_wide4 .number": {
-                width: px(4 * CH_WIDTH),
-            },
-            // 10000 - 90000
-            ".number_wide5 .number": {
-                width: px(5 * CH_WIDTH),
-            },
-
-            // line content
-            ".line": {
-                flex: "none", // dont compress lines
-                height: px(CH_HEIGHT),
-                overflow: "hidden",
-                display: "inline-block",
-            },
-
-            ".filler": {
-                width: percent(100),
-            },
-
-            ".line_focused": {
-            },
-
-            ".range": {
-                flex: "none",
-                height: px(CH_HEIGHT),
-                overflow: "hidden",
-                display: "inline-block",
-            },
-
-            ".line .ch": {
-                width: px(CH_WIDTH),
-                height: px(CH_HEIGHT),
-                font_stretch: "ultra-condensed",
-                font_variant_numeric: "slashed-zero",
-                font_kerning: "none",
-                font_size_adjust: "none",
-                font_optical_sizing: "none",
-                position: "relative",
-                overflow: "hidden",
-                align_items: "center",
-                line_height: 1,
-                display: "inline-block",
-            },
-
-            ".line .ch::selection": {
-                "background-color": selection_bg.to_css(),
-            },
-
-            ".ch.selected": {
-                background_color:selection_bg.to_css(),
-            },
-
-            ".virtual_cursor": {
-                position: "absolute",
-                width: px(CH_WIDTH),
-                height: px(CH_HEIGHT),
-                background_color: cursor_color.to_css(),
-            },
-
-            ".ch .cursor": {
-                position: "absolute",
-                left: 0,
-                width : px(CH_WIDTH),
-                height: px(CH_HEIGHT),
-                background_color: cursor_color.to_css(),
-                display: "inline",
-                animation: "cursor_blink-anim 1000ms step-end infinite",
-            },
-
-            ".ch.wide2 .cursor": {
-                width: px(2 * CH_WIDTH),
-            },
-            ".ch.wide3 .cursor": {
-                width: px(3 * CH_WIDTH),
-            },
-
-            // i-beam cursor
-            ".thin_cursor .cursor": {
-                width: px(2),
-            },
-
-            ".block_cursor .cursor": {
-                width: px(CH_WIDTH),
-            },
-
-
-            ".line .ch.wide2": {
-                width: px(2 * CH_WIDTH),
-                font_size: px(13),
-            },
-
-            ".line .ch.wide3": {
-                width: px(3 * CH_WIDTH),
-                font_size: px(13),
-            },
-
-
             ".status": {
                 position: "sticky",
                 bottom: 0,
@@ -421,20 +292,9 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 flex_direction: "flex-end",
             },
 
-            "@keyframes cursor_blink-anim": {
-              "50%": {
-                background_color: "transparent",
-                border_color: "transparent",
-              },
+        };
 
-              "100%": {
-                background_color: cursor_color.to_css(),
-                border_color: "transparent",
-              },
-
-            },
-
-        }
+        [css, self.text_buffer.style()].join("\n")
     }
 }
 
@@ -656,14 +516,14 @@ impl<XMSG> Editor<XMSG> {
         div(
             vec![
                 class_ns("status"),
-                if let Some(gutter_bg) = self.gutter_background() {
+                if let Some(gutter_bg) = self.text_buffer.gutter_background() {
                     style! {
                         background_color: gutter_bg.to_css(),
                     }
                 } else {
                     empty_attr()
                 },
-                if let Some(gutter_fg) = self.gutter_foreground() {
+                if let Some(gutter_fg) = self.text_buffer.gutter_foreground() {
                     style! {
                         color: gutter_fg.to_css()
                     }
@@ -685,37 +545,5 @@ impl<XMSG> Editor<XMSG> {
                 },
             ],
         )
-    }
-
-    fn active_theme(&self) -> &Theme {
-        &self.text_buffer.active_theme()
-    }
-
-    fn theme_background(&self) -> Option<RGBA> {
-        self.active_theme().settings.background.map(util::to_rgba)
-    }
-
-    fn gutter_background(&self) -> Option<RGBA> {
-        self.active_theme().settings.gutter.map(util::to_rgba)
-    }
-
-    fn gutter_foreground(&self) -> Option<RGBA> {
-        self.active_theme()
-            .settings
-            .gutter_foreground
-            .map(util::to_rgba)
-    }
-
-    #[allow(unused)]
-    fn accent_color(&self) -> Option<RGBA> {
-        self.active_theme().settings.accent.map(util::to_rgba)
-    }
-
-    fn selection_background(&self) -> Option<RGBA> {
-        self.active_theme().settings.selection.map(util::to_rgba)
-    }
-
-    fn cursor_color(&self) -> Option<RGBA> {
-        self.active_theme().settings.caret.map(util::to_rgba)
     }
 }
