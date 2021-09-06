@@ -174,7 +174,11 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 }
                 Effects::none()
             }
-            Msg::Mouseup(_client_x, _client_y) => Effects::none(),
+            Msg::Mouseup(client_x, client_y) => {
+                let (x, y) = self.client_to_cursor(client_x, client_y);
+                self.text_buffer.set_position(x, y);
+                Effects::none().measure()
+            }
             Msg::Mousedown(client_x, client_y) => {
                 let (x, y) = self.client_to_cursor(client_x, client_y);
                 self.text_buffer.set_position(x, y);
@@ -322,10 +326,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 
             // line content
             ".line": {
-                display: "flex",
                 flex: "none", // dont compress lines
                 height: px(CH_HEIGHT),
                 overflow: "hidden",
+                display: "inline-block",
             },
 
             ".filler": {
@@ -336,10 +340,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             },
 
             ".range": {
-                display: "flex",
                 flex: "none",
                 height: px(CH_HEIGHT),
                 overflow: "hidden",
+                display: "inline-block",
             },
 
             ".line .ch": {
@@ -354,6 +358,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 overflow: "hidden",
                 align_items: "center",
                 line_height: 1,
+                display: "inline-block",
             },
 
             ".line .ch::selection": {

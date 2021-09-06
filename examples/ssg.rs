@@ -19,19 +19,31 @@ fn main() {
 }
 
 fn page(editor: Editor<()>) -> Node<ultron::editor::Msg> {
-    div(
+    html(
         vec![],
         vec![
-            style(
-                vec![r#type("text/css")],
-                vec![text(jss! {
-                    "body": {
-                        font_family: "monospace"
-                    }
-                })],
+            head(
+                vec![],
+                vec![
+                    meta(
+                        vec![
+                            content("text/html;charset=utf-8"),
+                            attr("http-equiv", "Content-Type"),
+                        ],
+                        vec![],
+                    ),
+                    style(
+                        vec![r#type("text/css")],
+                        vec![text(jss! {
+                            "body": {
+                                font_family: "monospace"
+                            }
+                        })],
+                    ),
+                    style(vec![r#type("text/css")], vec![text(editor.style())]),
+                ],
             ),
-            style(vec![r#type("text/css")], vec![text(editor.style())]),
-            editor.view(),
+            html::body(vec![], vec![editor.view()]),
         ],
     )
 }

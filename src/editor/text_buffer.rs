@@ -192,7 +192,7 @@ impl TextBuffer {
         }
     }
 
-    pub(crate) fn view<MSG>(&self) -> Node<MSG> {
+    pub fn view<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };

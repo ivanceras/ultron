@@ -48,7 +48,11 @@ impl Cell {
                         self.width > 1,
                     )]),
                 ],
-                vec![self.view_ch(text_buffer)],
+                if text_buffer.options.show_cursor && is_focused {
+                    vec![div(vec![class_ns("cursor")], vec![self.view_ch()])]
+                } else {
+                    vec![self.view_ch()]
+                },
             )
         } else {
             div(
@@ -61,17 +65,17 @@ impl Cell {
                     )]),
                 ],
                 if text_buffer.options.show_cursor && is_focused {
-                    vec![div(vec![class_ns("cursor")], vec![text(self.ch)])]
+                    vec![div(vec![class_ns("cursor")], vec![self.view_ch()])]
                 } else {
-                    vec![text(self.ch)]
+                    vec![self.view_ch()]
                 },
             )
         }
     }
 
-    fn view_ch<MSG>(&self, text_buffer: &TextBuffer) -> Node<MSG> {
-        if self.ch.is_whitespace() && text_buffer.options.use_spans {
-            text("&nbsp;")
+    fn view_ch<MSG>(&self) -> Node<MSG> {
+        if self.ch.is_whitespace() {
+            safe_html("&nbsp;")
         } else {
             text(self.ch)
         }

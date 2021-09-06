@@ -24,7 +24,7 @@ impl Default for Options {
             show_line_numbers: true,
             show_status_line: true,
             show_cursor: true,
-            use_spans: false,
+            use_spans: true,
         }
     }
 }
@@ -59,7 +59,7 @@ impl Application<Msg> for App {
         Window::add_event_listeners(vec![
             on_scroll(Msg::WindowScrolled),
             //on_mousemove(|me| Msg::Mousemove(me.client_x(), me.client_y())),
-            on_mousedown(|me| Msg::Mousedown(me.client_x(), me.client_y())),
+            //on_mousedown(|me| Msg::Mousedown(me.client_x(), me.client_y())),
             on_mouseup(|me| Msg::Mouseup(me.client_x(), me.client_y())),
             on("keydown", |event| {
                 let event = event.as_web().expect("must be a web event");
