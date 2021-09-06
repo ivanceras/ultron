@@ -5,6 +5,7 @@ use css_colors::Color;
 use css_colors::RGBA;
 use history::Recorded;
 use sauron::html::attributes;
+use sauron::html::units;
 use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
@@ -21,7 +22,7 @@ mod history;
 mod text_buffer;
 mod text_highlighter;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Msg {
     TextareaMounted(web_sys::Node),
     EditorMounted(web_sys::Node),
@@ -152,7 +153,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     self.clear_hidden_textarea();
                 }
                 self.last_char_count = Some(char_count);
-                Effects::none()
+                Effects::none().measure()
             }
             Msg::TextareaKeydown(ke) => {
                 // don't process key presses when
@@ -167,7 +168,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                         self.command_insert_char(c);
                         self.clear_hidden_textarea();
                         let extern_msgs = self.emit_on_change_listeners();
-                        return Effects::with_external(extern_msgs);
+                        return Effects::with_external(extern_msgs).measure();
                     }
                 }
                 Effects::none()
@@ -176,7 +177,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             Msg::Mousedown(client_x, client_y) => {
                 let (x, y) = self.client_to_cursor(client_x, client_y);
                 self.text_buffer.set_position(x, y);
-                Effects::none()
+                Effects::none().measure()
             }
             Msg::Mousemove(_client_x, _client_y) => Effects::none(),
             Msg::Paste(text_content) => {
@@ -193,7 +194,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             Msg::StopSelection => Effects::none(),
             Msg::SetMeasurement(measurements) => {
                 self.measurements = Some(measurements);
-                Effects::none()
+                Effects::none().no_render()
             }
             Msg::Keydown(ke) => {
                 let key = ke.key();
@@ -261,9 +262,18 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 position: "absolute",
                 padding: 0,
                 width: px(1000),
-                height: px(10),
+                height: px(0),
                 border:format!("{} solid black",px(1)),
-                opacity: 0.4,
+                bottom: units::em(-1),
+                height: units::em(1),
+                outline: "none",
+            },
+
+            ".hidden_textarea_wrapper": {
+                overflow: "hidden",
+                position: "relative",
+                width: px(3),
+                height: 0,
             },
 
             ".code": {
@@ -562,43 +572,48 @@ impl<XMSG> Editor<XMSG> {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
         let (cursor_x, cursor_y) = self.cursor_to_client();
-        textarea(
+        div(
             vec![
-                class_ns("hidden_textarea"),
-                on_mount(|mount| Msg::TextareaMounted(mount.target_node)),
-                on_paste(|ce| {
-                    let pasted_text = ce
-                        .clipboard_data()
-                        .expect("must have data transfer")
-                        .get_data("text/plain")
-                        .expect("must be text data");
-                    log::trace!(
-                        "paste triggered from textarea: {}",
-                        pasted_text
-                    );
-                    Msg::Paste(pasted_text)
-                }),
-                on_keydown(Msg::TextareaKeydown),
-                focus(true),
-                autofocus(true),
-                attr("autocorrect", "off"),
-                autocapitalize("none"),
-                autocomplete("off"),
-                spellcheck("off"),
-                on_input(|input| Msg::TextareaInput(input.value)),
+                class_ns("hidden_textarea_wrapper"),
                 style! {
                     top: px(cursor_y),
                     left: px(cursor_x),
                     z_index: 99,
                 },
             ],
-            vec![],
+            vec![textarea(
+                vec![
+                    class_ns("hidden_textarea"),
+                    on_mount(|mount| Msg::TextareaMounted(mount.target_node)),
+                    on_paste(|ce| {
+                        let pasted_text = ce
+                            .clipboard_data()
+                            .expect("must have data transfer")
+                            .get_data("text/plain")
+                            .expect("must be text data");
+                        log::trace!(
+                            "paste triggered from textarea: {}",
+                            pasted_text
+                        );
+                        Msg::Paste(pasted_text)
+                    }),
+                    on_keydown(Msg::TextareaKeydown),
+                    focus(true),
+                    autofocus(true),
+                    attr("autocorrect", "off"),
+                    autocapitalize("none"),
+                    autocomplete("off"),
+                    spellcheck("off"),
+                    on_input(|input| Msg::TextareaInput(input.value)),
+                ],
+                vec![],
+            )],
         )
     }
 
     fn refocus_hidden_textarea(&self) {
         if let Some(element) = &self.hidden_textarea {
-            element.focus();
+            element.focus().expect("must focus the textarea");
         }
     }
 

@@ -23,6 +23,7 @@ impl Default for Options {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum Msg {
     WindowScrolled((i32, i32)),
     EditorMsg(editor::Msg),
@@ -51,7 +52,7 @@ impl Application<Msg> for App {
     fn init(&mut self) -> Cmd<Self, Msg> {
         Window::add_event_listeners(vec![
             on_scroll(Msg::WindowScrolled),
-            on_mousemove(|me| Msg::Mousemove(me.client_x(), me.client_y())),
+            //on_mousemove(|me| Msg::Mousemove(me.client_x(), me.client_y())),
             on_mousedown(|me| Msg::Mousedown(me.client_x(), me.client_y())),
             on_mouseup(|me| Msg::Mouseup(me.client_x(), me.client_y())),
             on("keydown", |event| {
@@ -99,17 +100,18 @@ impl Application<Msg> for App {
                 Cmd::none()
             }
             Msg::EditorMsg(emsg) => {
-                self.editor.update(emsg);
-                Cmd::none()
+                let effects = self.editor.update(emsg);
+                Cmd::from(effects.localize(Msg::EditorMsg))
             }
             Msg::Mouseup(client_x, client_y) => {
                 self.editor.update(editor::Msg::Mouseup(client_x, client_y));
                 Cmd::none().measure()
             }
             Msg::Mousedown(client_x, client_y) => {
-                self.editor
+                let effects = self
+                    .editor
                     .update(editor::Msg::Mousedown(client_x, client_y));
-                Cmd::none().measure()
+                Cmd::from(effects.localize(Msg::EditorMsg)).measure()
             }
             Msg::Mousemove(client_x, client_y) => {
                 self.editor
