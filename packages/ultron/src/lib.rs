@@ -12,7 +12,7 @@ pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 8;
 pub const CH_HEIGHT: u32 = 16;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Options {
     pub show_line_numbers: bool,
     pub show_status_line: bool,
@@ -23,6 +23,7 @@ pub struct Options {
     pub use_spans: bool,
     /// when used for ssg, whitespace will be rendered as &nbsp;
     pub use_for_ssg: bool,
+    pub theme_name: Option<String>,
 }
 
 impl Default for Options {
@@ -33,6 +34,7 @@ impl Default for Options {
             show_cursor: true,
             use_spans: true,
             use_for_ssg: false,
+            theme_name: None,
         }
     }
 }

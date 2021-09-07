@@ -56,7 +56,10 @@ impl TextBuffer {
         content: &str,
         syntax_token: &str,
     ) -> Self {
-        let text_highlighter = TextHighlighter::default();
+        let mut text_highlighter = TextHighlighter::default();
+        if let Some(theme_name) = &options.theme_name {
+            text_highlighter.select_theme(theme_name);
+        }
         let mut this = Self {
             lines: Self::highlight_content(
                 content,

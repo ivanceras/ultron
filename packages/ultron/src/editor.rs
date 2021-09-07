@@ -67,7 +67,7 @@ impl<XMSG> Editor<XMSG> {
     pub fn from_str(content: &str, syntax_token: &str) -> Self {
         let options = Options::default();
         let editor = Editor {
-            options,
+            options: options.clone(),
             text_buffer: TextBuffer::from_str(options, content, syntax_token),
             page_size: 10,
             recorded: Recorded::new(),
@@ -277,7 +277,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 
 impl<XMSG> Editor<XMSG> {
     pub fn with_options(mut self, options: Options) -> Self {
-        self.options = options;
+        self.options = options.clone();
         self.text_buffer.set_options(options);
         self
     }
