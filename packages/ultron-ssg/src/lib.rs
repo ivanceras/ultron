@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 use ultron::sauron::html::attributes;
 use ultron::sauron::html::tags::style;
 use ultron::sauron::jss::jss;

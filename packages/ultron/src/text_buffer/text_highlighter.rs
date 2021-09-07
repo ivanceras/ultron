@@ -1,22 +1,6 @@
-use once_cell::sync::Lazy;
-use syntect::dumps;
-use syntect::easy::HighlightLines;
-use syntect::highlighting::Theme;
-use syntect::highlighting::ThemeSet;
-use syntect::parsing::SyntaxReference;
-use syntect::parsing::SyntaxSet;
-
-pub(crate) static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(|| {
-    dumps::from_binary(include_bytes!(
-        "../../../syntaxes-themes/dump/syntaxes.packdump"
-    ))
-});
-
-pub(crate) static THEME_SET: Lazy<ThemeSet> = Lazy::new(|| {
-    dumps::from_binary(include_bytes!(
-        "../../../syntaxes-themes/dump/themes.themedump"
-    ))
-});
+use ultron_syntaxes_themes::syntect::easy::HighlightLines;
+use ultron_syntaxes_themes::syntect::highlighting::{Theme, ThemeSet};
+use ultron_syntaxes_themes::syntect::parsing::{SyntaxReference, SyntaxSet};
 
 pub struct TextHighlighter {
     syntax_set: &'static SyntaxSet,
@@ -26,8 +10,8 @@ pub struct TextHighlighter {
 
 impl Default for TextHighlighter {
     fn default() -> Self {
-        let syntax_set: &SyntaxSet = &SYNTAX_SET;
-        let theme_set: &ThemeSet = &THEME_SET;
+        let syntax_set: &SyntaxSet = &ultron_syntaxes_themes::SYNTAX_SET;
+        let theme_set: &ThemeSet = &ultron_syntaxes_themes::THEME_SET;
         let theme_name = "solarized-light".to_string();
         //let theme_name = "gruvbox-dark".to_string();
 

@@ -1,9 +1,11 @@
 [package]
 name = "ultron-syntaxes-themes"
-version = "0.1.0"
+version = "0.2.0"
+authors = ["Jovansonlee Cesar <ivanceras@gmail.com>"]
 edition = "2018"
-publish = false
+description = "Syntaxes and themes dump for ultron"
 
 [dependencies]
 pretty_env_logger = "0.4.0"
 syntect = { version = "4", default-features = false, features = ["default-fancy"] }
+once_cell = "1"
