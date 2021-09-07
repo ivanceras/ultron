@@ -1,0 +1,105 @@
+{
+    "scope": "meta.mapping.expect-value & meta.attribute.builtin.diff.git.attributes",
+    "completions": [
+        {
+            "trigger": "ada",
+            "contents": "ada",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "astextplain",
+            "contents": "astextplain",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "bibtex",
+            "contents": "bibtex",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "cpp",
+            "contents": "cpp",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "csharp",
+            "contents": "csharp",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "css",
+            "contents": "css",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "exif",
+            "contents": "exif",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "fortran",
+            "contents": "fortran",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "fountain",
+            "contents": "fountain",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "html",
+            "contents": "html",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "java",
+            "contents": "java",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "matlab",
+            "contents": "matlab",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "objc",
+            "contents": "objc",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "pascal",
+            "contents": "pascal",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "perl",
+            "contents": "perl",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "php",
+            "contents": "php",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "python",
+            "contents": "python",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "ruby",
+            "contents": "ruby",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "tex",
+            "contents": "tex",
+            "kind": ["variable", "d", "Diff"]
+        },
+        {
+            "trigger": "word",
+            "contents": "word",
+            "kind": ["variable", "d", "Diff"]
+        },
+    ]
+}

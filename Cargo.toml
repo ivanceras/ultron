@@ -3,5 +3,6 @@ members = [
     "packages/ultron",
     "packages/ultron-ssg",
     "packages/ultron-web",
+    "packages/sublime-syntect",
 ]
 

@@ -1,0 +1,227 @@
+{
+    "scope": "meta.mapping.expect-value & meta.attribute.builtin.encoding.git.attributes",
+    "completions": [
+        {
+            "trigger": "ASCII",
+            "annotation": "Ascii",
+            "contents": "ascii",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "UTF-8",
+            "annotation": "Unicode",
+            "contents": "utf-8",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "UTF-16 LE",
+            "annotation": "Unicode",
+            "contents": "utf-16-le",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "UTF-16 BE",
+            "annotation": "Unicode",
+            "contents": "utf-16-be",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-1",
+            "annotation": "Western",
+            "contents": "iso-8859-1",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-10",
+            "annotation": "Nordic",
+            "contents": "iso-8859-10",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-13",
+            "annotation": "Estonian",
+            "contents": "iso-8859-13",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-14",
+            "annotation": "Celtic",
+            "contents": "iso-8859-14",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-15",
+            "annotation": "Western",
+            "contents": "iso-8859-15",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-16",
+            "annotation": "Romanian",
+            "contents": "iso-8859-16",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-2",
+            "annotation": "Central European",
+            "contents": "iso-8859-2",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-3",
+            "annotation": "Western",
+            "contents": "iso-8859-3",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-4",
+            "annotation": "Baltic",
+            "contents": "iso-8859-4",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-5",
+            "annotation": "Cyrillic",
+            "contents": "iso-8859-5",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-6",
+            "annotation": "Arabic",
+            "contents": "iso-8859-6",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-7",
+            "annotation": "Greek",
+            "contents": "iso-8859-7",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-8",
+            "annotation": "Hebrew",
+            "contents": "iso-8859-8",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "ISO 8859-9",
+            "annotation": "Turkish",
+            "contents": "iso-8859-9",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "Windows 866",
+            "annotation": "Cyrillic",
+            "contents": "windows-866",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "Windows 1250",
+            "annotation": "Central European",
+            "contents": "windows-1250",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "Windows 1251",
+            "annotation": "Cyrillic",
+            "contents": "windows-1251",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "Windows 1252",
+            "annotation": "Western",
+            "contents": "windows-1252",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "Windows 1253",
+            "annotation": "Greek",
+            "contents": "windows-1253",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "Windows 1254",
+            "annotation": "Turkish",
+            "contents": "windows-1254",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "Windows 1255",
+            "annotation": "Hebrew",
+            "contents": "windows-1255",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "Windows 1256",
+            "annotation": "Arabic",
+            "contents": "windows-1256",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "Windows 1257",
+            "annotation": "Baltic",
+            "contents": "windows-1257",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "Windows 1258",
+            "annotation": "Vietnamese",
+            "contents": "windows-1258",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "big5",
+            "annotation": "Chineese Traditional",
+            "contents": "gb2312",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "CP 437",
+            "annotation": "DOS",
+            "contents": "cp-437",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "euc_jp",
+            "annotation": "Japaneese",
+            "contents": "euc_jp",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "euc_kr",
+            "annotation": "Korean",
+            "contents": "euc_kr",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "gb2312",
+            "annotation": "Chineese Simplified",
+            "contents": "gb2312",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "KOI8-R",
+            "annotation": "Cyrillic",
+            "contents": "koi8-r",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "KOI8-U",
+            "annotation": "Cyrillic",
+            "contents": "koi8-u",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "Mac Roman",
+            "annotation": "Western",
+            "contents": "mac-roman",
+            "kind": ["variable", "e", "Encoding"]
+        },
+        {
+            "trigger": "Shift_JIS",
+            "annotation": "Japaneese",
+            "contents": "Shift_JIS",
+            "kind": ["variable", "e", "Encoding"]
+        },
+    ]
+}

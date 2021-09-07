@@ -22,6 +22,9 @@ impl Default for TextHighlighter {
         //let theme_name = "base16-mocha.dark".to_string();
         //let theme_name = "base16-ocean.light".to_string();
 
+        for (name, _) in theme_set.themes.iter() {
+            log::trace!("name: {}", name);
+        }
         Self {
             syntax_set,
             theme_set,

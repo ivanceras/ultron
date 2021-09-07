@@ -1,0 +1,9 @@
+[package]
+name = "ultron-sublime-syntect"
+version = "0.1.0"
+edition = "2018"
+publish = false
+
+[dependencies]
+pretty_env_logger = "0.4.0"
+syntect = { version = "4", default-features = false, features = ["default-fancy"] }
