@@ -1,5 +1,5 @@
 use css_colors::RGBA;
-use syntect::highlighting::Color;
+use ultron_syntaxes_themes::Color;
 
 pub(crate) fn to_rgba(color: Color) -> RGBA {
     let Color { r, g, b, a } = color;

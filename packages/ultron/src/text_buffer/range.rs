@@ -7,7 +7,7 @@ use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
 use std::iter::FromIterator;
-use syntect::highlighting::Style;
+use ultron_syntaxes_themes::Style;
 
 #[derive(Debug)]
 pub(super) struct Range {

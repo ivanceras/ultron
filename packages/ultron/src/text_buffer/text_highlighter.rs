@@ -1,6 +1,6 @@
-use ultron_syntaxes_themes::syntect::easy::HighlightLines;
-use ultron_syntaxes_themes::syntect::highlighting::{Theme, ThemeSet};
-use ultron_syntaxes_themes::syntect::parsing::{SyntaxReference, SyntaxSet};
+use ultron_syntaxes_themes::HighlightLines;
+use ultron_syntaxes_themes::{SyntaxReference, SyntaxSet};
+use ultron_syntaxes_themes::{Theme, ThemeSet};
 
 pub struct TextHighlighter {
     syntax_set: &'static SyntaxSet,

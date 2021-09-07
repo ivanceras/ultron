@@ -8,6 +8,8 @@ use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
 use std::iter::FromIterator;
+#[allow(unused)]
+use ultron_syntaxes_themes::Style;
 
 #[derive(Debug)]
 pub(super) struct Line {
@@ -151,7 +153,6 @@ impl Line {
     }
 
     pub(super) fn push_cell(&mut self, cell: Cell) {
-        use syntect::highlighting::Style;
         if let Some(last_range) = self.ranges.last_mut() {
             self.width += cell.width;
             last_range.push_cell(cell);

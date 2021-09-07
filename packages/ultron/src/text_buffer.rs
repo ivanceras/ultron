@@ -14,9 +14,8 @@ use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::Node;
 use std::iter::FromIterator;
-use syntect::highlighting::Style;
-use syntect::highlighting::Theme;
 use text_highlighter::TextHighlighter;
+use ultron_syntaxes_themes::{Style, Theme};
 #[allow(unused)]
 use unicode_width::UnicodeWidthChar;
 

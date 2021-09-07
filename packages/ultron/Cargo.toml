@@ -10,8 +10,6 @@ sauron = { version = "0.43", path = "../../../sauron", default-features = false 
 ultron-syntaxes-themes = { path = "../syntaxes-themes" }
 log = "0.4"
 unicode-width = "0.1"
-percent-encoding = "2.1.0"
-syntect = { version = "4", default-features = false, features = ["default-fancy"] }
 css-colors = "1"
 
 [dependencies.web-sys]
