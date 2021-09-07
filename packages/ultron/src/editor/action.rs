@@ -1,3 +1,4 @@
+#![allow(unused)]
 use super::TextBuffer;
 
 #[derive(Clone, Debug)]

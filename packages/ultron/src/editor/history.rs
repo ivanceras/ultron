@@ -1,3 +1,4 @@
+#![allow(unused)]
 use super::action::Action;
 use super::TextBuffer;
 use std::collections::VecDeque;

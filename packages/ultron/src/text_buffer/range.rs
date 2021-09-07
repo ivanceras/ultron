@@ -1,7 +1,7 @@
 use super::Cell;
-use crate::editor::COMPONENT_NAME;
 use crate::util;
 use crate::TextBuffer;
+use crate::COMPONENT_NAME;
 use css_colors::Color;
 use sauron::html::attributes;
 use sauron::prelude::*;
@@ -25,6 +25,7 @@ impl Range {
         }
     }
 
+    #[allow(unused)]
     pub(super) fn text(&self) -> String {
         String::from_iter(self.cells.iter().map(|cell| cell.ch))
     }
@@ -124,8 +125,6 @@ impl Range {
             )
         }
     }
-
-    fn view_range_using_div() {}
 }
 
 impl Default for Range {

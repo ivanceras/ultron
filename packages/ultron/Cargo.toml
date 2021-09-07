@@ -6,7 +6,7 @@ edition = "2018"
 description = "Ultron is a code editor written in rust"
 
 [dependencies]
-sauron = { version = "0.43", path = "../../../sauron", features = [] }
+sauron = { version = "0.43", path = "../../../sauron", default-features = false }
 log = "0.4"
 unicode-width = "0.1"
 percent-encoding = "2.1.0"
@@ -28,5 +28,6 @@ features = [
 
 
 [features]
-default = ["with-navigator-clipboard"]
+default = ["with-navigator-clipboard", "with-dom"]
 with-navigator-clipboard = [] # use this feature if only want to support latest browsers
+with-dom = ["sauron/with-dom", "sauron/with-node-macro", "sauron/with-request-animation-frame"]

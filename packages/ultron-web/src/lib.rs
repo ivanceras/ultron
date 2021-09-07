@@ -1,10 +1,10 @@
+#![deny(warnings)]
 use ultron::editor;
+use ultron::editor::Editor;
 use ultron::sauron::jss::jss;
 use ultron::sauron::prelude::*;
 use ultron::sauron::wasm_bindgen::JsCast;
 use ultron::sauron::Window;
-use ultron::Editor;
-use ultron::TextBuffer;
 
 #[derive(Debug, Clone)]
 pub enum Msg {

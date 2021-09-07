@@ -1,9 +1,7 @@
-use crate::util;
 use crate::Options;
 use crate::TextBuffer;
-use css_colors::rgba;
+use crate::COMPONENT_NAME;
 use css_colors::Color;
-use css_colors::RGBA;
 use history::Recorded;
 use sauron::html::attributes;
 use sauron::html::units;
@@ -11,7 +9,6 @@ use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
 use sauron::Measurements;
-use syntect::highlighting::Theme;
 pub use text_highlighter::TextHighlighter;
 
 pub const CH_WIDTH: u32 = 8;
@@ -44,15 +41,14 @@ pub enum Msg {
     TextareaInput(String),
 }
 
-pub const COMPONENT_NAME: &str = "ultron";
-
 pub struct Editor<XMSG> {
     options: Options,
     text_buffer: TextBuffer,
-    use_block_cursor: bool,
     /// number of lines in a page, when paging up and down
+    #[allow(unused)]
     page_size: usize,
     /// for undo and redo
+    #[allow(unused)]
     recorded: Recorded,
     measurements: Option<Measurements>,
     scroll_top: f32,
@@ -76,7 +72,6 @@ impl<XMSG> Editor<XMSG> {
         let editor = Editor {
             options,
             text_buffer: TextBuffer::from_str(options, content, syntax_token),
-            use_block_cursor: true,
             page_size: 10,
             recorded: Recorded::new(),
             measurements: None,
@@ -237,20 +232,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
     }
 
     fn style(&self) -> String {
-        let selection_bg = self
-            .text_buffer
-            .selection_background()
-            .unwrap_or(rgba(100, 100, 100, 0.5));
-
-        let cursor_color = self
-            .text_buffer
-            .cursor_color()
-            .unwrap_or(rgba(255, 0, 0, 1.0));
-        let theme_background = self
-            .text_buffer
-            .theme_background()
-            .unwrap_or(rgba(0, 0, 255, 1.0));
-
         let css = jss_ns! {COMPONENT_NAME,
             ".": {
                 position: "relative",

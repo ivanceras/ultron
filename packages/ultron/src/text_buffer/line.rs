@@ -1,9 +1,7 @@
 use super::Cell;
 use super::Range;
-use super::TextHighlighter;
-use crate::editor::COMPONENT_NAME;
-use crate::Options;
 use crate::TextBuffer;
+use crate::COMPONENT_NAME;
 use css_colors::Color;
 use sauron::html::attributes;
 use sauron::prelude::*;

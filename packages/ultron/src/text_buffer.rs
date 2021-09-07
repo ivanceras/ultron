@@ -1,9 +1,9 @@
 use crate::editor::TextHighlighter;
 use crate::editor::CH_HEIGHT;
 use crate::editor::CH_WIDTH;
-use crate::editor::COMPONENT_NAME;
 use crate::util;
 use crate::Options;
+use crate::COMPONENT_NAME;
 use cell::Cell;
 use css_colors::rgba;
 use css_colors::Color;
@@ -15,12 +15,8 @@ use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::Node;
 use std::iter::FromIterator;
-use syntect::easy::HighlightLines;
 use syntect::highlighting::Style;
 use syntect::highlighting::Theme;
-use syntect::highlighting::ThemeSet;
-use syntect::parsing::SyntaxReference;
-use syntect::parsing::SyntaxSet;
 use unicode_width::UnicodeWidthChar;
 use unicode_width::UnicodeWidthStr;
 
@@ -36,7 +32,9 @@ pub struct TextBuffer {
     text_highlighter: TextHighlighter,
     x_pos: usize,
     y_pos: usize,
+    #[allow(unused)]
     selection_start: Option<(usize, usize)>,
+    #[allow(unused)]
     selection_end: Option<(usize, usize)>,
     focused_cell: Option<FocusCell>,
     /// the language to be used for highlighting the content
@@ -182,6 +180,7 @@ impl TextBuffer {
         self.active_theme().settings.selection.map(util::to_rgba)
     }
 
+    #[allow(unused)]
     pub(crate) fn selection_foreground(&self) -> Option<RGBA> {
         self.active_theme()
             .settings
@@ -240,9 +239,6 @@ impl TextBuffer {
         let selection_bg = self
             .selection_background()
             .unwrap_or(rgba(100, 100, 100, 0.5));
-
-        let selection_fg =
-            self.selection_foreground().unwrap_or(rgba(0, 0, 0, 1.0));
 
         let cursor_color = self.cursor_color().unwrap_or(rgba(255, 0, 0, 1.0));
         let theme_background =
@@ -413,6 +409,7 @@ impl TextBuffer {
     }
 
     /// the width of the line at line `n`
+    #[allow(unused)]
     pub(crate) fn line_width(&self, n: usize) -> Option<usize> {
         self.lines.get(n).map(|l| l.width)
     }
@@ -518,6 +515,7 @@ impl TextBuffer {
     }
 
     /// replace the character at this location
+    #[allow(unused)]
     pub(crate) fn replace_char(&mut self, x: usize, y: usize, ch: char) {
         self.assert_chars(ch);
         self.ensure_cell_exist(x, y);
@@ -661,7 +659,7 @@ mod test {
 
     #[test]
     fn test_ensure_line_exist() {
-        let mut buffer = TextBuffer::from_str("");
+        let mut buffer = TextBuffer::from_str(Options::default(), "", "txt");
         buffer.ensure_line_exist(10);
         assert!(buffer.lines.get(10).is_some());
         assert_eq!(buffer.total_lines(), 11);

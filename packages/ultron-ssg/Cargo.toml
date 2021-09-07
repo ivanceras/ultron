@@ -5,4 +5,4 @@ edition = "2018"
 
 [dependencies]
 pretty_env_logger = "0.4.0"
-ultron = { path = "../ultron" }
+ultron = { path = "../ultron" , default-features = false}

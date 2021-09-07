@@ -1,16 +1,14 @@
-//#![deny(warnings)]
-pub use editor::Editor;
-use sauron::jss::jss;
-use sauron::prelude::*;
-use sauron::wasm_bindgen::JsCast;
-use sauron::Window;
+#![deny(warnings)]
 pub use text_buffer::TextBuffer;
 
 pub use sauron;
 
+#[cfg(feature = "with-dom")]
 pub mod editor;
 mod text_buffer;
 mod util;
+
+pub const COMPONENT_NAME: &str = "ultron";
 
 #[derive(Clone, Copy, Debug)]
 pub struct Options {

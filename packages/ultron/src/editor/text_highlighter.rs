@@ -1,21 +1,22 @@
+use once_cell::sync::Lazy;
+use syntect::dumps;
 use syntect::easy::HighlightLines;
-use syntect::highlighting::Style;
 use syntect::highlighting::Theme;
 use syntect::highlighting::ThemeSet;
 use syntect::parsing::SyntaxReference;
 use syntect::parsing::SyntaxSet;
-use once_cell::sync::Lazy;
-use syntect::dumps;
-
 
 pub(crate) static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(|| {
-    dumps::from_binary(include_bytes!("../../../syntaxes-themes/dump/syntaxes.packdump"))
+    dumps::from_binary(include_bytes!(
+        "../../../syntaxes-themes/dump/syntaxes.packdump"
+    ))
 });
 
 pub(crate) static THEME_SET: Lazy<ThemeSet> = Lazy::new(|| {
-    dumps::from_binary(include_bytes!("../../../syntaxes-themes/dump/themes.themedump"))
+    dumps::from_binary(include_bytes!(
+        "../../../syntaxes-themes/dump/themes.themedump"
+    ))
 });
-
 
 pub struct TextHighlighter {
     syntax_set: &'static SyntaxSet,
