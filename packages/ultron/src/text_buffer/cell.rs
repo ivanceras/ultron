@@ -38,44 +38,26 @@ impl Cell {
         };
         let is_focused =
             text_buffer.is_focused_cell(line_index, range_index, cell_index);
-        if text_buffer.options.use_spans {
-            span(
-                vec![
-                    class_ns("ch"),
-                    classes_ns_flag([("ch_focused", is_focused)]),
-                    classes_ns_flag([(
-                        &format!("wide{}", self.width),
-                        self.width > 1,
-                    )]),
-                ],
-                if text_buffer.options.show_cursor && is_focused {
-                    vec![div(
-                        vec![class_ns("cursor")],
-                        vec![self.view_ch(text_buffer)],
-                    )]
-                } else {
-                    vec![self.view_ch(text_buffer)]
-                },
-            )
+
+        let ch_attributes = vec![
+            class_ns("ch"),
+            classes_ns_flag([("ch_focused", is_focused)]),
+            classes_ns_flag([(&format!("wide{}", self.width), self.width > 1)]),
+        ];
+
+        let ch_children = if text_buffer.options.show_cursor && is_focused {
+            vec![div(
+                vec![class_ns("cursor")],
+                vec![self.view_ch(text_buffer)],
+            )]
         } else {
-            div(
-                vec![
-                    class_ns("ch"),
-                    classes_ns_flag([("ch_focused", is_focused)]),
-                    classes_ns_flag([(
-                        &format!("wide{}", self.width),
-                        self.width > 1,
-                    )]),
-                ],
-                if text_buffer.options.show_cursor && is_focused {
-                    vec![div(
-                        vec![class_ns("cursor")],
-                        vec![self.view_ch(text_buffer)],
-                    )]
-                } else {
-                    vec![self.view_ch(text_buffer)]
-                },
-            )
+            vec![self.view_ch(text_buffer)]
+        };
+
+        if text_buffer.options.use_spans {
+            span(ch_attributes, ch_children)
+        } else {
+            div(ch_attributes, ch_children)
         }
     }
 

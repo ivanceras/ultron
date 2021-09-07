@@ -229,17 +229,29 @@ impl TextBuffer {
         let class_number_wide =
             format!("number_wide{}", self.numberline_wide());
 
-        pre(
-            vec![class_ns("code_wrapper")],
-            vec![code(
-                vec![class_ns("code"), class_ns(&class_number_wide)],
-                self.lines
-                    .iter()
-                    .enumerate()
-                    .map(|(line_index, line)| line.view_line(&self, line_index))
-                    .collect::<Vec<_>>(),
-            )],
-        )
+        let code_attributes =
+            vec![class_ns("code"), class_ns(&class_number_wide)];
+
+        let rendered_lines = self
+            .lines
+            .iter()
+            .enumerate()
+            .map(|(line_index, line)| line.view_line(&self, line_index))
+            .collect::<Vec<_>>();
+
+        if self.options.use_for_ssg {
+            // using div works well when select-copying for both chrome and firefox
+            // this is ideal for statis site generation highlighting
+            div(code_attributes, rendered_lines)
+        } else {
+            // using <pre><code> works well when copying in chrome
+            // but in firefox, it creates a double line when select-copying the text
+            // whe need to use <pre><code> in order for typing whitespace works.
+            pre(
+                vec![class_ns("code_wrapper")],
+                vec![code(code_attributes, rendered_lines)],
+            )
+        }
     }
 
     pub fn style(&self) -> String {
