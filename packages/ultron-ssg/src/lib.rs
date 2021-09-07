@@ -11,7 +11,7 @@ pub fn render<MSG>(
     content: &str,
     syntax_token: &str,
     theme_name: Option<&str>,
-) -> Node<MSG> {
+) -> (Node<MSG>, String) {
     let options = Options {
         show_line_numbers: true,
         show_status_line: false,
@@ -21,7 +21,8 @@ pub fn render<MSG>(
         theme_name: theme_name.map(|s| s.to_string()),
     };
     let buffer = TextBuffer::from_str(options, content, syntax_token);
-    page(buffer)
+    let css = buffer.style();
+    (page(buffer), css)
 }
 
 pub fn render_to_string(
@@ -29,7 +30,8 @@ pub fn render_to_string(
     syntax_token: &str,
     theme_name: Option<&str>,
 ) -> String {
-    render::<()>(content, syntax_token, theme_name).render_to_string()
+    let (node, _css) = render::<()>(content, syntax_token, theme_name);
+    node.render_to_string()
 }
 
 fn page<MSG>(buffer: TextBuffer) -> Node<MSG> {
