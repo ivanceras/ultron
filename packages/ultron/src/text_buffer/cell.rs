@@ -62,6 +62,8 @@ impl Cell {
     }
 
     fn view_ch<MSG>(&self, text_buffer: &TextBuffer) -> Node<MSG> {
+        // we use nbsp; when rendering for static site generator
+        // while using the actual whitespace when used/typing in the editor
         if text_buffer.options.use_for_ssg && self.ch.is_whitespace() {
             safe_html("&nbsp;")
         } else {
