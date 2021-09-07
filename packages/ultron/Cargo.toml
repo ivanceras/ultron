@@ -1,6 +1,6 @@
 [package]
 name = "ultron"
-version = "0.2.0"
+version = "0.1.1"
 authors = ["Jovansonlee Cesar <ivanceras@gmail.com>"]
 edition = "2018"
 description = "A web base text-editor with strong focus on displaying multi-width characters correctly"
