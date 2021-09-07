@@ -4,6 +4,11 @@ version = "0.1.1"
 authors = ["Jovansonlee Cesar <ivanceras@gmail.com>"]
 edition = "2018"
 description = "A web base text-editor with strong focus on displaying multi-width characters correctly"
+license = "MIT"
+repository = "https://github.com/ivanceras/ultron"
+documentation = "https://docs.rs/ultron"
+readme = "../../README.md"
+keywords = ["web", "editor", "monospace"]
 
 [dependencies]
 sauron = { version = "0.43", path = "../../../sauron", default-features = false }

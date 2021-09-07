@@ -4,6 +4,11 @@ version = "0.1.0"
 authors = ["Jovansonlee Cesar <ivanceras@gmail.com>"]
 edition = "2018"
 description = "Syntaxes and themes dump for ultron"
+license = "MIT"
+repository = "https://github.com/ivanceras/ultron"
+documentation = "https://docs.rs/ultron-syntaxes-themes"
+readme = "../../README.md"
+keywords = ["syntax", "themes", "highlighting"]
 
 [dependencies]
 pretty_env_logger = "0.4.0"
