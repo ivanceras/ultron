@@ -2,7 +2,7 @@
 
 set -ev
 
-cd packages/syntaxes-themes && cargo publish && cd -  &&\
+#cd packages/syntaxes-themes && cargo publish && cd -  &&\
 
 echo "sleeping for 10s" && sleep 10 &&\
 

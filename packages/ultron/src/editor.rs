@@ -430,6 +430,7 @@ impl<XMSG> Editor<XMSG> {
                 vec![
                     class_ns("hidden_textarea"),
                     on_mount(|mount| Msg::TextareaMounted(mount.target_node)),
+                    #[cfg(web_sys_unstable_apis)]
                     on_paste(|ce| {
                         let pasted_text = ce
                             .clipboard_data()
