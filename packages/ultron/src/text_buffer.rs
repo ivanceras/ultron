@@ -182,6 +182,13 @@ impl TextBuffer {
         self.active_theme().settings.selection.map(util::to_rgba)
     }
 
+    pub(crate) fn selection_foreground(&self) -> Option<RGBA> {
+        self.active_theme()
+            .settings
+            .selection_foreground
+            .map(util::to_rgba)
+    }
+
     pub(crate) fn cursor_color(&self) -> Option<RGBA> {
         self.active_theme().settings.caret.map(util::to_rgba)
     }
@@ -215,13 +222,17 @@ impl TextBuffer {
         };
         let class_number_wide =
             format!("number_wide{}", self.numberline_wide());
-        div(
-            vec![class_ns("code"), class_ns(&class_number_wide)],
-            self.lines
-                .iter()
-                .enumerate()
-                .map(|(line_index, line)| line.view_line(&self, line_index))
-                .collect::<Vec<_>>(),
+
+        pre(
+            vec![class_ns("code_wrapper")],
+            vec![code(
+                vec![class_ns("code"), class_ns(&class_number_wide)],
+                self.lines
+                    .iter()
+                    .enumerate()
+                    .map(|(line_index, line)| line.view_line(&self, line_index))
+                    .collect::<Vec<_>>(),
+            )],
         )
     }
 
@@ -230,16 +241,24 @@ impl TextBuffer {
             .selection_background()
             .unwrap_or(rgba(100, 100, 100, 0.5));
 
+        let selection_fg =
+            self.selection_foreground().unwrap_or(rgba(0, 0, 0, 1.0));
+
         let cursor_color = self.cursor_color().unwrap_or(rgba(255, 0, 0, 1.0));
         let theme_background =
             self.theme_background().unwrap_or(rgba(0, 0, 255, 1.0));
 
         jss_ns! {COMPONENT_NAME,
+            ".code_wrapper": {
+                margin: 0,
+            },
+
             ".code": {
                 position: "relative",
                 background: theme_background.to_css(),
                 font_size: px(14),
                 cursor: "text",
+                display: "block",
             },
 
             ".line_block": {
@@ -257,7 +276,7 @@ impl TextBuffer {
             ".number": {
                 flex: "none", // dont compress the numbers
                 text_align: "right",
-                background_color: "cyan",
+                background_color: "#002b36",
                 padding_right: px(CH_WIDTH * self.numberline_padding_wide() as u32),
                 height: px(CH_HEIGHT),
                 user_select: "none",

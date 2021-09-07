@@ -88,7 +88,6 @@ impl Line {
         &self,
         x: usize,
     ) -> Option<(usize, usize)> {
-        println!("calculating range col where x is: {}", x);
         let mut col_width = 0;
         for (i, range) in self.ranges.iter().enumerate() {
             for (j, cell) in range.cells.iter().enumerate() {

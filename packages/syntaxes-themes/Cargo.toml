@@ -1,5 +1,5 @@
 [package]
-name = "ultron-sublime-syntect"
+name = "ultron-syntaxes-themes"
 version = "0.1.0"
 edition = "2018"
 publish = false

@@ -4,23 +4,31 @@ use syntect::highlighting::Theme;
 use syntect::highlighting::ThemeSet;
 use syntect::parsing::SyntaxReference;
 use syntect::parsing::SyntaxSet;
+use once_cell::sync::Lazy;
+use syntect::dumps;
+
+
+pub(crate) static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(|| {
+    dumps::from_binary(include_bytes!("../../../syntaxes-themes/dump/syntaxes.packdump"))
+});
+
+pub(crate) static THEME_SET: Lazy<ThemeSet> = Lazy::new(|| {
+    dumps::from_binary(include_bytes!("../../../syntaxes-themes/dump/themes.themedump"))
+});
+
 
 pub struct TextHighlighter {
-    syntax_set: SyntaxSet,
-    theme_set: ThemeSet,
+    syntax_set: &'static SyntaxSet,
+    theme_set: &'static ThemeSet,
     theme_name: String,
 }
 
 impl Default for TextHighlighter {
     fn default() -> Self {
-        let syntax_set: SyntaxSet = SyntaxSet::load_defaults_newlines();
-        let theme_set: ThemeSet = ThemeSet::load_defaults();
-        //let theme_name = "Solarized (dark)".to_string();
-        let theme_name = "Solarized (light)".to_string();
-        //let theme_name = "base16-eighties.dark".to_string();
-        //let theme_name = "base16-ocean.dark".to_string();
-        //let theme_name = "base16-mocha.dark".to_string();
-        //let theme_name = "base16-ocean.light".to_string();
+        let syntax_set: &SyntaxSet = &SYNTAX_SET;
+        let theme_set: &ThemeSet = &THEME_SET;
+        let theme_name = "solarized-light".to_string();
+        //let theme_name = "gruvbox-dark".to_string();
 
         for (name, _) in theme_set.themes.iter() {
             log::trace!("name: {}", name);
