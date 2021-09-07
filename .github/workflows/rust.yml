@@ -17,10 +17,10 @@ jobs:
       run: cargo install wasm-pack
 
     - name: Build
-      run: cargo build --all
+      run: ./build.sh
 
     - name: Run tests
-      run: cargo test --all
+      run: ./test.sh
 
     - name: Build wasmp
-      run: wasm-pack build --target web
+      run: wasm-pack build packages/ultron-web --target web

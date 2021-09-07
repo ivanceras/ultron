@@ -11,8 +11,8 @@ readme = "../../README.md"
 keywords = ["web", "editor", "monospace"]
 
 [dependencies]
-sauron = { version = "0.43", path = "../../../sauron", default-features = false }
-ultron-syntaxes-themes = { path = "../syntaxes-themes" }
+sauron = { version = "0.43", default-features = false }
+ultron-syntaxes-themes = { version = "0.1", path = "../syntaxes-themes" }
 log = "0.4"
 unicode-width = "0.1"
 css-colors = "1"
@@ -34,3 +34,4 @@ features = [
 default = ["with-navigator-clipboard", "with-dom"]
 with-navigator-clipboard = [] # use this feature if only want to support latest browsers
 with-dom = ["sauron/with-dom", "sauron/with-node-macro", "sauron/with-request-animation-frame"]
+

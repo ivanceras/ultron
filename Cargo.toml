@@ -6,3 +6,6 @@ members = [
     "packages/syntaxes-themes",
 ]
 
+[patch.crates-io]
+sauron = { path = "../sauron", default-features = false }
+
