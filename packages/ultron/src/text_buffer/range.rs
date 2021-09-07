@@ -16,6 +16,16 @@ pub(super) struct Range {
     pub(super) style: Style,
 }
 
+impl Default for Range {
+    fn default() -> Self {
+        Self {
+            cells: vec![],
+            width: 0,
+            style: Style::default(),
+        }
+    }
+}
+
 impl Range {
     pub(super) fn from_cells(cells: Vec<Cell>, style: Style) -> Self {
         Self {
@@ -28,33 +38,6 @@ impl Range {
     #[allow(unused)]
     pub(super) fn text(&self) -> String {
         String::from_iter(self.cells.iter().map(|cell| cell.ch))
-    }
-
-    pub(super) fn recalc_width(&mut self) {
-        self.width = self.cells.iter().map(|cell| cell.width).sum();
-    }
-
-    pub(super) fn push_cell(&mut self, cell: Cell) {
-        self.width += cell.width;
-        self.cells.push(cell);
-    }
-
-    pub(super) fn replace_cell(&mut self, cell_index: usize, new_cell: Cell) {
-        if let Some(cell) = self.cells.get_mut(cell_index) {
-            self.width -= cell.width;
-            self.width += new_cell.width;
-            *cell = new_cell;
-        }
-    }
-
-    pub(super) fn insert_cell(&mut self, cell_index: usize, new_cell: Cell) {
-        self.width += new_cell.width;
-        self.cells.insert(cell_index, new_cell);
-    }
-
-    pub(super) fn split_at(&mut self, cell_index: usize) -> Self {
-        let other = self.cells.split_off(cell_index);
-        Self::from_cells(other, self.style)
     }
 
     pub(super) fn view_range<MSG>(
@@ -127,12 +110,32 @@ impl Range {
     }
 }
 
-impl Default for Range {
-    fn default() -> Self {
-        Self {
-            cells: vec![],
-            width: 0,
-            style: Style::default(),
+#[cfg(feature = "with-dom")]
+impl Range {
+    pub(super) fn recalc_width(&mut self) {
+        self.width = self.cells.iter().map(|cell| cell.width).sum();
+    }
+
+    pub(super) fn push_cell(&mut self, cell: Cell) {
+        self.width += cell.width;
+        self.cells.push(cell);
+    }
+
+    pub(super) fn replace_cell(&mut self, cell_index: usize, new_cell: Cell) {
+        if let Some(cell) = self.cells.get_mut(cell_index) {
+            self.width -= cell.width;
+            self.width += new_cell.width;
+            *cell = new_cell;
         }
+    }
+
+    pub(super) fn insert_cell(&mut self, cell_index: usize, new_cell: Cell) {
+        self.width += new_cell.width;
+        self.cells.insert(cell_index, new_cell);
+    }
+
+    pub(super) fn split_at(&mut self, cell_index: usize) -> Self {
+        let other = self.cells.split_off(cell_index);
+        Self::from_cells(other, self.style)
     }
 }

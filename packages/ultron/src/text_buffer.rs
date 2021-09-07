@@ -1,8 +1,7 @@
-use crate::editor::TextHighlighter;
-use crate::editor::CH_HEIGHT;
-use crate::editor::CH_WIDTH;
 use crate::util;
 use crate::Options;
+use crate::CH_HEIGHT;
+use crate::CH_WIDTH;
 use crate::COMPONENT_NAME;
 use cell::Cell;
 use css_colors::rgba;
@@ -17,12 +16,12 @@ use sauron::Node;
 use std::iter::FromIterator;
 use syntect::highlighting::Style;
 use syntect::highlighting::Theme;
-use unicode_width::UnicodeWidthChar;
-use unicode_width::UnicodeWidthStr;
+use text_highlighter::TextHighlighter;
 
 mod cell;
 mod line;
 mod range;
+mod text_highlighter;
 
 /// A text buffer where every insertion of character it will
 /// recompute the highlighting of a line
@@ -38,6 +37,7 @@ pub struct TextBuffer {
     selection_end: Option<(usize, usize)>,
     focused_cell: Option<FocusCell>,
     /// the language to be used for highlighting the content
+    #[allow(unused)]
     syntax_token: String,
 }
 
@@ -80,15 +80,6 @@ impl TextBuffer {
         self.options = options;
     }
 
-    /// rerun highlighter on the content
-    pub(crate) fn rehighlight(&mut self) {
-        self.lines = Self::highlight_content(
-            &self.to_string(),
-            &self.text_highlighter,
-            &self.syntax_token,
-        );
-    }
-
     fn highlight_content(
         content: &str,
         text_highlighter: &TextHighlighter,
@@ -122,6 +113,25 @@ impl TextBuffer {
         self.focused_cell = self.find_focused_cell();
     }
 
+    fn find_focused_cell(&self) -> Option<FocusCell> {
+        let line_index = self.y_pos;
+        if let Some(line) = self.lines.get(line_index) {
+            if let Some((range_index, cell_index)) =
+                line.calc_range_cell_index_position(self.x_pos)
+            {
+                if let Some(range) = line.ranges.get(range_index) {
+                    return Some(FocusCell {
+                        line_index,
+                        range_index,
+                        cell_index,
+                        cell: range.cells.get(cell_index).cloned(),
+                    });
+                }
+            }
+        }
+        return None;
+    }
+
     fn is_focused_line(&self, line_index: usize) -> bool {
         if let Some(focused_cell) = self.focused_cell {
             focused_cell.matched_line(line_index)
@@ -149,12 +159,6 @@ impl TextBuffer {
         } else {
             false
         }
-    }
-
-    /// the cursor is in virtual position when the position
-    /// has no character in it.
-    pub(crate) fn is_in_virtual_position(&self) -> bool {
-        self.focused_cell.is_none()
     }
 
     pub(crate) fn active_theme(&self) -> &Theme {
@@ -207,6 +211,7 @@ impl TextBuffer {
     }
 
     /// This is the total width of the number line
+    #[allow(unused)]
     pub(crate) fn get_numberline_wide(&self) -> usize {
         if self.options.show_line_numbers {
             self.numberline_wide() + self.numberline_padding_wide()
@@ -402,35 +407,32 @@ impl TextBuffer {
 }
 
 /// text manipulation
+#[cfg(feature = "with-dom")]
 impl TextBuffer {
     /// the total number of lines of this text canvas
     pub(crate) fn total_lines(&self) -> usize {
         self.lines.len()
     }
 
+    /// the cursor is in virtual position when the position
+    /// has no character in it.
+    pub(crate) fn is_in_virtual_position(&self) -> bool {
+        self.focused_cell.is_none()
+    }
+
+    /// rerun highlighter on the content
+    pub(crate) fn rehighlight(&mut self) {
+        self.lines = Self::highlight_content(
+            &self.to_string(),
+            &self.text_highlighter,
+            &self.syntax_token,
+        );
+    }
+
     /// the width of the line at line `n`
     #[allow(unused)]
     pub(crate) fn line_width(&self, n: usize) -> Option<usize> {
         self.lines.get(n).map(|l| l.width)
-    }
-
-    fn find_focused_cell(&self) -> Option<FocusCell> {
-        let line_index = self.y_pos;
-        if let Some(line) = self.lines.get(line_index) {
-            if let Some((range_index, cell_index)) =
-                line.calc_range_cell_index_position(self.x_pos)
-            {
-                if let Some(range) = line.ranges.get(range_index) {
-                    return Some(FocusCell {
-                        line_index,
-                        range_index,
-                        cell_index,
-                        cell: range.cells.get(cell_index).cloned(),
-                    });
-                }
-            }
-        }
-        return None;
     }
 
     /// add more lines, used internally
@@ -492,6 +494,7 @@ impl TextBuffer {
     }
 
     pub(crate) fn insert_text(&mut self, x: usize, y: usize, text: &str) {
+        use unicode_width::UnicodeWidthChar;
         let mut new_line = y;
         let mut new_col = x;
         let lines: Vec<&str> = text.lines().collect();
@@ -567,6 +570,7 @@ impl TextBuffer {
     }
 }
 
+#[cfg(feature = "with-dom")]
 /// Command implementation here
 impl TextBuffer {
     pub(crate) fn command_insert_char(&mut self, ch: char) {
@@ -575,6 +579,7 @@ impl TextBuffer {
         self.move_x(width);
     }
     pub(crate) fn command_insert_text(&mut self, text: &str) {
+        use unicode_width::UnicodeWidthStr;
         self.insert_text(self.x_pos, self.y_pos, text);
         self.move_x(text.width());
     }

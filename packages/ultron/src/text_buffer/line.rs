@@ -1,3 +1,4 @@
+#[cfg(feature = "with-dom")]
 use super::Cell;
 use super::Range;
 use crate::TextBuffer;
@@ -7,7 +8,6 @@ use sauron::html::attributes;
 use sauron::prelude::*;
 use sauron::Node;
 use std::iter::FromIterator;
-use syntect::highlighting::Style;
 
 #[derive(Debug)]
 pub(super) struct Line {
@@ -16,59 +16,20 @@ pub(super) struct Line {
     pub(super) width: usize,
 }
 
+impl Default for Line {
+    fn default() -> Self {
+        Self {
+            ranges: vec![Range::default()],
+            width: 0,
+        }
+    }
+}
+
 impl Line {
     pub(super) fn from_ranges(ranges: Vec<Range>) -> Self {
         Self {
             width: ranges.iter().map(|range| range.width).sum(),
             ranges,
-        }
-    }
-    /// append to the last range if there is none create a new range
-    pub(super) fn push_char(&mut self, ch: char) {
-        let cell = Cell::from_char(ch);
-        self.push_cell(cell);
-    }
-
-    pub(super) fn push_cell(&mut self, cell: Cell) {
-        if let Some(last_range) = self.ranges.last_mut() {
-            self.width += cell.width;
-            last_range.push_cell(cell);
-        } else {
-            let range = Range::from_cells(vec![cell], Style::default());
-            self.push_range(range);
-        }
-    }
-
-    pub(super) fn push_range(&mut self, range: Range) {
-        self.width += range.width;
-        self.ranges.push(range);
-    }
-
-    pub(super) fn replace_char(
-        &mut self,
-        range_index: usize,
-        cell_index: usize,
-        ch: char,
-    ) {
-        if let Some(range) = self.ranges.get_mut(range_index) {
-            self.width -= range.width;
-            let cell = Cell::from_char(ch);
-            range.replace_cell(cell_index, cell);
-            self.width += range.width;
-        }
-    }
-
-    pub(super) fn insert_char(
-        &mut self,
-        range_index: usize,
-        cell_index: usize,
-        ch: char,
-    ) {
-        if let Some(range) = self.ranges.get_mut(range_index) {
-            self.width -= range.width;
-            let cell = Cell::from_char(ch);
-            range.insert_cell(cell_index, cell);
-            self.width += range.width;
         }
     }
 
@@ -98,6 +59,7 @@ impl Line {
         None
     }
 
+    #[allow(unused)]
     pub(super) fn last_range_cell_index(&self) -> (usize, usize) {
         let line_ranges_len = self.ranges.len();
         let last = if line_ranges_len > 0 {
@@ -180,11 +142,55 @@ impl Line {
     }
 }
 
-impl Default for Line {
-    fn default() -> Self {
-        Self {
-            ranges: vec![Range::default()],
-            width: 0,
+#[cfg(feature = "with-dom")]
+impl Line {
+    /// append to the last range if there is none create a new range
+    pub(super) fn push_char(&mut self, ch: char) {
+        let cell = Cell::from_char(ch);
+        self.push_cell(cell);
+    }
+
+    pub(super) fn push_cell(&mut self, cell: Cell) {
+        use syntect::highlighting::Style;
+        if let Some(last_range) = self.ranges.last_mut() {
+            self.width += cell.width;
+            last_range.push_cell(cell);
+        } else {
+            let range = Range::from_cells(vec![cell], Style::default());
+            self.push_range(range);
+        }
+    }
+
+    pub(super) fn push_range(&mut self, range: Range) {
+        self.width += range.width;
+        self.ranges.push(range);
+    }
+
+    pub(super) fn replace_char(
+        &mut self,
+        range_index: usize,
+        cell_index: usize,
+        ch: char,
+    ) {
+        if let Some(range) = self.ranges.get_mut(range_index) {
+            self.width -= range.width;
+            let cell = Cell::from_char(ch);
+            range.replace_cell(cell_index, cell);
+            self.width += range.width;
+        }
+    }
+
+    pub(super) fn insert_char(
+        &mut self,
+        range_index: usize,
+        cell_index: usize,
+        ch: char,
+    ) {
+        if let Some(range) = self.ranges.get_mut(range_index) {
+            self.width -= range.width;
+            let cell = Cell::from_char(ch);
+            range.insert_cell(cell_index, cell);
+            self.width += range.width;
         }
     }
 }

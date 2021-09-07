@@ -1,5 +1,7 @@
 use crate::Options;
 use crate::TextBuffer;
+use crate::CH_HEIGHT;
+use crate::CH_WIDTH;
 use crate::COMPONENT_NAME;
 use css_colors::Color;
 use history::Recorded;
@@ -9,14 +11,9 @@ use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
 use sauron::Measurements;
-pub use text_highlighter::TextHighlighter;
-
-pub const CH_WIDTH: u32 = 8;
-pub const CH_HEIGHT: u32 = 16;
 
 pub(crate) mod action;
 mod history;
-mod text_highlighter;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Msg {
