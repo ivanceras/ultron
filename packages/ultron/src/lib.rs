@@ -31,7 +31,7 @@ impl Default for Options {
             show_line_numbers: true,
             show_status_line: true,
             show_cursor: true,
-            use_spans: false,
+            use_spans: true,
             use_for_ssg: false,
         }
     }

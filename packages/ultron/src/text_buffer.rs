@@ -17,6 +17,8 @@ use std::iter::FromIterator;
 use syntect::highlighting::Style;
 use syntect::highlighting::Theme;
 use text_highlighter::TextHighlighter;
+#[allow(unused)]
+use unicode_width::UnicodeWidthChar;
 
 mod cell;
 mod line;
@@ -494,7 +496,6 @@ impl TextBuffer {
     }
 
     pub(crate) fn insert_text(&mut self, x: usize, y: usize, text: &str) {
-        use unicode_width::UnicodeWidthChar;
         let mut new_line = y;
         let mut new_col = x;
         let lines: Vec<&str> = text.lines().collect();
