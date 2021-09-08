@@ -139,7 +139,9 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     self.clear_hidden_textarea();
                 }
                 self.last_char_count = Some(char_count);
-                Effects::none().measure()
+
+                let extern_msgs = self.emit_on_change_listeners();
+                Effects::with_external(extern_msgs).measure()
             }
             Msg::TextareaKeydown(ke) => {
                 // don't process key presses when
@@ -151,11 +153,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                         let c = key.chars().next().expect("must be only 1 chr");
                         self.command_insert_char(c);
                         self.clear_hidden_textarea();
-                        let extern_msgs = self.emit_on_change_listeners();
-                        return Effects::with_external(extern_msgs).measure();
                     }
                 }
-                Effects::none()
+                let extern_msgs = self.emit_on_change_listeners();
+                Effects::with_external(extern_msgs).measure()
             }
             Msg::Mouseup(client_x, client_y) => {
                 let (x, y) = self.client_to_cursor(client_x, client_y);
@@ -170,7 +171,8 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             Msg::Mousemove(_client_x, _client_y) => Effects::none(),
             Msg::Paste(text_content) => {
                 self.command_insert_text(&text_content);
-                Effects::none()
+                let extern_msgs = self.emit_on_change_listeners();
+                Effects::with_external(extern_msgs)
             }
             Msg::CopiedSelected => Effects::none(),
             Msg::MoveCursor(_line, _col) => Effects::none(),
@@ -190,10 +192,9 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     let c = key.chars().next().expect("must be only 1 chr");
                     self.text_buffer.command_insert_char(c);
                     self.text_buffer.rehighlight();
-                    let extern_msgs = self.emit_on_change_listeners();
-                    return Effects::with_external(extern_msgs);
                 }
-                Effects::none()
+                let extern_msgs = self.emit_on_change_listeners();
+                Effects::with_external(extern_msgs)
             }
         }
     }
