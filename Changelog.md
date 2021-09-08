@@ -5,4 +5,4 @@
 - Syntax-highlighting
 
 ## 0.1.1
-- Firs real release
+- First real release
