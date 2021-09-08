@@ -4,6 +4,9 @@ use syntect::dumps;
 pub use syntect::easy::HighlightLines;
 pub use syntect::highlighting::{Color, Style, Theme, ThemeSet};
 pub use syntect::parsing::{SyntaxReference, SyntaxSet};
+pub use text_highlighter::TextHighlighter;
+
+mod text_highlighter;
 
 pub static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(|| {
     dumps::from_binary(include_bytes!("../dump/syntaxes.packdump"))

@@ -1,4 +1,4 @@
-#![deny(warnings)]
+//#![deny(warnings)]
 
 use ultron::sauron::html::attributes;
 use ultron::sauron::html::tags::style;
@@ -35,12 +35,13 @@ pub fn render_to_string(
 }
 
 fn page<MSG>(buffer: TextBuffer) -> Node<MSG> {
-    html(
+    main(
         vec![],
         vec![
-            head(
+            header(
                 vec![],
                 vec![
+                /*
                     meta(
                         vec![
                             content("text/html;charset=utf-8"),
@@ -69,9 +70,9 @@ fn page<MSG>(buffer: TextBuffer) -> Node<MSG> {
                         })],
                     ),
                     style(vec![r#type("text/css")], vec![text(buffer.style())]),
-                ],
+                */],
             ),
-            html::body(vec![], vec![buffer.view()]),
+            article(vec![], vec![buffer.view()]),
         ],
     )
 }

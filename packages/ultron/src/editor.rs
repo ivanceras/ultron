@@ -96,13 +96,11 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 let rect = element.get_bounding_client_rect();
                 let editor_x = rect.x().round() as f32;
                 let editor_y = rect.y().round() as f32;
-                log::trace!("editor offset: ({},{})", editor_x, editor_y);
                 self.editor_element = Some(element.clone());
                 self.editor_offset = Some((editor_x, editor_y));
                 Effects::none()
             }
             Msg::TextareaMounted(target_node) => {
-                log::trace!("textare mounted: {:?}", target_node);
                 self.hidden_textarea = Some(target_node.unchecked_into());
                 Effects::none()
             }
@@ -118,12 +116,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::TextareaInput(input) => {
                 let char_count = input.chars().count();
-                log::trace!(
-                    "last char count: {:?}, current char count: {}",
-                    self.last_char_count,
-                    char_count
-                );
-
                 // for chrome:
                 // detect if the typed in character was a composed and becomes 1 unicode character
                 let char_count_decreased =
@@ -138,10 +130,12 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 
                 if char_count == 1 && (was_cleared || char_count_decreased) {
                     let c = input.chars().next().expect("must be only 1 chr");
-                    log::trace!("TextareaInput with 1 char: {}", c);
                     self.composed_key = Some(c);
-                    log::trace!("last char count: {:?}", self.last_char_count);
-                    self.command_insert_char(c);
+                    if c == '\n' {
+                        self.command_break_line();
+                    } else {
+                        self.command_insert_char(c);
+                    }
                     self.clear_hidden_textarea();
                 }
                 self.last_char_count = Some(char_count);
@@ -152,11 +146,9 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 // CTRL key is pressed.
                 if !ke.ctrl_key() {
                     let key = ke.key();
-                    log::trace!("from textarea keydown");
                     self.process_keypresses(&ke);
                     if key.chars().count() == 1 {
                         let c = key.chars().next().expect("must be only 1 chr");
-                        log::trace!("TextareaKeydown: {}", c);
                         self.command_insert_char(c);
                         self.clear_hidden_textarea();
                         let extern_msgs = self.emit_on_change_listeners();
@@ -177,7 +169,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::Mousemove(_client_x, _client_y) => Effects::none(),
             Msg::Paste(text_content) => {
-                log::trace!("pasted text: {}", text_content);
                 self.command_insert_text(&text_content);
                 Effects::none()
             }
@@ -194,7 +185,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::Keydown(ke) => {
                 let key = ke.key();
-                log::trace!("from window keydown: {}", key);
                 self.process_keypresses(&ke);
                 if key.chars().count() == 1 {
                     let c = key.chars().next().expect("must be only 1 chr");
@@ -210,12 +200,12 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 
     fn view(&self) -> Node<Msg> {
         div(
-            vec![
+            [
                 class(COMPONENT_NAME),
                 on_scroll(Msg::Scrolled),
                 on_mount(|mount| Msg::EditorMounted(mount.target_node)),
             ],
-            vec![
+            [
                 self.view_hidden_textarea(),
                 self.text_buffer.view(),
                 view_if(self.options.show_status_line, self.view_status_line()),
@@ -284,6 +274,11 @@ impl<XMSG> Editor<XMSG> {
 
     fn command_insert_char(&mut self, ch: char) {
         self.text_buffer.command_insert_char(ch);
+        self.text_buffer.rehighlight();
+    }
+
+    fn command_break_line(&mut self) {
+        self.text_buffer.command_break_line();
         self.text_buffer.rehighlight();
     }
 
@@ -382,22 +377,13 @@ impl<XMSG> Editor<XMSG> {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
         let (editor_x, editor_y) =
             self.editor_offset.expect("must have editor offset");
-        log::trace!("client coordinate: {},{}", client_x, client_y);
-        log::trace!("editor offset: {},{}", editor_x, editor_y);
-        log::trace!(
-            "window scroll: {}, {}",
-            self.window_scroll_left,
-            self.window_scroll_top
-        );
         let col = (client_x as f32 - editor_x + self.window_scroll_left)
             / CH_WIDTH as f32
             - numberline_wide;
         let line = (client_y as f32 - editor_y + self.window_scroll_top)
             / CH_HEIGHT as f32;
-        log::trace!("col line: {},{}", col, line);
         let x = col.floor() as usize;
         let y = line.floor() as usize;
-        log::trace!("x y: {},{}", x, y);
         (x, y)
     }
 
@@ -418,7 +404,7 @@ impl<XMSG> Editor<XMSG> {
         };
         let (cursor_x, cursor_y) = self.cursor_to_client();
         div(
-            vec![
+            [
                 class_ns("hidden_textarea_wrapper"),
                 style! {
                     top: px(cursor_y),
@@ -426,8 +412,8 @@ impl<XMSG> Editor<XMSG> {
                     z_index: 99,
                 },
             ],
-            vec![textarea(
-                vec![
+            [textarea(
+                [
                     class_ns("hidden_textarea"),
                     on_mount(|mount| Msg::TextareaMounted(mount.target_node)),
                     #[cfg(web_sys_unstable_apis)]
@@ -452,7 +438,7 @@ impl<XMSG> Editor<XMSG> {
                     spellcheck("off"),
                     on_input(|input| Msg::TextareaInput(input.value)),
                 ],
-                vec![],
+                [],
             )],
         )
     }
@@ -475,14 +461,14 @@ impl<XMSG> Editor<XMSG> {
         };
         let (left, top) = self.cursor_to_client();
         div(
-            vec![
+            [
                 class_ns("virtual_cursor"),
                 style! {
                     top: px(top),
                     left: px(left),
                 },
             ],
-            vec![],
+            [],
         )
     }
 
@@ -492,7 +478,7 @@ impl<XMSG> Editor<XMSG> {
         };
         let (x_pos, y_pos) = self.text_buffer.get_position();
         div(
-            vec![
+            [
                 class_ns("status"),
                 if let Some(gutter_bg) = self.text_buffer.gutter_background() {
                     style! {
@@ -509,13 +495,15 @@ impl<XMSG> Editor<XMSG> {
                     empty_attr()
                 },
             ],
-            vec![
+            [
                 text!("line: {}, col: {}  |", y_pos + 1, x_pos + 1),
                 if let Some(measurements) = &self.measurements {
                     text!(
-                        "patches: {} | nodes: {} | update time: {}ms",
+                        "patches: {} | nodes: {} | view time: {}ms | patch time: {}ms | update time: {}ms",
                         measurements.total_patches,
                         measurements.view_node_count,
+                        measurements.build_view_took,
+                        measurements.dom_update_took,
                         measurements.total_time.round()
                     )
                 } else {

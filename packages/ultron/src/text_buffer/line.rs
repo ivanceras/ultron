@@ -127,17 +127,15 @@ impl Line {
                 ),
                 div(
                     vec![class_ns("line")],
-                    self.ranges
-                        .iter()
-                        .enumerate()
-                        .map(|(range_index, range)| {
+                    self.ranges.iter().enumerate().map(
+                        |(range_index, range)| {
                             range.view_range(
                                 text_buffer,
                                 line_index,
                                 range_index,
                             )
-                        })
-                        .collect::<Vec<_>>(),
+                        },
+                    ),
                 ),
             ],
         )

@@ -1,6 +1,6 @@
-use ultron_syntaxes_themes::HighlightLines;
-use ultron_syntaxes_themes::{SyntaxReference, SyntaxSet};
-use ultron_syntaxes_themes::{Theme, ThemeSet};
+use crate::HighlightLines;
+use crate::{Color, Theme, ThemeSet};
+use crate::{SyntaxReference, SyntaxSet};
 
 const DEFAULT_THEME: &str = "solarized-light";
 
@@ -12,8 +12,8 @@ pub struct TextHighlighter {
 
 impl Default for TextHighlighter {
     fn default() -> Self {
-        let syntax_set: &SyntaxSet = &ultron_syntaxes_themes::SYNTAX_SET;
-        let theme_set: &ThemeSet = &ultron_syntaxes_themes::THEME_SET;
+        let syntax_set: &SyntaxSet = &crate::SYNTAX_SET;
+        let theme_set: &ThemeSet = &crate::THEME_SET;
         Self {
             syntax_set,
             theme_set,
@@ -29,7 +29,7 @@ impl TextHighlighter {
             self.theme_name = Some(theme_name.to_string());
         } else {
             format!("The valid theme names are: {:?}", self.get_theme_names());
-            log::warn!("theme name: {} doesn't match", theme_name);
+            panic!("theme name: {} doesn't match", theme_name);
         }
     }
 
@@ -37,7 +37,7 @@ impl TextHighlighter {
         self.theme_set.themes.keys().cloned().collect()
     }
 
-    pub(crate) fn get_line_highlighter(
+    pub fn get_line_highlighter(
         &self,
         syntax_token: &str,
     ) -> (HighlightLines, &SyntaxSet) {
@@ -51,11 +51,31 @@ impl TextHighlighter {
         )
     }
 
-    pub(crate) fn active_theme(&self) -> &Theme {
+    pub fn active_theme(&self) -> &Theme {
         if let Some(theme_name) = self.theme_name.as_ref() {
             &self.theme_set.themes[theme_name]
         } else {
             &self.theme_set.themes[DEFAULT_THEME]
         }
+    }
+
+    pub fn gutter_background(&self) -> Option<Color> {
+        self.active_theme().settings.gutter
+    }
+
+    pub fn gutter_foreground(&self) -> Option<Color> {
+        self.active_theme().settings.gutter_foreground
+    }
+
+    pub fn theme_background(&self) -> Option<Color> {
+        self.active_theme().settings.background
+    }
+
+    pub fn theme_foreground(&self) -> Option<Color> {
+        self.active_theme().settings.foreground
+    }
+
+    pub fn selection_background(&self) -> Option<Color> {
+        self.active_theme().settings.selection
     }
 }

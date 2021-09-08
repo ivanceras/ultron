@@ -69,18 +69,14 @@ impl Range {
                         background_color: background.to_css(),
                     },
                 ],
-                self.cells
-                    .iter()
-                    .enumerate()
-                    .map(|(cell_index, cell)| {
-                        cell.view_cell(
-                            text_buffer,
-                            line_index,
-                            range_index,
-                            cell_index,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
+                self.cells.iter().enumerate().map(|(cell_index, cell)| {
+                    cell.view_cell(
+                        text_buffer,
+                        line_index,
+                        range_index,
+                        cell_index,
+                    )
+                }),
             )
         } else {
             // this is for active editor
@@ -93,18 +89,14 @@ impl Range {
                         background_color: background.to_css(),
                     },
                 ],
-                self.cells
-                    .iter()
-                    .enumerate()
-                    .map(|(cell_index, cell)| {
-                        cell.view_cell(
-                            text_buffer,
-                            line_index,
-                            range_index,
-                            cell_index,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
+                self.cells.iter().enumerate().map(|(cell_index, cell)| {
+                    cell.view_cell(
+                        text_buffer,
+                        line_index,
+                        range_index,
+                        cell_index,
+                    )
+                }),
             )
         }
     }

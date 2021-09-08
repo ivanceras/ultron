@@ -14,7 +14,7 @@ use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::Node;
 use std::iter::FromIterator;
-use text_highlighter::TextHighlighter;
+use ultron_syntaxes_themes::TextHighlighter;
 use ultron_syntaxes_themes::{Style, Theme};
 #[allow(unused)]
 use unicode_width::UnicodeWidthChar;
@@ -22,7 +22,6 @@ use unicode_width::UnicodeWidthChar;
 mod cell;
 mod line;
 mod range;
-mod text_highlighter;
 
 /// A text buffer where every insertion of character it will
 /// recompute the highlighting of a line
@@ -238,8 +237,7 @@ impl TextBuffer {
             .lines
             .iter()
             .enumerate()
-            .map(|(line_index, line)| line.view_line(&self, line_index))
-            .collect::<Vec<_>>();
+            .map(|(line_index, line)| line.view_line(&self, line_index));
 
         if self.options.use_for_ssg {
             // using div works well when select-copying for both chrome and firefox
