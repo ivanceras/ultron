@@ -61,7 +61,7 @@ impl Range {
         if text_buffer.options.use_spans {
             // this is for static syntax highlighter
             span(
-                vec![
+                [
                     class_ns("range"),
                     classes_ns_flag([("range_focused", is_focused)]),
                     style! {
@@ -81,7 +81,7 @@ impl Range {
         } else {
             // this is for active editor
             div(
-                vec![
+                [
                     class_ns("range"),
                     classes_ns_flag([("range_focused", is_focused)]),
                     style! {

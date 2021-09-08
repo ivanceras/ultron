@@ -39,19 +39,16 @@ impl Cell {
         let is_focused =
             text_buffer.is_focused_cell(line_index, range_index, cell_index);
 
-        let ch_attributes = vec![
+        let ch_attributes = [
             class_ns("ch"),
             classes_ns_flag([("ch_focused", is_focused)]),
             classes_ns_flag([(&format!("wide{}", self.width), self.width > 1)]),
         ];
 
         let ch_children = if text_buffer.options.show_cursor && is_focused {
-            vec![div(
-                vec![class_ns("cursor")],
-                vec![self.view_ch(text_buffer)],
-            )]
+            [div([class_ns("cursor")], [self.view_ch(text_buffer)])]
         } else {
-            vec![self.view_ch(text_buffer)]
+            [self.view_ch(text_buffer)]
         };
 
         if text_buffer.options.use_spans {

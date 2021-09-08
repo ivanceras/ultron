@@ -1,6 +1,6 @@
 [package]
 name = "ultron"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Jovansonlee Cesar <ivanceras@gmail.com>"]
 edition = "2018"
 description = "A web base text-editor with strong focus on displaying multi-width characters correctly"
@@ -11,8 +11,8 @@ readme = "../../README.md"
 keywords = ["web", "editor", "monospace"]
 
 [dependencies]
-#sauron = { version = "0.43", default-features = false }
-sauron = { version = "0.43", path = "../../../sauron", default-features = false }
+sauron = { version = "0.43", default-features = false }
+#sauron = { version = "0.43", path = "../../../sauron", default-features = false }
 ultron-syntaxes-themes = { version = "0.1", path = "../syntaxes-themes" }
 log = "0.4"
 unicode-width = "0.1"

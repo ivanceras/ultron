@@ -7,5 +7,5 @@ members = [
 ]
 
 [patch.crates-io]
-sauron = { path = "../sauron", default-features = false }
+#sauron = { path = "../sauron", default-features = false }
 

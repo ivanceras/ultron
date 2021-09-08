@@ -92,16 +92,16 @@ impl Line {
         };
         let is_focused = text_buffer.is_focused_line(line_index);
         div(
-            vec![
+            [
                 key(line_index),
                 class_ns("number__line"),
                 classes_ns_flag([("line_focused", is_focused)]),
             ],
-            vec![
+            [
                 view_if(
                     text_buffer.options.show_line_numbers,
                     div(
-                        vec![
+                        [
                             class_ns("number"),
                             if let Some(gutter_bg) =
                                 text_buffer.gutter_background()
@@ -122,11 +122,11 @@ impl Line {
                                 empty_attr()
                             },
                         ],
-                        vec![text(line_index + 1)],
+                        [text(line_index + 1)],
                     ),
                 ),
                 div(
-                    vec![class_ns("line")],
+                    [class_ns("line")],
                     self.ranges.iter().enumerate().map(
                         |(range_index, range)| {
                             range.view_range(
