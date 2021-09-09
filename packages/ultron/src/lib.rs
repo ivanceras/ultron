@@ -24,6 +24,7 @@ pub struct Options {
     /// when used for ssg, whitespace will be rendered as &nbsp;
     pub use_for_ssg: bool,
     pub theme_name: Option<String>,
+    pub syntax_token: String,
 }
 
 impl Default for Options {
@@ -35,6 +36,7 @@ impl Default for Options {
             use_spans: true,
             use_for_ssg: false,
             theme_name: None,
+            syntax_token: "txt".to_string(),
         }
     }
 }

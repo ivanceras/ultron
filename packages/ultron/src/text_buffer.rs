@@ -36,9 +36,6 @@ pub struct TextBuffer {
     #[allow(unused)]
     selection_end: Option<(usize, usize)>,
     focused_cell: Option<FocusCell>,
-    /// the language to be used for highlighting the content
-    #[allow(unused)]
-    syntax_token: String,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -50,20 +47,17 @@ struct FocusCell {
 }
 
 impl TextBuffer {
-    pub fn from_str(
-        options: Options,
-        content: &str,
-        syntax_token: &str,
-    ) -> Self {
+    pub fn from_str(options: Options, content: &str) -> Self {
         let mut text_highlighter = TextHighlighter::default();
         if let Some(theme_name) = &options.theme_name {
+            log::trace!("Selecting theme: {}", theme_name);
             text_highlighter.select_theme(theme_name);
         }
         let mut this = Self {
             lines: Self::highlight_content(
                 content,
                 &text_highlighter,
-                syntax_token,
+                &options.syntax_token,
             ),
             text_highlighter,
             x_pos: 0,
@@ -72,7 +66,6 @@ impl TextBuffer {
             selection_end: None,
             focused_cell: None,
             options,
-            syntax_token: syntax_token.to_string(),
         };
 
         this.calculate_focused_cell();
@@ -442,7 +435,7 @@ impl TextBuffer {
         self.lines = Self::highlight_content(
             &self.to_string(),
             &self.text_highlighter,
-            &self.syntax_token,
+            &self.options.syntax_token,
         );
     }
 

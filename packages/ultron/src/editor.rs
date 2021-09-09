@@ -64,11 +64,10 @@ pub struct Editor<XMSG> {
 }
 
 impl<XMSG> Editor<XMSG> {
-    pub fn from_str(content: &str, syntax_token: &str) -> Self {
-        let options = Options::default();
+    pub fn from_str(options: Options, content: &str) -> Self {
         let editor = Editor {
             options: options.clone(),
-            text_buffer: TextBuffer::from_str(options, content, syntax_token),
+            text_buffer: TextBuffer::from_str(options, content),
             page_size: 10,
             recorded: Recorded::new(),
             measurements: None,
