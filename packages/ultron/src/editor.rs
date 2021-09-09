@@ -227,6 +227,14 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 cursor: "text",
                 width: percent(100),
                 height: percent(100),
+                white_space: "normal",
+            },
+
+            "pre code":{
+                white_space: "pre",
+                word_spacing: "normal",
+                word_break: "normal",
+                word_wrap: "normal",
             },
 
             // paste area hack, we don't want to use
@@ -258,6 +266,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 bottom: 0,
                 display: "flex",
                 flex_direction: "flex-end",
+                user_select: "none",
             },
 
         };

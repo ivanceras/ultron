@@ -91,50 +91,54 @@ impl Line {
             classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
         };
         let is_focused = text_buffer.is_focused_line(line_index);
-        let attributes = [
-            key(line_index),
-            class_ns("number__line"),
-            classes_ns_flag([("line_focused", is_focused)]),
-        ];
-
-        let children = [
-            view_if(
-                text_buffer.options.show_line_numbers,
-                div(
-                    [
-                        class_ns("number"),
-                        if let Some(gutter_bg) = text_buffer.gutter_background()
-                        {
-                            style! {
-                                background_color: gutter_bg.to_css(),
-                            }
-                        } else {
-                            empty_attr()
-                        },
-                        if let Some(gutter_fg) = text_buffer.gutter_foreground()
-                        {
-                            style! {
-                                color: gutter_fg.to_css(),
-                            }
-                        } else {
-                            empty_attr()
-                        },
-                    ],
-                    [text(line_index + 1)],
+        span(
+            [
+                key(line_index),
+                class_ns("number__line"),
+                classes_ns_flag([("line_focused", is_focused)]),
+            ],
+            [
+                view_if(
+                    text_buffer.options.show_line_numbers,
+                    span(
+                        [
+                            class_ns("number"),
+                            if let Some(gutter_bg) =
+                                text_buffer.gutter_background()
+                            {
+                                style! {
+                                    background_color: gutter_bg.to_css(),
+                                }
+                            } else {
+                                empty_attr()
+                            },
+                            if let Some(gutter_fg) =
+                                text_buffer.gutter_foreground()
+                            {
+                                style! {
+                                    color: gutter_fg.to_css(),
+                                }
+                            } else {
+                                empty_attr()
+                            },
+                        ],
+                        [text(line_index + 1)],
+                    ),
                 ),
-            ),
-            div(
-                [class_ns("line")],
-                self.ranges.iter().enumerate().map(|(range_index, range)| {
-                    range.view_range(text_buffer, line_index, range_index)
-                }),
-            ),
-        ];
-        if text_buffer.options.use_spans {
-            span(attributes, children)
-        } else {
-            div(attributes, children)
-        }
+                span(
+                    [class_ns("line")],
+                    self.ranges.iter().enumerate().map(
+                        |(range_index, range)| {
+                            range.view_range(
+                                text_buffer,
+                                line_index,
+                                range_index,
+                            )
+                        },
+                    ),
+                ),
+            ],
+        )
     }
 }
 

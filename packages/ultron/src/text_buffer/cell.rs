@@ -39,23 +39,21 @@ impl Cell {
         let is_focused =
             text_buffer.is_focused_cell(line_index, range_index, cell_index);
 
-        let ch_attributes = [
-            class_ns("ch"),
-            classes_ns_flag([("ch_focused", is_focused)]),
-            classes_ns_flag([(&format!("wide{}", self.width), self.width > 1)]),
-        ];
-
-        let ch_children = if text_buffer.options.show_cursor && is_focused {
-            [div([class_ns("cursor")], [self.view_ch(text_buffer)])]
-        } else {
-            [self.view_ch(text_buffer)]
-        };
-
-        if text_buffer.options.use_spans {
-            span(ch_attributes, ch_children)
-        } else {
-            div(ch_attributes, ch_children)
-        }
+        span(
+            [
+                class_ns("ch"),
+                classes_ns_flag([("ch_focused", is_focused)]),
+                classes_ns_flag([(
+                    &format!("wide{}", self.width),
+                    self.width > 1,
+                )]),
+            ],
+            if text_buffer.options.show_cursor && is_focused {
+                [div([class_ns("cursor")], [self.view_ch(text_buffer)])]
+            } else {
+                [self.view_ch(text_buffer)]
+            },
+        )
     }
 
     fn view_ch<MSG>(&self, text_buffer: &TextBuffer) -> Node<MSG> {

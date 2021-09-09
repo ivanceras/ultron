@@ -58,47 +58,19 @@ impl Range {
         let background = util::to_rgba(self.style.background);
         let foreground = util::to_rgba(self.style.foreground);
         let is_focused = text_buffer.is_focused_range(line_index, range_index);
-        if text_buffer.options.use_spans {
-            // this is for static syntax highlighter
-            span(
-                [
-                    class_ns("range"),
-                    classes_ns_flag([("range_focused", is_focused)]),
-                    style! {
-                        color: foreground.to_css(),
-                        background_color: background.to_css(),
-                    },
-                ],
-                self.cells.iter().enumerate().map(|(cell_index, cell)| {
-                    cell.view_cell(
-                        text_buffer,
-                        line_index,
-                        range_index,
-                        cell_index,
-                    )
-                }),
-            )
-        } else {
-            // this is for active editor
-            div(
-                [
-                    class_ns("range"),
-                    classes_ns_flag([("range_focused", is_focused)]),
-                    style! {
-                        color: foreground.to_css(),
-                        background_color: background.to_css(),
-                    },
-                ],
-                self.cells.iter().enumerate().map(|(cell_index, cell)| {
-                    cell.view_cell(
-                        text_buffer,
-                        line_index,
-                        range_index,
-                        cell_index,
-                    )
-                }),
-            )
-        }
+        span(
+            [
+                class_ns("range"),
+                classes_ns_flag([("range_focused", is_focused)]),
+                style! {
+                    color: foreground.to_css(),
+                    background_color: background.to_css(),
+                },
+            ],
+            self.cells.iter().enumerate().map(|(cell_index, cell)| {
+                cell.view_cell(text_buffer, line_index, range_index, cell_index)
+            }),
+        )
     }
 }
 
