@@ -72,6 +72,21 @@ impl TextBuffer {
         this
     }
 
+    pub fn in_bounds(&self, x: i32, y: i32) -> bool {
+        let (x_bound, y_bound) = self.bounds();
+        x >= 0 && y >= 0 && x <= x_bound && y <= y_bound
+    }
+
+    /// calculate the bounds of the text_buffer
+    pub fn bounds(&self) -> (i32, i32) {
+        let total_lines = self.lines.len() as i32;
+        let max_column =
+            self.lines.iter().map(|line| line.width).max().unwrap_or(0) as i32;
+        let x_bound = max_column;
+        let y_bound = total_lines;
+        (x_bound, y_bound)
+    }
+
     pub fn set_options(&mut self, options: Options) {
         self.options = options;
     }

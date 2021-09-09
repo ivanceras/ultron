@@ -159,12 +159,17 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::Mouseup(client_x, client_y) => {
                 let (x, y) = self.client_to_cursor(client_x, client_y);
-                self.text_buffer.set_position(x, y);
-                Effects::none().measure()
+                if self.text_buffer.in_bounds(x, y) {
+                    self.text_buffer.set_position(x as usize, y as usize);
+                    Effects::none().measure()
+                } else {
+                    log::trace!("out of bounds...");
+                    Effects::none()
+                }
             }
             Msg::Mousedown(client_x, client_y) => {
-                let (x, y) = self.client_to_cursor(client_x, client_y);
-                self.text_buffer.set_position(x, y);
+                let (_x, _y) = self.client_to_cursor(client_x, client_y);
+                //self.text_buffer.set_position(x, y);
                 Effects::none().measure()
             }
             Msg::Mousemove(_client_x, _client_y) => Effects::none(),
@@ -382,7 +387,7 @@ impl<XMSG> Editor<XMSG> {
     }
 
     /// convert screen coordinate to cursor position
-    fn client_to_cursor(&self, client_x: i32, client_y: i32) -> (usize, usize) {
+    fn client_to_cursor(&self, client_x: i32, client_y: i32) -> (i32, i32) {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
         let (editor_x, editor_y) =
             self.editor_offset.expect("must have editor offset");
@@ -391,8 +396,9 @@ impl<XMSG> Editor<XMSG> {
             - numberline_wide;
         let line = (client_y as f32 - editor_y + self.window_scroll_top)
             / CH_HEIGHT as f32;
-        let x = col.floor() as usize;
-        let y = line.floor() as usize;
+        log::trace!("col line: {},{}", col.round(), line.round());
+        let x = col.floor() as i32;
+        let y = line.floor() as i32;
         (x, y)
     }
 
