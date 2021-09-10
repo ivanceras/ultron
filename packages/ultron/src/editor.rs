@@ -64,7 +64,7 @@ pub struct Editor<XMSG> {
     last_char_count: Option<usize>,
     editor_offset: Option<Point2<f32>>,
     /// stores selection when the mouse is down to mouse up
-    selections: VecDeque<(Point2<i32>, Point2<i32>)>,
+    pub selections: VecDeque<(Point2<i32>, Point2<i32>)>,
     is_selecting: bool,
     selection_start: Option<Point2<i32>>,
     selection_end: Option<Point2<i32>>,
@@ -188,6 +188,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     (self.selection_start, self.selection_end)
                 {
                     self.selections.push_back((start, end));
+                    self.selections.truncate(3);
                     self.is_selecting = false;
                     self.command_set_selection(start, end);
                 }
