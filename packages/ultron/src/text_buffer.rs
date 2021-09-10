@@ -93,7 +93,7 @@ impl TextBuffer {
         }
     }
     /// check if this cell is within the selection of the textarea
-    pub fn in_selection(
+    pub(crate) fn in_selection(
         &self,
         line_index: usize,
         range_index: usize,
@@ -110,11 +110,59 @@ impl TextBuffer {
                 if y > start.y && y < end.y {
                     true
                 } else {
-                    x >= start.x && x <= end.x && y >= start.y && y <= end.y
+                    let same_start_line = y == start.y;
+                    let same_end_line = y == end.y;
+
+                    if same_start_line && same_end_line {
+                        x >= start.x && x <= end.x
+                    } else if same_start_line {
+                        x >= start.x
+                    } else if same_end_line {
+                        x <= end.x
+                    } else {
+                        false
+                    }
                 }
             }
         } else {
             false
+        }
+    }
+
+    pub(crate) fn selected_text(&self) -> Option<String> {
+        if let (Some(start), Some(_end)) =
+            (self.selection_start, self.selection_end)
+        {
+            let mut buffer = TextBuffer::from_str(Options::default(), "");
+            for (line_index, line) in self.lines.iter().enumerate() {
+                let y = line_index;
+                for (range_index, range) in line.ranges.iter().enumerate() {
+                    for (cell_index, cell) in range.cells.iter().enumerate() {
+                        let x = line.calc_range_cell_index_to_x(
+                            range_index,
+                            cell_index,
+                        );
+                        if self.in_selection(
+                            line_index,
+                            range_index,
+                            cell_index,
+                        ) {
+                            if self.options.use_block_mode {
+                                buffer.insert_char(
+                                    x - start.x,
+                                    y - start.y,
+                                    cell.ch,
+                                );
+                            } else {
+                                buffer.insert_char(x, y - start.y, cell.ch);
+                            }
+                        }
+                    }
+                }
+            }
+            Some(buffer.to_string())
+        } else {
+            None
         }
     }
 

@@ -154,15 +154,27 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 Effects::with_external(extern_msgs).measure()
             }
             Msg::TextareaKeydown(ke) => {
+                let is_ctrl = ke.ctrl_key();
+                log::trace!("text area key down... {}", is_ctrl);
                 // don't process key presses when
                 // CTRL key is pressed.
-                if !ke.ctrl_key() {
-                    let key = ke.key();
-                    self.process_keypresses(&ke);
-                    if key.chars().count() == 1 {
-                        let c = key.chars().next().expect("must be only 1 chr");
-                        self.command_insert_char(c);
-                        self.clear_hidden_textarea();
+                let key = ke.key();
+                self.process_keypresses(&ke);
+                if key.chars().count() == 1 {
+                    let c = key.chars().next().expect("must be only 1 chr");
+                    match c {
+                        'c' if is_ctrl => {
+                            self.copy_to_clipboard();
+                            self.clear_hidden_textarea();
+                        }
+                        'v' if is_ctrl => {
+                            log::trace!("pasting is handled");
+                            self.clear_hidden_textarea();
+                        }
+                        _ => {
+                            self.command_insert_char(c);
+                            self.clear_hidden_textarea();
+                        }
                     }
                 }
                 let extern_msgs = self.emit_on_change_listeners();
@@ -179,6 +191,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     self.command_set_selection(start, end);
                 }
                 self.command_set_position(client_x, client_y);
+
+                if let Some(selected_text) = self.text_buffer.selected_text() {
+                    log::trace!("selected text: \n{}", selected_text);
+                }
                 Effects::none().measure()
             }
             Msg::Mousedown(client_x, client_y) => {
@@ -344,6 +360,15 @@ impl<XMSG> Editor<XMSG> {
         }
     }
 
+    fn copy_to_clipboard(&self) {
+        if let Some(selected_text) = self.text_buffer.selected_text() {
+            let navigator = sauron::window().navigator();
+            if let Some(clipboard) = navigator.clipboard() {
+                let _ = clipboard.write_text(&selected_text);
+            }
+        }
+    }
+
     fn process_keypresses(&mut self, ke: &web_sys::KeyboardEvent) {
         let key = ke.key();
         match &*key {
@@ -438,7 +463,6 @@ impl<XMSG> Editor<XMSG> {
             - numberline_wide;
         let line = (client_y as f32 - editor.y + self.window_scroll_top)
             / CH_HEIGHT as f32;
-        log::trace!("col line: {},{}", col.round(), line.round());
         let x = col.floor() as i32;
         let y = line.floor() as i32;
         Point2::new(x, y)
