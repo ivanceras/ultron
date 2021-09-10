@@ -164,7 +164,8 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     let c = key.chars().next().expect("must be only 1 chr");
                     match c {
                         'c' if is_ctrl => {
-                            self.copy_to_clipboard();
+                            //self.copy_to_clipboard();
+                            self.textarea_exec_copy();
                             self.clear_hidden_textarea();
                         }
                         'v' if is_ctrl => {
@@ -360,11 +361,31 @@ impl<XMSG> Editor<XMSG> {
         }
     }
 
+    /// this is for newer browsers
+    /// This doesn't work on webkit2
     fn copy_to_clipboard(&self) {
         if let Some(selected_text) = self.text_buffer.selected_text() {
             let navigator = sauron::window().navigator();
             if let Some(clipboard) = navigator.clipboard() {
                 let _ = clipboard.write_text(&selected_text);
+            }
+        }
+    }
+    /// execute copy on the selected textarea
+    /// this works even on older browser
+    fn textarea_exec_copy(&self) {
+        use sauron::web_sys::HtmlDocument;
+        use web_sys::HtmlTextAreaElement;
+
+        if let Some(selected_text) = self.text_buffer.selected_text() {
+            if let Some(ref hidden_textarea) = self.hidden_textarea {
+                hidden_textarea.set_value(&selected_text);
+
+                hidden_textarea.select();
+                let html_document: HtmlDocument =
+                    sauron::document().unchecked_into();
+                html_document.exec_command("copy").expect("must copy");
+                hidden_textarea.set_value("");
             }
         }
     }
