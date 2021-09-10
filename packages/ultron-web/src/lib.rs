@@ -41,8 +41,8 @@ impl Application<Msg> for App {
     fn init(&mut self) -> Cmd<Self, Msg> {
         Window::add_event_listeners(vec![
             on_scroll(Msg::WindowScrolled),
-            //on_mousemove(|me| Msg::Mousemove(me.client_x(), me.client_y())),
-            //on_mousedown(|me| Msg::Mousedown(me.client_x(), me.client_y())),
+            on_mousemove(|me| Msg::Mousemove(me.client_x(), me.client_y())),
+            on_mousedown(|me| Msg::Mousedown(me.client_x(), me.client_y())),
             on_mouseup(|me| Msg::Mouseup(me.client_x(), me.client_y())),
             on("keydown", |event| {
                 let event = event.as_web().expect("must be a web event");

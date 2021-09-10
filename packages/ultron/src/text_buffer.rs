@@ -8,6 +8,7 @@ use css_colors::rgba;
 use css_colors::Color;
 use css_colors::RGBA;
 use line::Line;
+use nalgebra::Point2;
 use range::Range;
 use sauron::html::attributes;
 use sauron::jss::jss_ns;
@@ -29,12 +30,11 @@ pub struct TextBuffer {
     options: Options,
     lines: Vec<Line>,
     text_highlighter: TextHighlighter,
-    x_pos: usize,
-    y_pos: usize,
+    cursor: Point2<usize>,
     #[allow(unused)]
-    selection_start: Option<(usize, usize)>,
+    selection_start: Option<Point2<usize>>,
     #[allow(unused)]
-    selection_end: Option<(usize, usize)>,
+    selection_end: Option<Point2<usize>>,
     focused_cell: Option<FocusCell>,
 }
 
@@ -60,8 +60,7 @@ impl TextBuffer {
                 &options.syntax_token,
             ),
             text_highlighter,
-            x_pos: 0,
-            y_pos: 0,
+            cursor: Point2::new(0, 0),
             selection_start: None,
             selection_end: None,
             focused_cell: None,
@@ -72,19 +71,51 @@ impl TextBuffer {
         this
     }
 
+    /// return the min and max selection bound
+    pub fn normalize_selection(
+        &self,
+    ) -> Option<(Point2<usize>, Point2<usize>)> {
+        if let (Some(start), Some(end)) =
+            (self.selection_start, self.selection_end)
+        {
+            let min_x = start.x.min(end.x);
+            let min_y = start.y.min(end.y);
+            let max_x = start.x.max(end.x);
+            let max_y = start.y.max(end.y);
+            Some((Point2::new(min_x, min_y), Point2::new(max_x, max_y)))
+        } else {
+            None
+        }
+    }
+    /// check if this cell is within the selection of the textarea
+    pub fn in_selection(
+        &self,
+        line_index: usize,
+        range_index: usize,
+        cell_index: usize,
+    ) -> bool {
+        let x = self.lines[line_index]
+            .calc_range_cell_index_to_x(range_index, cell_index);
+        let y = line_index;
+        if let Some((start, end)) = self.normalize_selection() {
+            x >= start.x && x <= end.x && y >= start.x && y <= end.y
+        } else {
+            false
+        }
+    }
+
+    /// check if x and y is in the bounds of the texteditor longest column
     pub fn in_bounds(&self, x: i32, y: i32) -> bool {
-        let (x_bound, y_bound) = self.bounds();
-        x >= 0 && y >= 0 && x <= x_bound && y <= y_bound
+        let bound = self.bounds();
+        x >= 0 && y >= 0 && x <= bound.x && y <= bound.y
     }
 
     /// calculate the bounds of the text_buffer
-    pub fn bounds(&self) -> (i32, i32) {
+    pub fn bounds(&self) -> Point2<i32> {
         let total_lines = self.lines.len() as i32;
         let max_column =
             self.lines.iter().map(|line| line.width).max().unwrap_or(0) as i32;
-        let x_bound = max_column;
-        let y_bound = total_lines;
-        (x_bound, y_bound)
+        Point2::new(max_column, total_lines)
     }
 
     pub fn set_options(&mut self, options: Options) {
@@ -125,10 +156,10 @@ impl TextBuffer {
     }
 
     fn find_focused_cell(&self) -> Option<FocusCell> {
-        let line_index = self.y_pos;
+        let line_index = self.cursor.y;
         if let Some(line) = self.lines.get(line_index) {
             if let Some((range_index, cell_index)) =
-                line.calc_range_cell_index_position(self.x_pos)
+                line.calc_range_cell_index_position(self.cursor.x)
             {
                 if let Some(range) = line.ranges.get(range_index) {
                     return Some(FocusCell {
@@ -537,7 +568,7 @@ impl TextBuffer {
             new_col = 0;
             new_line += 1;
             self.break_line(new_col, new_line);
-            self.y_pos = new_line;
+            self.cursor.y = new_line;
         }
     }
 
@@ -589,8 +620,8 @@ impl TextBuffer {
         self.lines.insert(line_index, line);
     }
 
-    pub(crate) fn get_position(&self) -> (usize, usize) {
-        (self.x_pos, self.y_pos)
+    pub(crate) fn get_position(&self) -> Point2<usize> {
+        self.cursor
     }
 }
 
@@ -598,57 +629,57 @@ impl TextBuffer {
 /// Command implementation here
 impl TextBuffer {
     pub(crate) fn command_insert_char(&mut self, ch: char) {
-        self.insert_char(self.x_pos, self.y_pos, ch);
+        self.insert_char(self.cursor.x, self.cursor.y, ch);
         let width = ch.width().expect("must have a unicode width");
         self.move_x(width);
     }
     pub(crate) fn command_insert_text(&mut self, text: &str) {
         use unicode_width::UnicodeWidthStr;
-        self.insert_text(self.x_pos, self.y_pos, text);
+        self.insert_text(self.cursor.x, self.cursor.y, text);
         self.move_x(text.width());
     }
     pub(crate) fn move_left(&mut self) {
-        self.x_pos = self.x_pos.saturating_sub(1);
+        self.cursor.x = self.cursor.x.saturating_sub(1);
         self.calculate_focused_cell();
     }
     pub(crate) fn move_left_start(&mut self) {
-        self.x_pos = 0;
+        self.cursor.x = 0;
         self.calculate_focused_cell();
     }
     pub(crate) fn move_right(&mut self) {
-        self.x_pos = self.x_pos.saturating_add(1);
+        self.cursor.x = self.cursor.x.saturating_add(1);
         self.calculate_focused_cell();
     }
     pub(crate) fn move_x(&mut self, x: usize) {
-        self.x_pos = self.x_pos.saturating_add(x);
+        self.cursor.x = self.cursor.x.saturating_add(x);
         self.calculate_focused_cell();
     }
     pub(crate) fn move_up(&mut self) {
-        self.y_pos = self.y_pos.saturating_sub(1);
+        self.cursor.y = self.cursor.y.saturating_sub(1);
         self.calculate_focused_cell();
     }
     pub(crate) fn move_down(&mut self) {
-        self.y_pos = self.y_pos.saturating_add(1);
+        self.cursor.y = self.cursor.y.saturating_add(1);
         self.calculate_focused_cell();
     }
     pub(crate) fn set_position(&mut self, x: usize, y: usize) {
-        self.x_pos = x;
-        self.y_pos = y;
+        self.cursor.x = x;
+        self.cursor.y = y;
         self.calculate_focused_cell();
     }
     pub(crate) fn command_break_line(&mut self) {
-        self.break_line(self.x_pos, self.y_pos);
+        self.break_line(self.cursor.x, self.cursor.y);
         self.move_left_start();
         self.move_down();
     }
     pub(crate) fn command_delete_back(&mut self) {
-        if self.x_pos > 0 {
-            self.delete_char(self.x_pos.saturating_sub(1), self.y_pos);
+        if self.cursor.x > 0 {
+            self.delete_char(self.cursor.x.saturating_sub(1), self.cursor.y);
             self.move_left();
         }
     }
     pub(crate) fn command_delete_forward(&mut self) {
-        self.delete_char(self.x_pos, self.y_pos);
+        self.delete_char(self.cursor.x, self.cursor.y);
         self.calculate_focused_cell();
     }
 }
@@ -688,7 +719,7 @@ mod test {
 
     #[test]
     fn test_ensure_line_exist() {
-        let mut buffer = TextBuffer::from_str(Options::default(), "", "txt");
+        let mut buffer = TextBuffer::from_str(Options::default(), "");
         buffer.ensure_line_exist(10);
         assert!(buffer.lines.get(10).is_some());
         assert_eq!(buffer.total_lines(), 11);

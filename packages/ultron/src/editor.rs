@@ -5,12 +5,14 @@ use crate::CH_WIDTH;
 use crate::COMPONENT_NAME;
 use css_colors::Color;
 use history::Recorded;
+use nalgebra::Point2;
 use sauron::html::attributes;
 use sauron::html::units;
 use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
 use sauron::Measurements;
+use std::collections::VecDeque;
 
 pub(crate) mod action;
 mod history;
@@ -60,7 +62,12 @@ pub struct Editor<XMSG> {
     editor_element: Option<web_sys::Element>,
     composed_key: Option<char>,
     last_char_count: Option<usize>,
-    editor_offset: Option<(f32, f32)>,
+    editor_offset: Option<Point2<f32>>,
+    /// stores selection when the mouse is down to mouse up
+    selections: VecDeque<(Point2<i32>, Point2<i32>)>,
+    is_selecting: bool,
+    selection_start: Option<Point2<i32>>,
+    selection_end: Option<Point2<i32>>,
 }
 
 impl<XMSG> Editor<XMSG> {
@@ -82,6 +89,10 @@ impl<XMSG> Editor<XMSG> {
             composed_key: None,
             last_char_count: None,
             editor_offset: None,
+            selections: VecDeque::new(),
+            is_selecting: false,
+            selection_start: None,
+            selection_end: None,
         };
         editor
     }
@@ -96,7 +107,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 let editor_x = rect.x().round() as f32;
                 let editor_y = rect.y().round() as f32;
                 self.editor_element = Some(element.clone());
-                self.editor_offset = Some((editor_x, editor_y));
+                self.editor_offset = Some(Point2::new(editor_x, editor_y));
                 Effects::none()
             }
             Msg::TextareaMounted(target_node) => {
@@ -158,21 +169,33 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 Effects::with_external(extern_msgs).measure()
             }
             Msg::Mouseup(client_x, client_y) => {
-                let (x, y) = self.client_to_cursor(client_x, client_y);
-                if self.text_buffer.in_bounds(x, y) {
-                    self.text_buffer.set_position(x as usize, y as usize);
-                    Effects::none().measure()
-                } else {
-                    log::trace!("out of bounds...");
-                    Effects::none()
+                let cursor = self.client_to_cursor(client_x, client_y);
+                self.selection_end = Some(cursor);
+                if let (Some(start), Some(end)) =
+                    (self.selection_start, self.selection_end)
+                {
+                    self.selections.push_back((start, end));
+                    self.is_selecting = false;
+                    //self.selection_start = None;
+                    //self.selection_end = None;
                 }
-            }
-            Msg::Mousedown(client_x, client_y) => {
-                let (_x, _y) = self.client_to_cursor(client_x, client_y);
-                //self.text_buffer.set_position(x, y);
+                self.command_set_position(client_x, client_y);
                 Effects::none().measure()
             }
-            Msg::Mousemove(_client_x, _client_y) => Effects::none(),
+            Msg::Mousedown(client_x, client_y) => {
+                let cursor = self.client_to_cursor(client_x, client_y);
+                self.is_selecting = true;
+                self.selection_start = Some(cursor);
+                self.command_set_position(client_x, client_y);
+                Effects::none().measure()
+            }
+            Msg::Mousemove(client_x, client_y) => {
+                if self.is_selecting {
+                    let cursor = self.client_to_cursor(client_x, client_y);
+                    self.selection_end = Some(cursor);
+                }
+                Effects::none()
+            }
             Msg::Paste(text_content) => {
                 self.command_insert_text(&text_content);
                 let extern_msgs = self.emit_on_change_listeners();
@@ -301,6 +324,14 @@ impl<XMSG> Editor<XMSG> {
         self.text_buffer.rehighlight();
     }
 
+    fn command_set_position(&mut self, client_x: i32, client_y: i32) {
+        let cursor = self.client_to_cursor(client_x, client_y);
+        if self.text_buffer.in_bounds(cursor.x, cursor.y) {
+            self.text_buffer
+                .set_position(cursor.x as usize, cursor.y as usize);
+        }
+    }
+
     fn process_keypresses(&mut self, ke: &web_sys::KeyboardEvent) {
         let key = ke.key();
         match &*key {
@@ -387,43 +418,42 @@ impl<XMSG> Editor<XMSG> {
     }
 
     /// convert screen coordinate to cursor position
-    fn client_to_cursor(&self, client_x: i32, client_y: i32) -> (i32, i32) {
+    fn client_to_cursor(&self, client_x: i32, client_y: i32) -> Point2<i32> {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
-        let (editor_x, editor_y) =
-            self.editor_offset.expect("must have editor offset");
-        let col = (client_x as f32 - editor_x + self.window_scroll_left)
+        let editor = self.editor_offset.expect("must have editor offset");
+        let col = (client_x as f32 - editor.x + self.window_scroll_left)
             / CH_WIDTH as f32
             - numberline_wide;
-        let line = (client_y as f32 - editor_y + self.window_scroll_top)
+        let line = (client_y as f32 - editor.y + self.window_scroll_top)
             / CH_HEIGHT as f32;
         log::trace!("col line: {},{}", col.round(), line.round());
         let x = col.floor() as i32;
         let y = line.floor() as i32;
-        (x, y)
+        Point2::new(x, y)
     }
 
     /// convert current cursor position to client coordinate relative to the editor div
-    fn cursor_to_client(&self) -> (i32, i32) {
+    fn cursor_to_client(&self) -> Point2<i32> {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
-        let (x, y) = self.text_buffer.get_position();
+        let cursor = self.text_buffer.get_position();
 
-        let top = y as i32 * CH_HEIGHT as i32;
-        let left = (x as i32 + numberline_wide as i32) * CH_WIDTH as i32;
+        let top = cursor.y as i32 * CH_HEIGHT as i32;
+        let left = (cursor.x as i32 + numberline_wide as i32) * CH_WIDTH as i32;
 
-        (left, top)
+        Point2::new(left, top)
     }
 
     fn view_hidden_textarea(&self) -> Node<Msg> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
-        let (cursor_x, cursor_y) = self.cursor_to_client();
+        let cursor = self.cursor_to_client();
         div(
             [
                 class_ns("hidden_textarea_wrapper"),
                 style! {
-                    top: px(cursor_y),
-                    left: px(cursor_x),
+                    top: px(cursor.y),
+                    left: px(cursor.x),
                     z_index: 99,
                 },
             ],
@@ -474,13 +504,13 @@ impl<XMSG> Editor<XMSG> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
-        let (left, top) = self.cursor_to_client();
+        let cursor = self.cursor_to_client();
         div(
             [
                 class_ns("virtual_cursor"),
                 style! {
-                    top: px(top),
-                    left: px(left),
+                    top: px(cursor.y),
+                    left: px(cursor.x),
                 },
             ],
             [],
@@ -491,7 +521,7 @@ impl<XMSG> Editor<XMSG> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
-        let (x_pos, y_pos) = self.text_buffer.get_position();
+        let cursor = self.text_buffer.get_position();
         div(
             [
                 class_ns("status"),
@@ -511,7 +541,7 @@ impl<XMSG> Editor<XMSG> {
                 },
             ],
             [
-                text!("line: {}, col: {}  |", y_pos + 1, x_pos + 1),
+                text!("line: {}, col: {}  |", cursor.y + 1, cursor.x + 1),
                 if let Some(measurements) = &self.measurements {
                     text!(
                         "patches: {} | nodes: {} | view time: {}ms | patch time: {}ms | update time: {}ms",
@@ -522,7 +552,14 @@ impl<XMSG> Editor<XMSG> {
                         measurements.total_time.round()
                     )
                 } else {
-                    text("")
+                    comment("")
+                },
+                if let (Some(start), Some(end)) =
+                    (self.selection_start, self.selection_end)
+                {
+                    text!("| selection start: {} end: {}", start, end)
+                } else {
+                    text("| no selection")
                 },
             ],
         )

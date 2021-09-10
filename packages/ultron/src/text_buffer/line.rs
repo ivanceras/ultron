@@ -61,6 +61,22 @@ impl Line {
         None
     }
 
+    /// calculate the x position from range_index and cell_index of this line
+    pub(crate) fn calc_range_cell_index_to_x(
+        &self,
+        range_index: usize,
+        cell_index: usize,
+    ) -> usize {
+        let mut width = 0;
+        for range in self.ranges[0..range_index].iter() {
+            width += range.width;
+        }
+        for cell in self.ranges[range_index].cells[0..cell_index].iter() {
+            width += cell.width;
+        }
+        width
+    }
+
     #[allow(unused)]
     pub(super) fn last_range_cell_index(&self) -> (usize, usize) {
         let line_ranges_len = self.ranges.len();

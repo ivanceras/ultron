@@ -39,14 +39,18 @@ impl Cell {
         let is_focused =
             text_buffer.is_focused_cell(line_index, range_index, cell_index);
 
+        let is_selected =
+            text_buffer.in_selection(line_index, range_index, cell_index);
+        log::trace!("is_selected: {}", is_selected);
+
         span(
             [
                 class_ns("ch"),
-                classes_ns_flag([("ch_focused", is_focused)]),
-                classes_ns_flag([(
-                    &format!("wide{}", self.width),
-                    self.width > 1,
-                )]),
+                classes_ns_flag([
+                    ("ch_focused", is_focused),
+                    ("selected", is_selected),
+                    (&format!("wide{}", self.width), self.width > 1),
+                ]),
             ],
             if text_buffer.options.show_cursor && is_focused {
                 [div([class_ns("cursor")], [self.view_ch(text_buffer)])]

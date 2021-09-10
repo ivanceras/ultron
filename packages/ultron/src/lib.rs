@@ -1,4 +1,4 @@
-#![deny(warnings)]
+//#![deny(warnings)]
 pub use text_buffer::TextBuffer;
 
 pub use sauron;

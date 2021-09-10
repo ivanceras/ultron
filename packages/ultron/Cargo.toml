@@ -17,6 +17,7 @@ ultron-syntaxes-themes = { version = "0.1", path = "../syntaxes-themes" }
 log = "0.4"
 unicode-width = "0.1"
 css-colors = "1"
+nalgebra = "0.29.0"
 
 [dependencies.web-sys]
 version = "0.3"
