@@ -41,7 +41,6 @@ impl Cell {
 
         let is_selected =
             text_buffer.in_selection(line_index, range_index, cell_index);
-        log::trace!("is_selected: {}", is_selected);
 
         span(
             [

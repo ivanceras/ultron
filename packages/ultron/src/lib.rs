@@ -14,6 +14,8 @@ pub const CH_HEIGHT: u32 = 16;
 
 #[derive(Clone, Debug)]
 pub struct Options {
+    /// block mode is when the selection is rectangular
+    pub use_block_mode: bool,
     pub show_line_numbers: bool,
     pub show_status_line: bool,
     pub show_cursor: bool,
@@ -30,6 +32,7 @@ pub struct Options {
 impl Default for Options {
     fn default() -> Self {
         Self {
+            use_block_mode: false,
             show_line_numbers: true,
             show_status_line: true,
             show_cursor: true,

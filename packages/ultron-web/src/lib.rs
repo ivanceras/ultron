@@ -93,8 +93,10 @@ impl Application<Msg> for App {
                 Cmd::from(effects.localize(Msg::EditorMsg))
             }
             Msg::Mouseup(client_x, client_y) => {
-                self.editor.update(editor::Msg::Mouseup(client_x, client_y));
-                Cmd::none().measure()
+                let effects = self
+                    .editor
+                    .update(editor::Msg::Mouseup(client_x, client_y));
+                Cmd::from(effects.localize(Msg::EditorMsg)).measure()
             }
             Msg::Mousedown(client_x, client_y) => {
                 let effects = self
@@ -103,9 +105,10 @@ impl Application<Msg> for App {
                 Cmd::from(effects.localize(Msg::EditorMsg)).measure()
             }
             Msg::Mousemove(client_x, client_y) => {
-                self.editor
+                let effects = self
+                    .editor
                     .update(editor::Msg::Mousemove(client_x, client_y));
-                Cmd::none().no_render()
+                Cmd::from(effects.localize(Msg::EditorMsg)).measure()
             }
             Msg::Keydown(ke) => {
                 self.editor.update(editor::Msg::Keydown(ke));

@@ -176,8 +176,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 {
                     self.selections.push_back((start, end));
                     self.is_selecting = false;
-                    //self.selection_start = None;
-                    //self.selection_end = None;
+                    self.command_set_selection(start, end);
                 }
                 self.command_set_position(client_x, client_y);
                 Effects::none().measure()
@@ -193,6 +192,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 if self.is_selecting {
                     let cursor = self.client_to_cursor(client_x, client_y);
                     self.selection_end = Some(cursor);
+
+                    if let Some(start) = self.selection_start {
+                        self.command_set_selection(start, cursor);
+                    }
                 }
                 Effects::none()
             }
@@ -326,9 +329,18 @@ impl<XMSG> Editor<XMSG> {
 
     fn command_set_position(&mut self, client_x: i32, client_y: i32) {
         let cursor = self.client_to_cursor(client_x, client_y);
-        if self.text_buffer.in_bounds(cursor.x, cursor.y) {
+        if self.text_buffer.in_bounds(cursor) {
             self.text_buffer
                 .set_position(cursor.x as usize, cursor.y as usize);
+        }
+    }
+
+    fn command_set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
+        if self.text_buffer.in_bounds(start) && self.text_buffer.in_bounds(end)
+        {
+            let start = Point2::new(start.x as usize, start.y as usize);
+            let end = Point2::new(end.x as usize, end.y as usize);
+            self.text_buffer.set_selection(start, end);
         }
     }
 

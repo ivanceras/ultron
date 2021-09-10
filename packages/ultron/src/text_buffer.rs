@@ -71,6 +71,11 @@ impl TextBuffer {
         this
     }
 
+    pub fn set_selection(&mut self, start: Point2<usize>, end: Point2<usize>) {
+        self.selection_start = Some(start);
+        self.selection_end = Some(end);
+    }
+
     /// return the min and max selection bound
     pub fn normalize_selection(
         &self,
@@ -97,17 +102,26 @@ impl TextBuffer {
         let x = self.lines[line_index]
             .calc_range_cell_index_to_x(range_index, cell_index);
         let y = line_index;
+
         if let Some((start, end)) = self.normalize_selection() {
-            x >= start.x && x <= end.x && y >= start.x && y <= end.y
+            if self.options.use_block_mode {
+                x >= start.x && x <= end.x && y >= start.y && y <= end.y
+            } else {
+                if y > start.y && y < end.y {
+                    true
+                } else {
+                    x >= start.x && x <= end.x && y >= start.y && y <= end.y
+                }
+            }
         } else {
             false
         }
     }
 
     /// check if x and y is in the bounds of the texteditor longest column
-    pub fn in_bounds(&self, x: i32, y: i32) -> bool {
+    pub fn in_bounds(&self, point: Point2<i32>) -> bool {
         let bound = self.bounds();
-        x >= 0 && y >= 0 && x <= bound.x && y <= bound.y
+        point.x >= 0 && point.y >= 0 && point.x <= bound.x && point.y <= bound.y
     }
 
     /// calculate the bounds of the text_buffer
