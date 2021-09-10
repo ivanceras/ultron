@@ -1,8 +1,6 @@
 #![deny(warnings)]
 
-use ultron::sauron::html::attributes;
 use ultron::sauron::html::tags::style;
-use ultron::sauron::jss::jss;
 use ultron::sauron::prelude::*;
 use ultron::Options;
 use ultron::TextBuffer;
@@ -19,8 +17,9 @@ pub fn render<MSG>(
         use_spans: true,
         use_for_ssg: true,
         theme_name: theme_name.map(|s| s.to_string()),
+        syntax_token: syntax_token.to_string(),
     };
-    let buffer = TextBuffer::from_str(options, content, syntax_token);
+    let buffer = TextBuffer::from_str(options, content);
     page(buffer)
 }
 
