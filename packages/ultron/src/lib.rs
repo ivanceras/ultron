@@ -1,4 +1,4 @@
-//#![deny(warnings)]
+#![deny(warnings)]
 pub use text_buffer::TextBuffer;
 
 pub use sauron;
@@ -25,6 +25,8 @@ pub struct Options {
     pub use_spans: bool,
     /// when used for ssg, whitespace will be rendered as &nbsp;
     pub use_for_ssg: bool,
+    /// apply background on the characters from syntax highlighter
+    pub use_background: bool,
     pub theme_name: Option<String>,
     pub syntax_token: String,
 }
@@ -38,6 +40,7 @@ impl Default for Options {
             show_cursor: true,
             use_spans: true,
             use_for_ssg: false,
+            use_background: true,
             theme_name: None,
             syntax_token: "txt".to_string(),
         }

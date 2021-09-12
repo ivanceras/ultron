@@ -192,6 +192,8 @@ impl Line {
             let cell = Cell::from_char(ch);
             range.replace_cell(cell_index, cell);
             self.width += range.width;
+        } else {
+            panic!("There should be a range");
         }
     }
 

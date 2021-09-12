@@ -71,6 +71,10 @@ impl TextBuffer {
         this
     }
 
+    pub fn clear(&mut self) {
+        self.lines.clear();
+    }
+
     pub fn set_selection(&mut self, start: Point2<usize>, end: Point2<usize>) {
         self.selection_start = Some(start);
         self.selection_end = Some(end);
@@ -331,8 +335,18 @@ impl TextBuffer {
         let class_number_wide =
             format!("number_wide{}", self.numberline_wide());
 
-        let code_attributes =
-            vec![class_ns("code"), class_ns(&class_number_wide)];
+        let theme_background =
+            self.theme_background().unwrap_or(rgba(0, 0, 255, 1.0));
+
+        let code_attributes = [
+            class_ns("code"),
+            class_ns(&class_number_wide),
+            if self.options.use_background {
+                style! {background: theme_background.to_css()}
+            } else {
+                empty_attr()
+            },
+        ];
 
         let rendered_lines = self
             .lines
@@ -349,8 +363,8 @@ impl TextBuffer {
             // but in firefox, it creates a double line when select-copying the text
             // whe need to use <pre><code> in order for typing whitespace works.
             pre(
-                vec![class_ns("code_wrapper")],
-                vec![code(code_attributes, rendered_lines)],
+                [class_ns("code_wrapper")],
+                [code(code_attributes, rendered_lines)],
             )
         }
     }
@@ -361,8 +375,6 @@ impl TextBuffer {
             .unwrap_or(rgba(100, 100, 100, 0.5));
 
         let cursor_color = self.cursor_color().unwrap_or(rgba(255, 0, 0, 1.0));
-        let theme_background =
-            self.theme_background().unwrap_or(rgba(0, 0, 255, 1.0));
 
         jss_ns! {COMPONENT_NAME,
             ".code_wrapper": {
@@ -371,7 +383,6 @@ impl TextBuffer {
 
             ".code": {
                 position: "relative",
-                background: theme_background.to_css(),
                 font_size: px(14),
                 cursor: "text",
                 display: "block",
@@ -600,7 +611,7 @@ impl TextBuffer {
     }
 
     /// insert a character at this x and y and move cells after it to the right
-    pub(crate) fn insert_char(&mut self, x: usize, y: usize, ch: char) {
+    pub fn insert_char(&mut self, x: usize, y: usize, ch: char) {
         self.assert_chars(ch);
         self.ensure_cell_exist(x, y);
 
@@ -635,15 +646,13 @@ impl TextBuffer {
     }
 
     /// replace the character at this location
-    #[allow(unused)]
-    pub(crate) fn replace_char(&mut self, x: usize, y: usize, ch: char) {
+    pub fn replace_char(&mut self, x: usize, y: usize, ch: char) {
         self.assert_chars(ch);
-        self.ensure_cell_exist(x, y);
+        self.ensure_cell_exist(x + 1, y);
 
         let (range_index, cell_index) = self.lines[y]
             .calc_range_cell_index_position(x)
             .expect("the range_index and cell_index must have existed at this point");
-
         self.lines[y].replace_char(range_index, cell_index, ch);
     }
 
@@ -695,6 +704,11 @@ impl TextBuffer {
         let width = ch.width().expect("must have a unicode width");
         self.move_x(width);
     }
+
+    pub(crate) fn command_replace_char(&mut self, ch: char) {
+        self.replace_char(self.cursor.x, self.cursor.y, ch);
+    }
+
     pub(crate) fn command_insert_text(&mut self, text: &str) {
         use unicode_width::UnicodeWidthStr;
         self.insert_text(self.cursor.x, self.cursor.y, text);

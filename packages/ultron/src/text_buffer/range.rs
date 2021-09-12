@@ -62,9 +62,13 @@ impl Range {
             [
                 class_ns("range"),
                 classes_ns_flag([("range_focused", is_focused)]),
-                style! {
-                    color: foreground.to_css(),
-                    background_color: background.to_css(),
+                if text_buffer.options.use_background {
+                    style! {
+                        color: foreground.to_css(),
+                        background_color: background.to_css(),
+                    }
+                } else {
+                    empty_attr()
                 },
             ],
             self.cells.iter().enumerate().map(|(cell_index, cell)| {
@@ -90,6 +94,8 @@ impl Range {
             self.width -= cell.width;
             self.width += new_cell.width;
             *cell = new_cell;
+        } else {
+            panic!("There should be a cell");
         }
     }
 

@@ -18,6 +18,7 @@ pub fn render<MSG>(
         use_for_ssg: true,
         theme_name: theme_name.map(|s| s.to_string()),
         syntax_token: syntax_token.to_string(),
+        ..Default::default()
     };
     let buffer = TextBuffer::from_str(options, content);
     page(buffer)

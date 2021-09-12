@@ -12,7 +12,6 @@ use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::wasm_bindgen::JsCast;
 use sauron::Measurements;
-use std::collections::VecDeque;
 
 pub(crate) mod action;
 mod history;
@@ -62,9 +61,6 @@ pub struct Editor<XMSG> {
     editor_element: Option<web_sys::Element>,
     composed_key: Option<char>,
     last_char_count: Option<usize>,
-    editor_offset: Option<Point2<f32>>,
-    /// stores selection when the mouse is down to mouse up
-    pub selections: VecDeque<(Point2<i32>, Point2<i32>)>,
     is_selecting: bool,
     selection_start: Option<Point2<i32>>,
     selection_end: Option<Point2<i32>>,
@@ -88,8 +84,6 @@ impl<XMSG> Editor<XMSG> {
             editor_element: None,
             composed_key: None,
             last_char_count: None,
-            editor_offset: None,
-            selections: VecDeque::new(),
             is_selecting: false,
             selection_start: None,
             selection_end: None,
@@ -103,11 +97,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
         match msg {
             Msg::EditorMounted(target_node) => {
                 let element: &web_sys::Element = target_node.unchecked_ref();
-                let rect = element.get_bounding_client_rect();
-                let editor_x = rect.x().round() as f32;
-                let editor_y = rect.y().round() as f32;
                 self.editor_element = Some(element.clone());
-                self.editor_offset = Some(Point2::new(editor_x, editor_y));
                 Effects::none()
             }
             Msg::TextareaMounted(target_node) => {
@@ -187,12 +177,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 if let (Some(start), Some(end)) =
                     (self.selection_start, self.selection_end)
                 {
-                    self.selections.push_back((start, end));
-                    self.selections.truncate(3);
                     self.is_selecting = false;
                     self.command_set_selection(start, end);
                 }
-                self.command_set_position(client_x, client_y);
+                self.command_set_position(cursor.x, cursor.y);
 
                 if let Some(selected_text) = self.text_buffer.selected_text() {
                     log::trace!("selected text: \n{}", selected_text);
@@ -203,7 +191,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 let cursor = self.client_to_cursor(client_x, client_y);
                 self.is_selecting = true;
                 self.selection_start = Some(cursor);
-                self.command_set_position(client_x, client_y);
+                self.command_set_position(cursor.x, cursor.y);
                 Effects::none().measure()
             }
             Msg::Mousemove(client_x, client_y) => {
@@ -335,6 +323,11 @@ impl<XMSG> Editor<XMSG> {
         self.text_buffer.rehighlight();
     }
 
+    pub fn command_replace_char(&mut self, ch: char) {
+        self.text_buffer.command_replace_char(ch);
+        self.text_buffer.rehighlight();
+    }
+
     fn command_break_line(&mut self) {
         self.text_buffer.command_break_line();
         self.text_buffer.rehighlight();
@@ -345,11 +338,10 @@ impl<XMSG> Editor<XMSG> {
         self.text_buffer.rehighlight();
     }
 
-    fn command_set_position(&mut self, client_x: i32, client_y: i32) {
-        let cursor = self.client_to_cursor(client_x, client_y);
-        if self.text_buffer.in_bounds(cursor) {
+    pub fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
+        if self.text_buffer.in_bounds(Point2::new(cursor_x, cursor_y)) {
             self.text_buffer
-                .set_position(cursor.x as usize, cursor.y as usize);
+                .set_position(cursor_x as usize, cursor_y as usize);
         }
     }
 
@@ -364,6 +356,7 @@ impl<XMSG> Editor<XMSG> {
 
     /// this is for newer browsers
     /// This doesn't work on webkit2
+    #[allow(unused)]
     fn copy_to_clipboard(&self) {
         if let Some(selected_text) = self.text_buffer.selected_text() {
             let navigator = sauron::window().navigator();
@@ -376,7 +369,6 @@ impl<XMSG> Editor<XMSG> {
     /// this works even on older browser
     fn textarea_exec_copy(&self) {
         use sauron::web_sys::HtmlDocument;
-        use web_sys::HtmlTextAreaElement;
 
         if let Some(selected_text) = self.text_buffer.selected_text() {
             if let Some(ref hidden_textarea) = self.hidden_textarea {
@@ -476,10 +468,25 @@ impl<XMSG> Editor<XMSG> {
         extern_msgs
     }
 
+    fn editor_offset(&self) -> Option<Point2<f32>> {
+        if let Some(ref editor_element) = self.editor_element {
+            let rect = editor_element.get_bounding_client_rect();
+            let editor_x = rect.x().round() as f32;
+            let editor_y = rect.y().round() as f32;
+            Some(Point2::new(editor_x, editor_y))
+        } else {
+            None
+        }
+    }
+
     /// convert screen coordinate to cursor position
-    fn client_to_cursor(&self, client_x: i32, client_y: i32) -> Point2<i32> {
+    pub fn client_to_cursor(
+        &self,
+        client_x: i32,
+        client_y: i32,
+    ) -> Point2<i32> {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
-        let editor = self.editor_offset.expect("must have editor offset");
+        let editor = self.editor_offset().expect("must have editor offset");
         let col = (client_x as f32 - editor.x + self.window_scroll_left)
             / CH_WIDTH as f32
             - numberline_wide;
@@ -491,7 +498,7 @@ impl<XMSG> Editor<XMSG> {
     }
 
     /// convert current cursor position to client coordinate relative to the editor div
-    fn cursor_to_client(&self) -> Point2<i32> {
+    pub fn cursor_to_client(&self) -> Point2<i32> {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
         let cursor = self.text_buffer.get_position();
 
