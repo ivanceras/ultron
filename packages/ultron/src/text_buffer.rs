@@ -87,11 +87,7 @@ impl TextBuffer {
         if let (Some(start), Some(end)) =
             (self.selection_start, self.selection_end)
         {
-            let min_x = start.x.min(end.x);
-            let min_y = start.y.min(end.y);
-            let max_x = start.x.max(end.x);
-            let max_y = start.y.max(end.y);
-            Some((Point2::new(min_x, min_y), Point2::new(max_x, max_y)))
+            Some(util::normalize_points(start, end))
         } else {
             None
         }

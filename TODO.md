@@ -13,11 +13,12 @@
     - [ ] Undo/Redo on typing
     - [ ] Undo/redo on cut/copy/paste
 - [ ] multi-layer buffer, so you can drag objects around
-- [ ] Draggable separator
-- [ ] selection
+- [X] Draggable separator
+- [X] selection
     - select parts of the text buffer
 - [ ] Scroll the view to when the cursor is not visible on the screen
-- [ ] Drag and drop shapes
+- [ ] Centralize the commands into actions first, so we can send an external messages
+    and hook it into history for undor/redo functionality
 
 ## Maintenance
 - [ ] Put the css of each of the component to their own module

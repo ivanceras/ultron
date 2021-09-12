@@ -468,8 +468,11 @@ impl<XMSG> Editor<XMSG> {
         extern_msgs
     }
 
+    ///TODO: This call the the real DOM, maybe create recalculate this everytime
+    /// a scroll even is made
     fn editor_offset(&self) -> Option<Point2<f32>> {
         if let Some(ref editor_element) = self.editor_element {
+            log::trace!("calculating editor offset..");
             let rect = editor_element.get_bounding_client_rect();
             let editor_x = rect.x().round() as f32;
             let editor_y = rect.y().round() as f32;
