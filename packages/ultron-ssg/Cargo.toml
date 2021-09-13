@@ -11,6 +11,5 @@ readme = "../../README.md"
 keywords = ["syntax", "highlighting", "monospace"]
 
 [dependencies]
-pretty_env_logger = "0.4.0"
 ultron = { version = "0.1", path = "../ultron" , default-features = false}
 
