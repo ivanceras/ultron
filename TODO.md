@@ -19,6 +19,12 @@
 - [ ] Scroll the view to when the cursor is not visible on the screen
 - [ ] Centralize the commands into actions first, so we can send an external messages
     and hook it into history for undor/redo functionality
+- [ ] Render only lines that are visible to the user, we can calculate the line exposed to the users
+
+## Features
+- [ ] Smart edit blockmode
+    - When typing a key and the next characters next to it is far, say more than 2 space the character is typed in replace mode
+        instead of insert mode
 
 ## Maintenance
 - [ ] Put the css of each of the component to their own module

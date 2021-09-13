@@ -20,7 +20,9 @@ mod history;
 pub enum Msg {
     TextareaMounted(web_sys::Node),
     EditorMounted(web_sys::Node),
-    Keydown(web_sys::KeyboardEvent),
+    /// keydown from window events
+    WindowKeydown(web_sys::KeyboardEvent),
+    /// Keydown from the hidden text area
     TextareaKeydown(web_sys::KeyboardEvent),
     MoveCursor(usize, usize),
     MoveCursorToLine(usize),
@@ -221,7 +223,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 self.measurements = Some(measurements);
                 Effects::none().no_render()
             }
-            Msg::Keydown(ke) => {
+            Msg::WindowKeydown(ke) => {
                 let key = ke.key();
                 self.process_keypresses(&ke);
                 if key.chars().count() == 1 {

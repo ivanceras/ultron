@@ -111,7 +111,7 @@ impl Application<Msg> for App {
                 Cmd::from(effects.localize(Msg::EditorMsg)).measure()
             }
             Msg::Keydown(ke) => {
-                self.editor.update(editor::Msg::Keydown(ke));
+                self.editor.update(editor::Msg::WindowKeydown(ke));
                 Cmd::none().measure()
             }
             Msg::NoOp => Cmd::none().no_render(),
