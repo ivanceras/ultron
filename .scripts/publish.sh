@@ -2,13 +2,13 @@
 
 set -ev
 
-cd packages/syntaxes-themes && cargo publish && cd -  &&\
+#cd packages/syntaxes-themes && cargo publish && cd -  &&\
 
-echo "sleeping" && sleep 20 &&\
+#echo "sleeping" && sleep 20 &&\
 
-cd  packages/ultron && cargo publish && cd - &&\
+#cd  packages/ultron && cargo publish && cd - &&\
 
-echo "sleeping" && sleep 20 &&\
+#echo "sleeping" && sleep 20 &&\
 
 cd packages/ultron-ssg && cargo publish && cd - &&\
 

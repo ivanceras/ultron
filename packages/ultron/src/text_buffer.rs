@@ -532,7 +532,6 @@ impl TextBuffer {
 }
 
 /// text manipulation
-#[cfg(feature = "with-dom")]
 impl TextBuffer {
     /// the total number of lines of this text canvas
     pub(crate) fn total_lines(&self) -> usize {
@@ -692,7 +691,6 @@ impl TextBuffer {
     }
 }
 
-#[cfg(feature = "with-dom")]
 /// Command implementation here
 impl TextBuffer {
     pub(crate) fn command_insert_char(&mut self, ch: char) {
