@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::util;
 use crate::Options;
 use crate::CH_HEIGHT;

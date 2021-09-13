@@ -1,4 +1,3 @@
-#[cfg(feature = "with-dom")]
 use super::Cell;
 use super::Range;
 use crate::TextBuffer;
@@ -158,7 +157,6 @@ impl Line {
     }
 }
 
-#[cfg(feature = "with-dom")]
 impl Line {
     /// append to the last range if there is none create a new range
     pub(super) fn push_char(&mut self, ch: char) {

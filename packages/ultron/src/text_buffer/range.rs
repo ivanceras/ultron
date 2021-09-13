@@ -78,7 +78,6 @@ impl Range {
     }
 }
 
-#[cfg(feature = "with-dom")]
 impl Range {
     pub(super) fn recalc_width(&mut self) {
         self.width = self.cells.iter().map(|cell| cell.width).sum();
