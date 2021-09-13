@@ -357,6 +357,8 @@ impl<XMSG> Editor<XMSG> {
     /// this is for newer browsers
     /// This doesn't work on webkit2
     #[allow(unused)]
+    #[cfg(web_sys_unstable_apis)]
+    #[cfg(feature = "with-navigator-clipboard")]
     fn copy_to_clipboard(&self) {
         if let Some(selected_text) = self.text_buffer.selected_text() {
             let navigator = sauron::window().navigator();
