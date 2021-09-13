@@ -1,6 +1,6 @@
 [package]
 name = "ultron-web"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2018"
 description = "Ultron editor variant exposed as a web application"
 license = "MIT"
@@ -13,7 +13,7 @@ keywords = ["web", "editor", "monospace"]
 crate-type = ["rlib","cdylib"]
 
 [dependencies]
-ultron = { version = "0.1", path = "../ultron", features = ["with-measure"] }
+ultron = { version = "0.2.0", path = "../ultron", features = ["with-measure"] }
 log = "0.4"
 console_log = { version = "0.2", features = ["color"]}
 console_error_panic_hook = "0.1"
