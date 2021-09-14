@@ -145,6 +145,8 @@ impl TextBuffer {
         }
     }
 
+    /// TODO: build the text using the technique used in cut_text, which is more efficient way and
+    /// less code
     pub(crate) fn get_text(
         &self,
         start: Point2<usize>,
@@ -185,6 +187,34 @@ impl TextBuffer {
             }
         }
         buffer.to_string()
+    }
+
+    /// Remove the text within the start and end position then return the deleted text
+    pub(crate) fn cut_text(
+        &mut self,
+        start: Point2<usize>,
+        end: Point2<usize>,
+    ) -> String {
+        let deleted_text = self.get_text(start, end);
+        if self.options.use_block_mode {
+            for line_index in start.y..=end.y {
+                println!("deleting cells in line: {}", line_index);
+                self.lines[line_index].delete_cells(start.x, end.x);
+            }
+        } else {
+            let is_one_line = start.y == end.y;
+            //delete the lines in between
+            if is_one_line {
+                self.lines[start.y].delete_cells(start.x, end.x);
+            } else {
+                self.lines.drain(start.y + 1..end.y);
+                // at the first line of selection: delete the cells from start.x to end
+                self.lines[start.y].delete_cells_to_end(start.x);
+                // at the last line of selection: delete the cells from 0 to end.x
+                self.lines[end.y].delete_cells_from_start(end.x);
+            }
+        }
+        deleted_text
     }
 
     pub(crate) fn selected_text(&self) -> Option<String> {

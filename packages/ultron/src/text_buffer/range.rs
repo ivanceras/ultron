@@ -107,4 +107,22 @@ impl Range {
         let other = self.cells.split_off(cell_index);
         Self::from_cells(other, self.style)
     }
+
+    /// delete the cells from cell_index to end
+    pub(super) fn delete_cells_to_end(&mut self, cell_index: usize) {
+        self.cells.drain(cell_index..);
+        self.recalc_width();
+    }
+
+    pub(super) fn delete_cells_from_start(&mut self, cell_index: usize) {
+        self.cells.drain(0..=cell_index);
+    }
+
+    pub(super) fn delete_cells(
+        &mut self,
+        start_index: usize,
+        end_index: usize,
+    ) {
+        self.cells.drain(start_index..=end_index);
+    }
 }

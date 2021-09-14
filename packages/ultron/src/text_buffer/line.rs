@@ -76,20 +76,26 @@ impl Line {
         width
     }
 
+    /// FIXME: all callers of this function has been adjusted
+    /// this was buggy since from the start
     #[allow(unused)]
     pub(super) fn last_range_cell_index(&self) -> (usize, usize) {
-        let line_ranges_len = self.ranges.len();
-        let last = if line_ranges_len > 0 {
-            line_ranges_len - 1
-        } else {
-            0
-        };
-
         (
-            last,
+            self.ranges.len().saturating_sub(1),
             self.ranges
                 .last()
                 .map(|ranges| ranges.cells.len())
+                .unwrap_or(0),
+        )
+    }
+
+    /// This is the correct algorithmn
+    pub(super) fn real_last_range_cell_index(&self) -> (usize, usize) {
+        (
+            self.ranges.len().saturating_sub(1),
+            self.ranges
+                .last()
+                .map(|ranges| ranges.cells.len().saturating_sub(1))
                 .unwrap_or(0),
         )
     }
@@ -192,6 +198,58 @@ impl Line {
             self.width += range.width;
         } else {
             panic!("There should be a range");
+        }
+    }
+
+    pub(super) fn recalc_width(&mut self) {
+        self.width = self.ranges.iter().map(|range| range.width).sum();
+    }
+
+    /// delete from x to last
+    pub(super) fn delete_cells_to_end(&mut self, start_x: usize) {
+        if let Some((range_index, cell_index)) =
+            self.calc_range_cell_index_position(start_x)
+        {
+            self.ranges[range_index].delete_cells_to_end(cell_index);
+            // drain all ranges beyond `range_index`
+            self.ranges.drain(range_index + 1..);
+            self.recalc_width();
+        }
+    }
+
+    /// delete from the 0 to end_x
+    pub(super) fn delete_cells_from_start(&mut self, end_x: usize) {
+        if let Some((range_index, cell_index)) =
+            self.calc_range_cell_index_position(end_x)
+        {
+            self.ranges[range_index].delete_cells_from_start(cell_index);
+            // delete ranges from 0 to before this end_x location
+            self.ranges.drain(0..range_index);
+            self.recalc_width();
+        }
+    }
+
+    pub(super) fn delete_cells(&mut self, start_x: usize, end_x: usize) {
+        println!("deleting cells from {} to {}", start_x, end_x);
+        let start = self.calc_range_cell_index_position(start_x);
+
+        // if None, it is because it beyond the cell index of this line, so we use the last_range
+        // cell
+        let end = self
+            .calc_range_cell_index_position(end_x)
+            .unwrap_or(self.real_last_range_cell_index());
+        dbg!(&start);
+        dbg!(&end);
+        if let Some((start_range, start_cell)) = start {
+            let (end_range, end_cell) = end;
+            if start_range == end_range {
+                self.ranges[start_range].delete_cells(start_cell, end_cell);
+            } else {
+                self.ranges[end_range].delete_cells_from_start(end_cell);
+                self.ranges[start_range].delete_cells_to_end(start_cell);
+            }
+            self.ranges.drain(start_range..end_range);
+            self.recalc_width();
         }
     }
 
