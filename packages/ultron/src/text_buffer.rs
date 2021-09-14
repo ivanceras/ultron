@@ -154,7 +154,6 @@ impl TextBuffer {
     ) -> String {
         let (start, end) = util::normalize_points(start, end);
         let mut buffer = TextBuffer::from_str(Options::default(), "");
-        log::trace!("selecting text");
         for (line_index, line) in self.lines.iter().enumerate() {
             let y = line_index;
             for (range_index, range) in line.ranges.iter().enumerate() {
@@ -792,12 +791,12 @@ impl TextBuffer {
     }
 
     pub(crate) fn command_insert_text(&mut self, text: &str) {
-        log::trace!("inserting text: {:?}", text);
         use unicode_width::UnicodeWidthStr;
         self.insert_text(self.cursor.x, self.cursor.y, text);
         let (x, y) = self.calculate_offset(text);
         self.move_y(y);
-        self.cursor.x = x;
+        self.move_x(x);
+        self.calculate_focused_cell();
     }
     pub(crate) fn move_left(&mut self) {
         self.cursor.x = self.cursor.x.saturating_sub(1);
