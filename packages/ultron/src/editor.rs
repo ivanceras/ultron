@@ -366,12 +366,10 @@ impl<XMSG> Editor<XMSG> {
     /// either 1 should work
     /// returns true if it succeded
     fn command_copy(&self) -> bool {
-        if self.textarea_exec_copy() {
+        if self.copy_to_clipboard() {
             true
         } else {
-            #[cfg(web_sys_unstable_apis)]
-            #[cfg(feature = "with-navigator-clipboard")]
-            self.copy_to_clipboard()
+            self.textarea_exec_copy()
         }
     }
 
@@ -379,12 +377,10 @@ impl<XMSG> Editor<XMSG> {
     /// This shouldn't execute both since cut is destructive.
     /// Returns true if it succeded
     fn command_cut(&mut self) -> bool {
-        if self.textarea_exec_cut() {
+        if self.cut_to_clipboard() {
             true
         } else {
-            #[cfg(web_sys_unstable_apis)]
-            #[cfg(feature = "with-navigator-clipboard")]
-            self.cut_to_clipboard()
+            self.textarea_exec_cut()
         }
     }
 
