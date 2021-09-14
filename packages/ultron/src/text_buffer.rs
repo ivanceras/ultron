@@ -593,6 +593,8 @@ impl TextBuffer {
 }
 
 /// text manipulation
+/// This are purely manipulating text into the text buffer.
+/// The cursor shouldn't be move here, since it is done by the commands functions
 impl TextBuffer {
     /// the total number of lines of this text canvas
     pub(crate) fn total_lines(&self) -> usize {
@@ -706,7 +708,6 @@ impl TextBuffer {
                 self.insert_line_text(new_col, new_line, line);
                 new_col = 0;
                 new_line += 1;
-                self.cursor.y = new_line;
             }
         }
     }
@@ -760,9 +761,25 @@ impl TextBuffer {
     pub(crate) fn get_position(&self) -> Point2<usize> {
         self.cursor
     }
+
+    fn calculate_offset(&self, text: &str) -> (usize, usize) {
+        let lines: Vec<&str> = text.lines().collect();
+        let cols = if let Some(last_line) = lines.last() {
+            last_line
+                .chars()
+                .map(|ch| ch.width().expect("chars must have a width"))
+                .sum()
+        } else {
+            0
+        };
+        (cols, lines.len().saturating_sub(1))
+    }
 }
 
 /// Command implementation here
+///
+/// functions that are preceeded with command also moves the
+/// cursor and highlight the texts
 impl TextBuffer {
     pub(crate) fn command_insert_char(&mut self, ch: char) {
         self.insert_char(self.cursor.x, self.cursor.y, ch);
@@ -778,7 +795,9 @@ impl TextBuffer {
         log::trace!("inserting text: {:?}", text);
         use unicode_width::UnicodeWidthStr;
         self.insert_text(self.cursor.x, self.cursor.y, text);
-        self.move_x(text.width());
+        let (x, y) = self.calculate_offset(text);
+        self.move_y(y);
+        self.cursor.x = x;
     }
     pub(crate) fn move_left(&mut self) {
         self.cursor.x = self.cursor.x.saturating_sub(1);
@@ -794,6 +813,10 @@ impl TextBuffer {
     }
     pub(crate) fn move_x(&mut self, x: usize) {
         self.cursor.x = self.cursor.x.saturating_add(x);
+        self.calculate_focused_cell();
+    }
+    pub(crate) fn move_y(&mut self, y: usize) {
+        self.cursor.y = self.cursor.y.saturating_add(y);
         self.calculate_focused_cell();
     }
     pub(crate) fn move_up(&mut self) {
