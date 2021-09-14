@@ -164,13 +164,6 @@ impl TextBuffer {
                         start,
                         end,
                     ) {
-                        log::trace!(
-                            "x: {}, y: {}, start.x: {}, start.y: {}",
-                            x,
-                            y,
-                            start.x,
-                            start.y
-                        );
                         if self.options.use_block_mode {
                             buffer.insert_char(
                                 x - start.x,
