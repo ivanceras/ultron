@@ -70,7 +70,7 @@ pub struct Editor<XMSG> {
 
 impl<XMSG> Editor<XMSG> {
     pub fn from_str(options: Options, content: &str) -> Self {
-        let editor = Editor {
+        Editor {
             options: options.clone(),
             text_buffer: TextBuffer::from_str(options, content),
             page_size: 10,
@@ -89,8 +89,7 @@ impl<XMSG> Editor<XMSG> {
             is_selecting: false,
             selection_start: None,
             selection_end: None,
-        };
-        editor
+        }
     }
 }
 
@@ -204,8 +203,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     if let Some(start) = self.selection_start {
                         self.command_set_selection(start, cursor);
                     }
+                    Effects::none().measure()
+                } else {
+                    Effects::none().no_render()
                 }
-                Effects::none()
             }
             Msg::Paste(text_content) => {
                 self.command_insert_text(&text_content);
@@ -472,9 +473,7 @@ impl<XMSG> Editor<XMSG> {
         extern_msgs
     }
 
-    ///TODO: This call the the real DOM, maybe create recalculate this everytime
-    /// a scroll even is made
-    fn editor_offset(&self) -> Option<Point2<f32>> {
+    pub fn editor_offset(&self) -> Option<Point2<f32>> {
         if let Some(ref editor_element) = self.editor_element {
             log::trace!("calculating editor offset..");
             let rect = editor_element.get_bounding_client_rect();
@@ -493,12 +492,10 @@ impl<XMSG> Editor<XMSG> {
         client_y: i32,
     ) -> Point2<i32> {
         let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
-        let editor = self.editor_offset().expect("must have editor offset");
-        let col = (client_x as f32 - editor.x + self.window_scroll_left)
-            / CH_WIDTH as f32
-            - numberline_wide;
-        let line = (client_y as f32 - editor.y + self.window_scroll_top)
-            / CH_HEIGHT as f32;
+        let editor = self.editor_offset().expect("must have an editor offset");
+        let col =
+            (client_x as f32 - editor.x) / CH_WIDTH as f32 - numberline_wide;
+        let line = (client_y as f32 - editor.y) / CH_HEIGHT as f32;
         let x = col.floor() as i32;
         let y = line.floor() as i32;
         Point2::new(x, y)

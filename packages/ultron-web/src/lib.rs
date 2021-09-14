@@ -108,7 +108,7 @@ impl Application<Msg> for App {
                 let effects = self
                     .editor
                     .update(editor::Msg::Mousemove(client_x, client_y));
-                Cmd::from(effects.localize(Msg::EditorMsg)).measure()
+                Cmd::from(effects.localize(Msg::EditorMsg))
             }
             Msg::Keydown(ke) => {
                 self.editor.update(editor::Msg::WindowKeydown(ke));
@@ -128,10 +128,12 @@ impl Application<Msg> for App {
     }
 }
 
+/*
 #[cfg(target_arch = "wasm32")]
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+*/
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]

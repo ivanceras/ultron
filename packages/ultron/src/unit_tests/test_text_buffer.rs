@@ -1,5 +1,6 @@
 use crate::Options;
 use crate::TextBuffer;
+use nalgebra::Point2;
 
 #[test]
 fn line_length() {
@@ -7,6 +8,40 @@ fn line_length() {
     let buffer = TextBuffer::from_str(Options::default(), raw);
     assert_eq!(buffer.total_lines(), 1);
     assert_eq!(buffer.line_width(0), Some(11));
+}
+
+#[test]
+fn test_get_text() {
+    let raw = "Hello world";
+    let buffer = TextBuffer::from_str(Options::default(), raw);
+    let txt = buffer.get_text(Point2::new(0, 0), Point2::new(4, 0));
+    assert_eq!(txt, "Hello");
+}
+
+#[test]
+fn test_text_selection() {
+    let raw = "Hello world";
+    let mut buffer = TextBuffer::from_str(Options::default(), raw);
+    buffer.set_selection(Point2::new(0, 0), Point2::new(4, 0));
+    let txt = buffer.selected_text();
+    assert_eq!(txt, Some("Hello".to_string()));
+}
+
+#[test]
+fn test_get_text_world() {
+    let raw = "Hello world";
+    let buffer = TextBuffer::from_str(Options::default(), raw);
+    let txt = buffer.get_text(Point2::new(6, 0), Point2::new(10, 0));
+    assert_eq!(txt, "world");
+}
+
+#[test]
+fn test_text_selection_world() {
+    let raw = "Hello world";
+    let mut buffer = TextBuffer::from_str(Options::default(), raw);
+    buffer.set_selection(Point2::new(6, 0), Point2::new(10, 0));
+    let txt = buffer.selected_text();
+    assert_eq!(txt, Some("world".to_string()));
 }
 
 #[test]

@@ -94,6 +94,39 @@ impl TextBuffer {
             None
         }
     }
+
+    fn is_within_position(
+        &self,
+        (line_index, range_index, cell_index): (usize, usize, usize),
+        start: Point2<usize>,
+        end: Point2<usize>,
+    ) -> bool {
+        let x = self.lines[line_index]
+            .calc_range_cell_index_to_x(range_index, cell_index);
+        let y = line_index;
+
+        if self.options.use_block_mode {
+            x >= start.x && x <= end.x && y >= start.y && y <= end.y
+        } else {
+            if y > start.y && y < end.y {
+                true
+            } else {
+                let same_start_line = y == start.y;
+                let same_end_line = y == end.y;
+
+                if same_start_line && same_end_line {
+                    x >= start.x && x <= end.x
+                } else if same_start_line {
+                    x >= start.x
+                } else if same_end_line {
+                    x <= end.x
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
     /// check if this cell is within the selection of the textarea
     pub(crate) fn in_selection(
         &self,
@@ -101,68 +134,71 @@ impl TextBuffer {
         range_index: usize,
         cell_index: usize,
     ) -> bool {
-        let x = self.lines[line_index]
-            .calc_range_cell_index_to_x(range_index, cell_index);
-        let y = line_index;
-
         if let Some((start, end)) = self.normalize_selection() {
-            if self.options.use_block_mode {
-                x >= start.x && x <= end.x && y >= start.y && y <= end.y
-            } else {
-                if y > start.y && y < end.y {
-                    true
-                } else {
-                    let same_start_line = y == start.y;
-                    let same_end_line = y == end.y;
-
-                    if same_start_line && same_end_line {
-                        x >= start.x && x <= end.x
-                    } else if same_start_line {
-                        x >= start.x
-                    } else if same_end_line {
-                        x <= end.x
-                    } else {
-                        false
-                    }
-                }
-            }
+            self.is_within_position(
+                (line_index, range_index, cell_index),
+                start,
+                end,
+            )
         } else {
             false
         }
     }
 
-    pub(crate) fn selected_text(&self) -> Option<String> {
-        if let (Some(start), Some(_end)) =
-            (self.selection_start, self.selection_end)
-        {
-            let mut buffer = TextBuffer::from_str(Options::default(), "");
-            for (line_index, line) in self.lines.iter().enumerate() {
-                let y = line_index;
-                for (range_index, range) in line.ranges.iter().enumerate() {
-                    for (cell_index, cell) in range.cells.iter().enumerate() {
-                        let x = line.calc_range_cell_index_to_x(
-                            range_index,
-                            cell_index,
+    pub(crate) fn get_text(
+        &self,
+        start: Point2<usize>,
+        end: Point2<usize>,
+    ) -> String {
+        let (start, end) = util::normalize_points(start, end);
+        let mut buffer = TextBuffer::from_str(Options::default(), "");
+        log::trace!("selecting text");
+        for (line_index, line) in self.lines.iter().enumerate() {
+            let y = line_index;
+            for (range_index, range) in line.ranges.iter().enumerate() {
+                for (cell_index, cell) in range.cells.iter().enumerate() {
+                    let x = line
+                        .calc_range_cell_index_to_x(range_index, cell_index);
+                    if self.is_within_position(
+                        (line_index, range_index, cell_index),
+                        start,
+                        end,
+                    ) {
+                        log::trace!(
+                            "x: {}, y: {}, start.x: {}, start.y: {}",
+                            x,
+                            y,
+                            start.x,
+                            start.y
                         );
-                        if self.in_selection(
-                            line_index,
-                            range_index,
-                            cell_index,
-                        ) {
-                            if self.options.use_block_mode {
-                                buffer.insert_char(
-                                    x - start.x,
-                                    y - start.y,
-                                    cell.ch,
-                                );
+                        if self.options.use_block_mode {
+                            buffer.insert_char(
+                                x - start.x,
+                                y - start.y,
+                                cell.ch,
+                            );
+                        } else {
+                            //if its not in block mode, we only deduct x if it is on the first line
+                            let in_start_selection_line = y == start.y;
+                            let new_x = if in_start_selection_line {
+                                x - start.x
                             } else {
-                                buffer.insert_char(x, y - start.y, cell.ch);
-                            }
+                                x
+                            };
+                            buffer.insert_char(new_x, y - start.y, cell.ch);
                         }
                     }
                 }
             }
-            Some(buffer.to_string())
+        }
+        buffer.to_string()
+    }
+
+    pub(crate) fn selected_text(&self) -> Option<String> {
+        if let (Some(start), Some(end)) =
+            (self.selection_start, self.selection_end)
+        {
+            Some(self.get_text(start, end))
         } else {
             None
         }
