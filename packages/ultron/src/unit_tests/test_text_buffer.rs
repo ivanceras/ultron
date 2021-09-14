@@ -19,49 +19,6 @@ fn test_get_text() {
 }
 
 #[test]
-fn test_cut_text() {
-    let raw = "Hello world";
-    let mut buffer = TextBuffer::from_str(Options::default(), raw);
-    let txt = buffer.cut_text(Point2::new(0, 0), Point2::new(4, 0));
-    assert_eq!(txt, "Hello");
-    assert_eq!(buffer.to_string(), " world");
-}
-
-#[test]
-fn test_cut_text_multi_line() {
-    let raw = "before text\nHello world\nafter text";
-    let mut buffer = TextBuffer::from_str(Options::default(), raw);
-    let txt = buffer.cut_text(Point2::new(0, 1), Point2::new(4, 1));
-    assert_eq!(txt, "Hello");
-    assert_eq!(buffer.to_string(), "before text\n world\nafter text");
-}
-
-#[test]
-fn test_cut_text_2lines_multi_line() {
-    let raw = "before text\nHello world\nafter text";
-    let mut buffer = TextBuffer::from_str(Options::default(), raw);
-    let txt = buffer.cut_text(Point2::new(0, 1), Point2::new(4, 2));
-    assert_eq!(txt, "Hello world\nafter");
-    //FIXME: There should only be 1 \n here
-    assert_eq!(buffer.to_string(), "before text\n\n text");
-}
-
-#[test]
-fn test_cut_text_2lines_multi_line_block_mode() {
-    let raw = "before text\nHello world\nafter text";
-    let mut buffer = TextBuffer::from_str(
-        Options {
-            use_block_mode: true,
-            ..Default::default()
-        },
-        raw,
-    );
-    let txt = buffer.cut_text(Point2::new(6, 1), Point2::new(10, 2));
-    assert_eq!(txt, "world\ntext");
-    assert_eq!(buffer.to_string(), "before text\nHello \nafter ");
-}
-
-#[test]
 fn test_text_selection() {
     let raw = "Hello world";
     let mut buffer = TextBuffer::from_str(Options::default(), raw);
@@ -278,4 +235,47 @@ fn insert_end() {
     let mut buffer = TextBuffer::from_str(Options::default(), raw);
     buffer.insert_char(5, 0, 'Y');
     assert_eq!(buffer.to_string(), "HelloY");
+}
+
+#[test]
+fn test_cut_text() {
+    let raw = "Hello world";
+    let mut buffer = TextBuffer::from_str(Options::default(), raw);
+    let txt = buffer.cut_text(Point2::new(0, 0), Point2::new(4, 0));
+    assert_eq!(txt, "Hello");
+    assert_eq!(buffer.to_string(), " world");
+}
+
+#[test]
+fn test_cut_text_multi_line() {
+    let raw = "before text\nHello world\nafter text";
+    let mut buffer = TextBuffer::from_str(Options::default(), raw);
+    let txt = buffer.cut_text(Point2::new(0, 1), Point2::new(4, 1));
+    assert_eq!(txt, "Hello");
+    assert_eq!(buffer.to_string(), "before text\n world\nafter text");
+}
+
+#[test]
+fn test_cut_text_2lines_multi_line() {
+    let raw = "before text\nHello world\nafter text";
+    let mut buffer = TextBuffer::from_str(Options::default(), raw);
+    let txt = buffer.cut_text(Point2::new(0, 1), Point2::new(4, 2));
+    assert_eq!(txt, "Hello world\nafter");
+    //FIXME: There should only be 1 \n here
+    assert_eq!(buffer.to_string(), "before text\n\n text");
+}
+
+#[test]
+fn test_cut_text_2lines_multi_line_block_mode() {
+    let raw = "before text\nHello world\nafter text";
+    let mut buffer = TextBuffer::from_str(
+        Options {
+            use_block_mode: true,
+            ..Default::default()
+        },
+        raw,
+    );
+    let txt = buffer.cut_text(Point2::new(6, 1), Point2::new(10, 2));
+    assert_eq!(txt, "world\ntext");
+    assert_eq!(buffer.to_string(), "before text\nHello \nafter ");
 }
