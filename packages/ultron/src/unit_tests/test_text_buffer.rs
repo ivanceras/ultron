@@ -279,3 +279,30 @@ fn test_cut_text_2lines_multi_line_block_mode() {
     assert_eq!(txt, "world\ntext");
     assert_eq!(buffer.to_string(), "before text\nHello \nafter ");
 }
+
+#[test]
+fn test_insert_text() {
+    let raw = "Hello world";
+    let mut buffer = TextBuffer::from_str(Options::default(), raw);
+    buffer.insert_text(5, 0, "YYYY");
+    assert_eq!(buffer.to_string(), "HelloYYYY world");
+}
+
+#[test]
+fn test_insert_multi_line_text() {
+    let raw = "Hello world";
+    let mut buffer = TextBuffer::from_str(Options::default(), raw);
+    buffer.insert_text(5, 0, "XXXX\nYYYY");
+    assert_eq!(buffer.to_string(), "HelloXXXX\nYYYY world");
+}
+
+#[test]
+fn test_insert_multi_line_text_to_multi_line_text() {
+    let raw = "before text\nHello world\nafter text";
+    let mut buffer = TextBuffer::from_str(Options::default(), raw);
+    buffer.insert_text(5, 1, "XXXX\nYYYY");
+    assert_eq!(
+        buffer.to_string(),
+        "before text\nHelloXXXX\nYYYY world\nafter text"
+    );
+}

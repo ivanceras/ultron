@@ -116,6 +116,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 Effects::none()
             }
             Msg::TextareaInput(input) => {
+                log::trace!("text are input: {:?}", input);
                 let char_count = input.chars().count();
                 // for chrome:
                 // detect if the typed in character was a composed and becomes 1 unicode character
@@ -392,6 +393,9 @@ impl<XMSG> Editor<XMSG> {
         let key = ke.key();
         match &*key {
             "Tab" => {
+                log::trace!("tab key is pressed");
+                let tab = "    ";
+                self.text_buffer.command_insert_text(tab);
                 self.refocus_hidden_textarea();
             }
             "Enter" => {

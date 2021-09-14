@@ -678,26 +678,36 @@ impl TextBuffer {
         self.lines[y].insert_char(range_index, cell_index, ch);
     }
 
-    pub(crate) fn insert_text(&mut self, x: usize, y: usize, text: &str) {
-        let mut new_line = y;
+    fn insert_line_text(&mut self, x: usize, y: usize, text: &str) {
         let mut new_col = x;
-        let lines: Vec<&str> = text.lines().collect();
-        let is_multi_line = lines.len() > 1;
-        if is_multi_line {
-            self.break_line(x, y);
+        for ch in text.chars() {
+            let width = ch.width().unwrap_or_else(|| {
+                panic!("must have a unicode width for {:?}", ch)
+            });
+            self.insert_char(new_col, y, ch);
+            new_col += width;
         }
-        for line in lines {
-            for ch in line.chars() {
-                let width = ch.width().unwrap_or_else(|| {
-                    panic!("must have a unicode width for {:?}", ch)
-                });
-                self.insert_char(new_col, new_line, ch);
-                new_col += width;
+    }
+
+    pub(crate) fn insert_text(&mut self, x: usize, y: usize, text: &str) {
+        self.ensure_cell_exist(x, y);
+        let lines: Vec<&str> = text.lines().collect();
+        if lines.len() == 1 {
+            self.insert_line_text(x, y, lines[0]);
+        } else {
+            dbg!(&self.lines);
+            let mut new_col = x;
+            let mut new_line = y;
+            for (line_index, line) in lines.iter().enumerate() {
+                println!("inserting {} at {},{}", line, new_col, new_line);
+                if line_index + 1 < lines.len() {
+                    self.break_line(new_col, new_line);
+                }
+                self.insert_line_text(new_col, new_line, line);
+                new_col = 0;
+                new_line += 1;
+                self.cursor.y = new_line;
             }
-            new_col = 0;
-            new_line += 1;
-            self.break_line(new_col, new_line);
-            self.cursor.y = new_line;
         }
     }
 
@@ -765,6 +775,7 @@ impl TextBuffer {
     }
 
     pub(crate) fn command_insert_text(&mut self, text: &str) {
+        log::trace!("inserting text: {:?}", text);
         use unicode_width::UnicodeWidthStr;
         self.insert_text(self.cursor.x, self.cursor.y, text);
         self.move_x(text.width());
