@@ -76,10 +76,8 @@ impl Line {
         width
     }
 
-    /// FIXME: all callers of this function has been adjusted
-    /// this was buggy since from the start
-    #[allow(unused)]
-    pub(super) fn last_range_cell_index(&self) -> (usize, usize) {
+    /// The location of the the next cell to be appended to the last range of this line
+    pub(super) fn range_cell_next(&self) -> (usize, usize) {
         (
             self.ranges.len().saturating_sub(1),
             self.ranges
@@ -89,8 +87,8 @@ impl Line {
         )
     }
 
-    /// This is the correct algorithmn
-    pub(super) fn real_last_range_cell_index(&self) -> (usize, usize) {
+    /// Return the indexes of the last range and the last cell of the last range of the line
+    pub(super) fn range_cell_tail(&self) -> (usize, usize) {
         (
             self.ranges.len().saturating_sub(1),
             self.ranges
@@ -237,7 +235,7 @@ impl Line {
         // cell
         let end = self
             .calc_range_cell_index_position(end_x)
-            .unwrap_or(self.real_last_range_cell_index());
+            .unwrap_or(self.range_cell_tail());
         dbg!(&start);
         dbg!(&end);
         if let Some((start_range, start_cell)) = start {

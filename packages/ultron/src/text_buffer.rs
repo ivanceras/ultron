@@ -640,7 +640,7 @@ impl TextBuffer {
         if let Some(line) = self.lines.get_mut(y) {
             let (range_index, col) = line
                 .calc_range_cell_index_position(x)
-                .unwrap_or(line.last_range_cell_index());
+                .unwrap_or(line.range_cell_next());
             if let Some(range_bound) = line.ranges.get_mut(range_index) {
                 range_bound.recalc_width();
                 let mut other = range_bound.split_at(col);
@@ -673,7 +673,7 @@ impl TextBuffer {
 
         let (range_index, cell_index) = self.lines[y]
             .calc_range_cell_index_position(x)
-            .unwrap_or(self.lines[y].last_range_cell_index());
+            .unwrap_or(self.lines[y].range_cell_next());
 
         self.lines[y].insert_char(range_index, cell_index, ch);
     }
