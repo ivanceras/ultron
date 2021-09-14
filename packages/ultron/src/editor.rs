@@ -178,14 +178,16 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::Mouseup(client_x, client_y) => {
                 let cursor = self.client_to_cursor(client_x, client_y);
+                self.command_set_position(cursor.x, cursor.y);
                 self.selection_end = Some(cursor);
                 if let (Some(start), Some(end)) =
                     (self.selection_start, self.selection_end)
                 {
                     self.is_selecting = false;
                     self.command_set_selection(start, end);
+                    // pre-emptively put the selection into the hidden textarea
+                    self.set_hidden_textarea_with_selection();
                 }
-                self.command_set_position(cursor.x, cursor.y);
 
                 if let Some(selected_text) = self.text_buffer.selected_text() {
                     log::trace!("selected text: \n{}", selected_text);
@@ -289,19 +291,18 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 height: 0,
                 position: "absolute",
                 padding: 0,
-                width: px(1000),
+                width: px(300),
                 height: px(0),
                 border:format!("{} solid black",px(1)),
                 bottom: units::em(-1),
-                height: units::em(1),
                 outline: "none",
             },
 
             ".hidden_textarea_wrapper": {
                 overflow: "hidden",
                 position: "relative",
-                width: px(3),
-                height: 0,
+                width: px(300),
+                height: px(0),
             },
 
             ".status": {
@@ -387,6 +388,22 @@ impl<XMSG> Editor<XMSG> {
         }
     }
 
+    /// set the content of the textarea to selection
+    ///
+    /// Note: This is necessary for webkit2.
+    /// webkit2 doesn't seem to allow to fire the setting of textarea value, select and copy
+    /// in the same animation frame.
+    fn set_hidden_textarea_with_selection(&self) {
+        if let Some(selected_text) = self.text_buffer.selected_text() {
+            if let Some(ref hidden_textarea) = self.hidden_textarea {
+                log::trace!("setting the value to textarea: {}", selected_text);
+                hidden_textarea.set_value(&selected_text);
+                log::trace!("textarea value: {}", hidden_textarea.value());
+                hidden_textarea.select();
+            }
+        }
+    }
+
     /// this is for newer browsers
     /// This doesn't work on webkit2
     #[cfg(web_sys_unstable_apis)]
@@ -426,8 +443,9 @@ impl<XMSG> Editor<XMSG> {
 
         if let Some(selected_text) = self.text_buffer.selected_text() {
             if let Some(ref hidden_textarea) = self.hidden_textarea {
+                log::trace!("setting the value to textarea: {}", selected_text);
                 hidden_textarea.set_value(&selected_text);
-
+                log::trace!("textarea value: {}", hidden_textarea.value());
                 hidden_textarea.select();
                 let html_document: HtmlDocument =
                     sauron::document().unchecked_into();
@@ -447,6 +465,7 @@ impl<XMSG> Editor<XMSG> {
 
         if let Some(selected_text) = self.text_buffer.cut_selected_text() {
             if let Some(ref hidden_textarea) = self.hidden_textarea {
+                log::trace!("setting the value to textarea: {}", selected_text);
                 hidden_textarea.set_value(&selected_text);
 
                 hidden_textarea.select();
