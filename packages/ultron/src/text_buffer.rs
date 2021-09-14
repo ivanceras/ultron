@@ -82,6 +82,11 @@ impl TextBuffer {
         self.selection_end = Some(end);
     }
 
+    pub fn clear_selection(&mut self) {
+        self.selection_start = None;
+        self.selection_end = None;
+    }
+
     /// return the min and max selection bound
     pub fn normalize_selection(
         &self,
@@ -94,6 +99,40 @@ impl TextBuffer {
             None
         }
     }
+
+    /// check if this line, range, cell is within start and end
+    fn is_inside_position(
+        &self,
+        (line_index, range_index, cell_index): (usize, usize, usize),
+        start: Point2<usize>,
+        end: Point2<usize>,
+    ) -> bool {
+        let x = self.lines[line_index]
+            .calc_range_cell_index_to_x(range_index, cell_index);
+        let y = line_index;
+
+        if self.options.use_block_mode {
+            x >= start.x && x <= end.x && y >= start.y && y <= end.y
+        } else {
+            if y > start.y && y < end.y {
+                true
+            } else {
+                let same_start_line = y == start.y;
+                let same_end_line = y == end.y;
+
+                if same_start_line && same_end_line {
+                    x >= start.x && x <= end.x
+                } else if same_start_line {
+                    x >= start.x
+                } else if same_end_line {
+                    x <= end.x
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
     /// check if this cell is within the selection of the textarea
     pub(crate) fn in_selection(
         &self,
@@ -101,68 +140,59 @@ impl TextBuffer {
         range_index: usize,
         cell_index: usize,
     ) -> bool {
-        let x = self.lines[line_index]
-            .calc_range_cell_index_to_x(range_index, cell_index);
-        let y = line_index;
-
-        if let Some((start, end)) = self.normalize_selection() {
-            if self.options.use_block_mode {
-                x >= start.x && x <= end.x && y >= start.y && y <= end.y
-            } else {
-                if y > start.y && y < end.y {
-                    true
-                } else {
-                    let same_start_line = y == start.y;
-                    let same_end_line = y == end.y;
-
-                    if same_start_line && same_end_line {
-                        x >= start.x && x <= end.x
-                    } else if same_start_line {
-                        x >= start.x
-                    } else if same_end_line {
-                        x <= end.x
-                    } else {
-                        false
-                    }
-                }
-            }
+        if let Some((end, start)) = self.normalize_selection() {
+            self.is_inside_position(
+                (line_index, range_index, cell_index),
+                start,
+                end,
+            )
         } else {
             false
         }
     }
 
-    pub(crate) fn selected_text(&self) -> Option<String> {
-        if let (Some(start), Some(_end)) =
-            (self.selection_start, self.selection_end)
-        {
-            let mut buffer = TextBuffer::from_str(Options::default(), "");
-            for (line_index, line) in self.lines.iter().enumerate() {
-                let y = line_index;
-                for (range_index, range) in line.ranges.iter().enumerate() {
-                    for (cell_index, cell) in range.cells.iter().enumerate() {
-                        let x = line.calc_range_cell_index_to_x(
-                            range_index,
-                            cell_index,
-                        );
-                        if self.in_selection(
-                            line_index,
-                            range_index,
-                            cell_index,
-                        ) {
-                            if self.options.use_block_mode {
-                                buffer.insert_char(
-                                    x - start.x,
-                                    y - start.y,
-                                    cell.ch,
-                                );
-                            } else {
-                                buffer.insert_char(x, y - start.y, cell.ch);
-                            }
+    fn get_text(&self, start: Point2<usize>, end: Point2<usize>) -> String {
+        let mut buffer = TextBuffer::from_str(Options::default(), "");
+        for (line_index, line) in self.lines.iter().enumerate() {
+            let y = line_index;
+            for (range_index, range) in line.ranges.iter().enumerate() {
+                for (cell_index, cell) in range.cells.iter().enumerate() {
+                    let x = line
+                        .calc_range_cell_index_to_x(range_index, cell_index);
+                    if self.is_inside_position(
+                        (line_index, range_index, cell_index),
+                        start,
+                        end,
+                    ) {
+                        if self.options.use_block_mode {
+                            buffer.insert_char(
+                                x - start.x,
+                                y - start.y,
+                                cell.ch,
+                            );
+                        } else {
+                            buffer.insert_char(x, y - start.y, cell.ch);
                         }
                     }
                 }
             }
-            Some(buffer.to_string())
+        }
+        buffer.to_string()
+    }
+
+    pub(crate) fn cut_text(
+        &self,
+        start: Point2<usize>,
+        end: Point2<usize>,
+    ) -> String {
+        let deleted_text = self.get_text(start, end);
+        //TODO: delete from start to end
+        deleted_text
+    }
+
+    pub(crate) fn selected_text(&self) -> Option<String> {
+        if let Some((start, end)) = self.normalize_selection() {
+            Some(self.get_text(start, end))
         } else {
             None
         }
@@ -701,6 +731,11 @@ impl TextBuffer {
         self.move_x(width);
     }
 
+    /// insert the character but don't move to the right
+    pub(crate) fn command_insert_forward_char(&mut self, ch: char) {
+        self.insert_char(self.cursor.x, self.cursor.y, ch);
+    }
+
     pub(crate) fn command_replace_char(&mut self, ch: char) {
         self.replace_char(self.cursor.x, self.cursor.y, ch);
     }
@@ -739,6 +774,12 @@ impl TextBuffer {
         self.cursor.y = y;
         self.calculate_focused_cell();
     }
+    pub(crate) fn move_to(&mut self, pos: Point2<usize>) {
+        self.cursor.x = pos.x;
+        self.cursor.y = pos.y;
+        self.calculate_focused_cell();
+    }
+
     pub(crate) fn command_break_line(&mut self) {
         self.break_line(self.cursor.x, self.cursor.y);
         self.move_left_start();
@@ -753,6 +794,15 @@ impl TextBuffer {
     pub(crate) fn command_delete_forward(&mut self) {
         self.delete_char(self.cursor.x, self.cursor.y);
         self.calculate_focused_cell();
+    }
+    pub(crate) fn command_delete_selected_forward(&mut self) -> Option<String> {
+        if let Some((start, end)) = self.normalize_selection() {
+            let deleted_text = self.cut_text(start, end);
+            self.move_to(start);
+            Some(deleted_text)
+        } else {
+            None
+        }
     }
 }
 

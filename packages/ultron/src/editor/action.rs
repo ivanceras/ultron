@@ -1,27 +1,61 @@
 #![allow(unused)]
 use super::TextBuffer;
+use nalgebra::Point2;
 
 #[derive(Clone, Debug)]
 pub enum Action {
     Insert(String),
     InsertForward(String),
     Delete(String),
-    Move(isize),
+    Move(i32, i32),
     DeleteForward(String),
-    DeleteSelectedForward(usize, usize, String),
-    InsertStringForward(usize, usize, String),
+    DeleteSelectedForward(Point2<usize>, Point2<usize>, String),
+    InsertStringForward(Point2<usize>, Point2<usize>, String),
 }
 
 impl Action {
-    pub fn apply(&self, _content: &mut TextBuffer) {
+    pub fn apply(&self, content: &mut TextBuffer) {
         match *self {
-            Action::Insert(ref _s) => {}
-            Action::Delete(ref _s) => {}
-            Action::Move(_rel) => {}
-            Action::DeleteForward(ref _s) => {}
-            Action::InsertForward(ref _s) => {}
-            Action::DeleteSelectedForward(_start_pos, _end_pos, ref _s) => {}
-            Action::InsertStringForward(_start_pos, _end_pos, ref _s) => {}
+            Action::Insert(ref s) => {
+                for c in s.chars() {
+                    content.command_insert_char(c);
+                }
+            }
+            Action::Delete(ref s) => {
+                for _ in s.chars() {
+                    content.command_delete_back();
+                }
+            }
+            Action::Move(x, y) => {
+                let cursor = content.get_position();
+                let cursor_x = cursor.x as i32;
+                let cursor_y = cursor.y as i32;
+                content.set_position(
+                    (cursor_x + x) as usize,
+                    (cursor_y + y) as usize,
+                );
+            }
+            Action::DeleteForward(ref s) => {
+                for _ in s.chars() {
+                    content.command_delete_forward();
+                }
+            }
+            Action::InsertForward(ref s) => {
+                for c in s.chars() {
+                    content.command_insert_forward_char(c);
+                }
+            }
+            Action::DeleteSelectedForward(start_pos, end_pos, ref _s) => {
+                content.move_to(start_pos);
+                content.set_selection(start_pos, end_pos);
+                content.command_delete_selected_forward();
+                content.clear_selection();
+            }
+            Action::InsertStringForward(start_pos, end_pos, ref s) => {
+                content.move_to(start_pos);
+                content.command_insert_text(s);
+                content.set_selection(start_pos, end_pos);
+            }
         };
     }
 
@@ -29,7 +63,7 @@ impl Action {
         match *self {
             Action::Insert(ref s) => Action::Delete(s.clone()),
             Action::Delete(ref s) => Action::Insert(s.clone()),
-            Action::Move(ref rel) => Action::Move(-rel),
+            Action::Move(ref x, ref y) => Action::Move(-x, -y),
             Action::InsertForward(ref s) => Action::DeleteForward(s.clone()),
             Action::DeleteForward(ref s) => Action::InsertForward(s.clone()),
             Action::DeleteSelectedForward(start_pos, end_pos, ref s) => {
@@ -74,12 +108,13 @@ impl Action {
                 act_string.push_str(s);
                 *s = act_string;
             }
-            Action::Move(ref mut rel) => {
-                let act_rel = match act {
-                    Action::Move(a) => a,
+            Action::Move(ref mut rel_x, ref mut rel_y) => {
+                let (act_rel_x, act_rel_y) = match act {
+                    Action::Move(x, y) => (x, y),
                     _ => panic!("Trying to join dissimilar Actions"),
                 };
-                *rel += act_rel;
+                *rel_x += act_rel_x;
+                *rel_y += act_rel_y;
             }
             Action::DeleteSelectedForward(..) => (),
             Action::InsertStringForward(..) => (),

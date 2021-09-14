@@ -1,6 +1,7 @@
 #![allow(unused)]
 use super::action::Action;
 use super::TextBuffer;
+use nalgebra::Point2;
 use std::collections::VecDeque;
 
 const HISTORY_SIZE: usize = usize::MAX;
@@ -60,8 +61,8 @@ impl Recorded {
         self.history.len()
     }
 
-    pub(crate) fn move_cursor(&mut self, dist: isize) {
-        self.record(Action::Move(dist));
+    pub(crate) fn move_cursor(&mut self, dist_x: i32, dist_y: i32) {
+        self.record(Action::Move(dist_x, dist_y));
     }
 
     pub(crate) fn insert(&mut self, c: char) {
@@ -77,8 +78,8 @@ impl Recorded {
 
     pub(crate) fn delete_selected_forward(
         &mut self,
-        start_pos: usize,
-        end_pos: usize,
+        start_pos: Point2<usize>,
+        end_pos: Point2<usize>,
         s: &str,
     ) {
         if !s.is_empty() {
@@ -92,8 +93,8 @@ impl Recorded {
 
     pub(crate) fn insert_string(
         &mut self,
-        start_pos: usize,
-        end_pos: usize,
+        start_pos: Point2<usize>,
+        end_pos: Point2<usize>,
         s: &str,
     ) {
         if !s.is_empty() {
