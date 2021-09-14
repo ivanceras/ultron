@@ -226,6 +226,16 @@ impl TextBuffer {
         }
     }
 
+    pub(crate) fn cut_selected_text(&mut self) -> Option<String> {
+        if let (Some(start), Some(end)) =
+            (self.selection_start, self.selection_end)
+        {
+            Some(self.cut_text(start, end))
+        } else {
+            None
+        }
+    }
+
     /// check if x and y is in the bounds of the texteditor longest column
     pub fn in_bounds(&self, point: Point2<i32>) -> bool {
         let bound = self.bounds();

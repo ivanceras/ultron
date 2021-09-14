@@ -156,9 +156,12 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     let c = key.chars().next().expect("must be only 1 chr");
                     match c {
                         'c' if is_ctrl => {
-                            //self.copy_to_clipboard();
-                            self.textarea_exec_copy();
-                            self.clear_hidden_textarea();
+                            let ret = self.command_copy();
+                            log::trace!("copy works: {}", ret);
+                        }
+                        'x' if is_ctrl => {
+                            let ret = self.command_cut();
+                            log::trace!("cut works: {}", ret);
                         }
                         'v' if is_ctrl => {
                             log::trace!("pasting is handled");
@@ -358,22 +361,67 @@ impl<XMSG> Editor<XMSG> {
         }
     }
 
+    /// calls on 2 ways to copy
+    /// either 1 should work
+    /// returns true if it succeded
+    fn command_copy(&self) -> bool {
+        if self.textarea_exec_copy() {
+            true
+        } else {
+            #[cfg(web_sys_unstable_apis)]
+            #[cfg(feature = "with-navigator-clipboard")]
+            self.copy_to_clipboard()
+        }
+    }
+
+    /// try exec_cut, try cut to clipboard if the first fails
+    /// This shouldn't execute both since cut is destructive.
+    /// Returns true if it succeded
+    fn command_cut(&mut self) -> bool {
+        if self.textarea_exec_cut() {
+            true
+        } else {
+            #[cfg(web_sys_unstable_apis)]
+            #[cfg(feature = "with-navigator-clipboard")]
+            self.cut_to_clipboard()
+        }
+    }
+
     /// this is for newer browsers
     /// This doesn't work on webkit2
-    #[allow(unused)]
     #[cfg(web_sys_unstable_apis)]
     #[cfg(feature = "with-navigator-clipboard")]
-    fn copy_to_clipboard(&self) {
+    fn copy_to_clipboard(&self) -> bool {
         if let Some(selected_text) = self.text_buffer.selected_text() {
             let navigator = sauron::window().navigator();
             if let Some(clipboard) = navigator.clipboard() {
                 let _ = clipboard.write_text(&selected_text);
+                return true;
+            } else {
+                log::warn!("no navigator clipboard");
             }
         }
+        false
     }
+
+    #[cfg(web_sys_unstable_apis)]
+    #[cfg(feature = "with-navigator-clipboard")]
+    fn cut_to_clipboard(&mut self) -> bool {
+        if let Some(selected_text) = self.text_buffer.cut_selected_text() {
+            let navigator = sauron::window().navigator();
+            if let Some(clipboard) = navigator.clipboard() {
+                let _ = clipboard.write_text(&selected_text);
+                return true;
+            } else {
+                log::warn!("no navigator clipboard");
+            }
+        }
+        false
+    }
+
     /// execute copy on the selected textarea
     /// this works even on older browser
-    fn textarea_exec_copy(&self) {
+    fn textarea_exec_copy(&self) -> bool {
         use sauron::web_sys::HtmlDocument;
 
         if let Some(selected_text) = self.text_buffer.selected_text() {
@@ -383,10 +431,34 @@ impl<XMSG> Editor<XMSG> {
                 hidden_textarea.select();
                 let html_document: HtmlDocument =
                     sauron::document().unchecked_into();
-                html_document.exec_command("copy").expect("must copy");
-                hidden_textarea.set_value("");
+                if let Ok(ret) = html_document.exec_command("copy") {
+                    hidden_textarea.set_value("");
+                    log::trace!("exec_copy ret: {}", ret);
+                    return ret;
+                }
             }
         }
+        false
+    }
+
+    /// returns true if the command succeeded
+    fn textarea_exec_cut(&mut self) -> bool {
+        use sauron::web_sys::HtmlDocument;
+
+        if let Some(selected_text) = self.text_buffer.cut_selected_text() {
+            if let Some(ref hidden_textarea) = self.hidden_textarea {
+                hidden_textarea.set_value(&selected_text);
+
+                hidden_textarea.select();
+                let html_document: HtmlDocument =
+                    sauron::document().unchecked_into();
+                if let Ok(ret) = html_document.exec_command("cut") {
+                    hidden_textarea.set_value("");
+                    return ret;
+                }
+            }
+        }
+        false
     }
 
     fn process_keypresses(&mut self, ke: &web_sys::KeyboardEvent) {

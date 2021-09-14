@@ -208,6 +208,12 @@ impl Line {
         if let Some((range_index, cell_index)) =
             self.calc_range_cell_index_position(start_x)
         {
+            log::trace!("delete cells to end, starting from: {}", start_x);
+            log::trace!(
+                "range_index: {}, cell_index: {}",
+                range_index,
+                cell_index
+            );
             self.ranges[range_index].delete_cells_to_end(cell_index);
             // drain all ranges beyond `range_index`
             self.ranges.drain(range_index + 1..);
@@ -220,6 +226,12 @@ impl Line {
         if let Some((range_index, cell_index)) =
             self.calc_range_cell_index_position(end_x)
         {
+            log::trace!("deleting cells from start to {}", end_x);
+            log::trace!(
+                "range_index: {}, cell_index: {}",
+                range_index,
+                cell_index
+            );
             self.ranges[range_index].delete_cells_from_start(cell_index);
             // delete ranges from 0 to before this end_x location
             self.ranges.drain(0..range_index);
