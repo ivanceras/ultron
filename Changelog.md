@@ -2,7 +2,7 @@
 
 ## Unreleased
 - Add support for key composing
-    - Example: <CTRL><SHIT>U 6789 will type in `枉` in the editor
+    - Example: In linux, `<CTRL>``<SHIT>``U+0024` will type in `$` in the editor.
 - Display the average update time
 - Add a preloader
 - Implement cut/copy/paste
