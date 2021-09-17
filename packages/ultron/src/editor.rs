@@ -51,6 +51,7 @@ pub struct Editor<XMSG> {
     #[allow(unused)]
     recorded: Recorded,
     measurements: Option<Measurements>,
+    average_update_time: Option<f64>,
     scroll_top: f32,
     scroll_left: f32,
     window_scroll_top: f32,
@@ -76,6 +77,7 @@ impl<XMSG> Editor<XMSG> {
             page_size: 10,
             recorded: Recorded::new(),
             measurements: None,
+            average_update_time: None,
             scroll_top: 0.0,
             scroll_left: 0.0,
             window_scroll_top: 0.0,
@@ -227,6 +229,17 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             Msg::EndSelection(_line, _col) => Effects::none(),
             Msg::StopSelection => Effects::none(),
             Msg::SetMeasurement(measurements) => {
+                match self.average_update_time {
+                    Some(average_update_time) => {
+                        self.average_update_time = Some(
+                            (average_update_time + measurements.total_time)
+                                / 2.0,
+                        );
+                    }
+                    None => {
+                        self.average_update_time = Some(measurements.total_time)
+                    }
+                }
                 self.measurements = Some(measurements);
                 Effects::none().no_render()
             }
@@ -709,17 +722,15 @@ impl<XMSG> Editor<XMSG> {
                         measurements.view_node_count,
                         measurements.build_view_took.round(),
                         measurements.dom_update_took.round(),
-                        measurements.total_time.round()
+                        measurements.total_time.round(),
                     )
                 } else {
                     comment("")
                 },
-                if let (Some(start), Some(end)) =
-                    (self.selection_start, self.selection_end)
-                {
-                    text!("| selection start: {} end: {}", start, end)
+                if let Some(average_update_time) = self.average_update_time {
+                    text!("| average time: {:.2}ms", average_update_time)
                 } else {
-                    text("| no selection")
+                    comment("")
                 },
             ],
         )
