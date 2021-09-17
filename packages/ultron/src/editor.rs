@@ -430,13 +430,11 @@ impl<XMSG> Editor<XMSG> {
         false
     }
 
-    #[cfg(not(web_sys_unstable_apis))]
     #[cfg(not(feature = "with-navigator-clipboard"))]
     fn copy_to_clipboard(&mut self) -> bool {
         false
     }
 
-    #[cfg(web_sys_unstable_apis)]
     #[cfg(feature = "with-navigator-clipboard")]
     fn cut_to_clipboard(&mut self) -> bool {
         if let Some(selected_text) = self.text_buffer.cut_selected_text() {
