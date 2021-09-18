@@ -158,25 +158,26 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     let c = key.chars().next().expect("must be only 1 chr");
                     match c {
                         'c' if is_ctrl => {
-                            let ret = self.command_copy();
-                            log::trace!("copy works: {}", ret);
+                            self.command_copy();
+                            Effects::none()
                         }
-                        'x' if is_ctrl => {
-                            let ret = self.command_cut();
-                            log::trace!("cut works: {}", ret);
-                        }
+                        'x' if is_ctrl => self.command_cut(),
                         'v' if is_ctrl => {
                             log::trace!("pasting is handled");
                             self.clear_hidden_textarea();
+                            let extern_msgs = self.emit_on_change_listeners();
+                            Effects::with_external(extern_msgs).measure()
                         }
                         _ => {
                             self.command_insert_char(c);
                             self.clear_hidden_textarea();
+                            let extern_msgs = self.emit_on_change_listeners();
+                            Effects::with_external(extern_msgs).measure()
                         }
                     }
+                } else {
+                    Effects::none()
                 }
-                let extern_msgs = self.emit_on_change_listeners();
-                Effects::with_external(extern_msgs).measure()
             }
             Msg::Mouseup(client_x, client_y) => {
                 let cursor = self.client_to_cursor(client_x, client_y);
@@ -339,24 +340,32 @@ impl<XMSG> Editor<XMSG> {
         self
     }
 
-    fn command_insert_char(&mut self, ch: char) {
+    fn command_insert_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
         self.text_buffer.command_insert_char(ch);
         self.text_buffer.rehighlight();
+        let extern_msgs = self.emit_on_change_listeners();
+        Effects::with_external(extern_msgs).measure()
     }
 
-    pub fn command_replace_char(&mut self, ch: char) {
+    pub fn command_replace_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
         self.text_buffer.command_replace_char(ch);
         self.text_buffer.rehighlight();
+        let extern_msgs = self.emit_on_change_listeners();
+        Effects::with_external(extern_msgs).measure()
     }
 
-    fn command_break_line(&mut self) {
+    fn command_break_line(&mut self) -> Effects<Msg, XMSG> {
         self.text_buffer.command_break_line();
         self.text_buffer.rehighlight();
+        let extern_msgs = self.emit_on_change_listeners();
+        Effects::with_external(extern_msgs).measure()
     }
 
-    fn command_insert_text(&mut self, text: &str) {
+    fn command_insert_text(&mut self, text: &str) -> Effects<Msg, XMSG> {
         self.text_buffer.command_insert_text(text);
         self.text_buffer.rehighlight();
+        let extern_msgs = self.emit_on_change_listeners();
+        Effects::with_external(extern_msgs).measure()
     }
 
     pub fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
@@ -378,23 +387,25 @@ impl<XMSG> Editor<XMSG> {
     /// calls on 2 ways to copy
     /// either 1 should work
     /// returns true if it succeded
-    fn command_copy(&self) -> bool {
+    fn command_copy(&self) {
         if self.copy_to_clipboard() {
-            true
+            // do nothing
         } else {
-            self.textarea_exec_copy()
+            self.textarea_exec_copy();
         }
     }
 
     /// try exec_cut, try cut to clipboard if the first fails
     /// This shouldn't execute both since cut is destructive.
     /// Returns true if it succeded
-    fn command_cut(&mut self) -> bool {
+    fn command_cut(&mut self) -> Effects<Msg, XMSG> {
         if self.cut_to_clipboard() {
-            true
+            // nothing
         } else {
-            self.textarea_exec_cut()
+            self.textarea_exec_cut();
         }
+        let extern_msgs = self.emit_on_change_listeners();
+        Effects::with_external(extern_msgs).measure()
     }
 
     /// set the content of the textarea to selection
