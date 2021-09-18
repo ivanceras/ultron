@@ -17,7 +17,7 @@ jobs:
       run: cargo install wasm-pack
 
     - name: Build with all features
-      run: cargo build --all --all-features
+      run: RUSTFLAGS=--cfg=web_sys_unstable_apis cargo build --all --all-features
 
     - name: Build
       run: ./build.sh
@@ -26,4 +26,4 @@ jobs:
       run: ./test.sh
 
     - name: Build wasmp
-      run: wasm-pack build packages/ultron-web --target web
+      run: RUSTFLAGS=--cfg=web_sys_unstable_apis wasm-pack build packages/ultron-web --target web
