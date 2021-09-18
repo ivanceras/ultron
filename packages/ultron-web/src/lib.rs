@@ -1,6 +1,8 @@
 #![deny(warnings)]
 use ultron::editor;
 use ultron::editor::Editor;
+
+#[allow(unused)]
 use ultron::sauron;
 use ultron::sauron::jss::jss;
 use ultron::sauron::prelude::*;
