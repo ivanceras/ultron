@@ -711,7 +711,7 @@ impl<XMSG> Editor<XMSG> {
         )
     }
 
-    fn view_status_line<Msg>(&self) -> Node<Msg> {
+    pub fn view_status_line<Msg>(&self) -> Node<Msg> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
@@ -735,10 +735,11 @@ impl<XMSG> Editor<XMSG> {
                 },
             ],
             [
-                text!("line: {}, col: {}  |", cursor.y + 1, cursor.x + 1),
+                text!("line: {}, col: {} ", cursor.y + 1, cursor.x + 1),
                 if let Some(measurements) = &self.measurements {
                     text!(
-                        "patches: {} | nodes: {} | view time: {}ms | patch time: {}ms | update time: {}ms",
+                        "| msgs: {} | patches: {} | nodes: {} | view time: {}ms | patch time: {}ms | update time: {}ms",
+                        measurements.msg_count,
                         measurements.total_patches,
                         measurements.view_node_count,
                         measurements.build_view_took.round(),
