@@ -36,6 +36,7 @@ impl Recorded {
     }
 
     pub(crate) fn undo(&mut self, text_buffer: &mut TextBuffer) {
+        log::trace!("undoing...");
         let to_undo = match self.history.pop_front() {
             None => return,
             Some(a) => a,

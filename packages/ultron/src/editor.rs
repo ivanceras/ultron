@@ -48,7 +48,6 @@ pub struct Editor<XMSG> {
     #[allow(unused)]
     page_size: usize,
     /// for undo and redo
-    #[allow(unused)]
     recorded: Recorded,
     measurements: Option<Measurements>,
     average_update_time: Option<f64>,
@@ -149,7 +148,12 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::TextareaKeydown(ke) => {
                 let is_ctrl = ke.ctrl_key();
-                log::trace!("text area key down... {}", is_ctrl);
+                let is_shift = ke.shift_key();
+                log::trace!(
+                    "text area key down... ctrl: {} ,shift: {}",
+                    is_ctrl,
+                    is_shift
+                );
                 // don't process key presses when
                 // CTRL key is pressed.
                 let key = ke.key();
@@ -165,6 +169,15 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                         'v' if is_ctrl => {
                             log::trace!("pasting is handled");
                             self.clear_hidden_textarea();
+                            let extern_msgs = self.emit_on_change_listeners();
+                            Effects::with_external(extern_msgs).measure()
+                        }
+                        'z' | 'Z' if is_ctrl => {
+                            if is_shift {
+                                self.recorded.redo(&mut self.text_buffer);
+                            } else {
+                                self.recorded.undo(&mut self.text_buffer);
+                            }
                             let extern_msgs = self.emit_on_change_listeners();
                             Effects::with_external(extern_msgs).measure()
                         }
@@ -342,6 +355,7 @@ impl<XMSG> Editor<XMSG> {
 
     fn command_insert_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
         self.text_buffer.command_insert_char(ch);
+        self.recorded.insert(ch);
         self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
@@ -523,10 +537,12 @@ impl<XMSG> Editor<XMSG> {
                 self.text_buffer.command_break_line();
             }
             "Backspace" => {
-                self.text_buffer.command_delete_back();
+                let c = self.text_buffer.command_delete_back();
+                self.recorded.delete(c);
             }
             "Delete" => {
-                self.text_buffer.command_delete_forward();
+                let c = self.text_buffer.command_delete_forward();
+                self.recorded.delete_forward(c);
             }
             "ArrowUp" => {
                 self.text_buffer.move_up();

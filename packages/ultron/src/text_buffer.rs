@@ -738,18 +738,20 @@ impl TextBuffer {
     }
 
     /// delete character at this position
-    pub(crate) fn delete_char(&mut self, x: usize, y: usize) {
+    pub(crate) fn delete_char(&mut self, x: usize, y: usize) -> Option<char> {
         if let Some(line) = self.lines.get_mut(y) {
             if let Some((range_index, col)) =
                 line.calc_range_cell_index_position(x)
             {
                 if let Some(range) = line.ranges.get_mut(range_index) {
                     if range.cells.get(col).is_some() {
-                        range.cells.remove(col);
+                        let cell = range.cells.remove(col);
+                        return Some(cell.ch);
                     }
                 }
             }
         }
+        None
     }
 
     fn ensure_cell_exist(&mut self, x: usize, y: usize) {
@@ -856,15 +858,20 @@ impl TextBuffer {
         self.move_left_start();
         self.move_down();
     }
-    pub(crate) fn command_delete_back(&mut self) {
+    pub(crate) fn command_delete_back(&mut self) -> Option<char> {
         if self.cursor.x > 0 {
-            self.delete_char(self.cursor.x.saturating_sub(1), self.cursor.y);
+            let c = self
+                .delete_char(self.cursor.x.saturating_sub(1), self.cursor.y);
             self.move_left();
+            c
+        } else {
+            None
         }
     }
-    pub(crate) fn command_delete_forward(&mut self) {
-        self.delete_char(self.cursor.x, self.cursor.y);
+    pub(crate) fn command_delete_forward(&mut self) -> Option<char> {
+        let c = self.delete_char(self.cursor.x, self.cursor.y);
         self.calculate_focused_cell();
+        c
     }
     pub(crate) fn command_delete_selected_forward(&mut self) -> Option<String> {
         if let Some((start, end)) = self.normalize_selection() {
