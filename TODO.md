@@ -37,3 +37,4 @@
         should not need to pressed the arrow right 2 times to get ot the next character.
         This is because movement is merely adding +1 to x or y position.
         - [ ] Need to make cursor movement line cell aware.
+- [ ] When typing very fast, the content in the textarea is accumulated and there is a duplicate on the characters
