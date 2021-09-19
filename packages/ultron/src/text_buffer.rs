@@ -82,6 +82,11 @@ impl TextBuffer {
         self.selection_end = Some(end);
     }
 
+    pub fn clear_selection(&mut self) {
+        self.selection_start = None;
+        self.selection_end = None;
+    }
+
     /// return the min and max selection bound
     pub fn normalize_selection(
         &self,
@@ -796,6 +801,11 @@ impl TextBuffer {
         self.move_x(width);
     }
 
+    /// insert the character but don't move to the right
+    pub(crate) fn command_insert_forward_char(&mut self, ch: char) {
+        self.insert_char(self.cursor.x, self.cursor.y, ch);
+    }
+
     pub(crate) fn command_replace_char(&mut self, ch: char) {
         self.replace_char(self.cursor.x, self.cursor.y, ch);
     }
@@ -854,6 +864,20 @@ impl TextBuffer {
     }
     pub(crate) fn command_delete_forward(&mut self) {
         self.delete_char(self.cursor.x, self.cursor.y);
+        self.calculate_focused_cell();
+    }
+    pub(crate) fn command_delete_selected_forward(&mut self) -> Option<String> {
+        if let Some((start, end)) = self.normalize_selection() {
+            let deleted_text = self.cut_text(start, end);
+            self.move_to(start);
+            Some(deleted_text)
+        } else {
+            None
+        }
+    }
+    pub(crate) fn move_to(&mut self, pos: Point2<usize>) {
+        self.cursor.x = pos.x;
+        self.cursor.y = pos.y;
         self.calculate_focused_cell();
     }
 }
