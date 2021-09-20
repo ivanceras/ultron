@@ -34,7 +34,7 @@
 				<key>gutter</key>
 				<string>#FAFAFA</string>
 				<key>gutterForeground</key>
-				<string>#D9DBDD</string>
+				<string>#222222</string>
 				<key>inactiveBackground</key>
 				<string>#FAFAFA</string>
 				<key>inactiveSelection</key>

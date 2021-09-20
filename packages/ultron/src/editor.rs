@@ -790,6 +790,7 @@ impl<XMSG> Editor<XMSG> {
                 } else {
                     comment("")
                 },
+                text!("| version:{}", env!("CARGO_PKG_VERSION")),
             ],
         )
     }
