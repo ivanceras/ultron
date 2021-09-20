@@ -211,14 +211,18 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 Effects::none().measure()
             }
             Msg::Mousedown(client_x, client_y) => {
-                let cursor = self.client_to_cursor(client_x, client_y);
-                self.is_selecting = true;
-                self.selection_start = Some(cursor);
-                self.command_set_position(cursor.x, cursor.y);
+                if self.in_bounds(client_x as f32, client_y as f32) {
+                    let cursor = self.client_to_cursor(client_x, client_y);
+                    self.is_selecting = true;
+                    self.selection_start = Some(cursor);
+                    self.command_set_position(cursor.x, cursor.y);
+                }
                 Effects::none().measure()
             }
             Msg::Mousemove(client_x, client_y) => {
-                if self.is_selecting {
+                if self.is_selecting
+                    && self.in_bounds(client_x as f32, client_y as f32)
+                {
                     let cursor = self.client_to_cursor(client_x, client_y);
                     self.selection_end = Some(cursor);
 
@@ -383,19 +387,14 @@ impl<XMSG> Editor<XMSG> {
     }
 
     pub fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
-        if self.text_buffer.in_bounds(Point2::new(cursor_x, cursor_y)) {
-            self.text_buffer
-                .set_position(cursor_x as usize, cursor_y as usize);
-        }
+        self.text_buffer
+            .set_position(cursor_x as usize, cursor_y as usize);
     }
 
     fn command_set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
-        if self.text_buffer.in_bounds(start) && self.text_buffer.in_bounds(end)
-        {
-            let start = Point2::new(start.x as usize, start.y as usize);
-            let end = Point2::new(end.x as usize, end.y as usize);
-            self.text_buffer.set_selection(start, end);
-        }
+        let start = Point2::new(start.x as usize, start.y as usize);
+        let end = Point2::new(end.x as usize, end.y as usize);
+        self.text_buffer.set_selection(start, end);
     }
 
     /// calls on 2 ways to copy
@@ -614,13 +613,34 @@ impl<XMSG> Editor<XMSG> {
         extern_msgs
     }
 
-    pub fn editor_offset(&self) -> Option<Point2<f32>> {
+    pub fn bounding_rect(&self) -> Option<(Point2<f32>, Point2<f32>)> {
         if let Some(ref editor_element) = self.editor_element {
-            log::trace!("calculating editor offset..");
             let rect = editor_element.get_bounding_client_rect();
             let editor_x = rect.x().round() as f32;
             let editor_y = rect.y().round() as f32;
-            Some(Point2::new(editor_x, editor_y))
+            let bottom = rect.bottom().round() as f32;
+            let right = rect.right().round() as f32;
+            Some((Point2::new(editor_x, editor_y), Point2::new(right, bottom)))
+        } else {
+            None
+        }
+    }
+
+    /// check if this mouse client x and y is inside the editor bounds
+    pub fn in_bounds(&self, client_x: f32, client_y: f32) -> bool {
+        if let Some((start, end)) = self.bounding_rect() {
+            client_x >= start.x
+                && client_x <= end.x
+                && client_y >= start.y
+                && client_y <= end.y
+        } else {
+            false
+        }
+    }
+
+    pub fn editor_offset(&self) -> Option<Point2<f32>> {
+        if let Some((start, _end)) = self.bounding_rect() {
+            Some(start)
         } else {
             None
         }

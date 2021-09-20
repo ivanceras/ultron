@@ -241,12 +241,6 @@ impl TextBuffer {
         }
     }
 
-    /// check if x and y is in the bounds of the texteditor longest column
-    pub fn in_bounds(&self, point: Point2<i32>) -> bool {
-        let bound = self.bounds();
-        point.x >= 0 && point.y >= 0 && point.x <= bound.x && point.y <= bound.y
-    }
-
     /// calculate the bounds of the text_buffer
     pub fn bounds(&self) -> Point2<i32> {
         let total_lines = self.lines.len() as i32;
