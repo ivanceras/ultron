@@ -665,6 +665,13 @@ impl TextBuffer {
         }
     }
 
+    pub(crate) fn join_line(&mut self, _x: usize, y: usize) {
+        if self.lines.get(y + 1).is_some() {
+            let next_line = self.lines.remove(y + 1);
+            self.lines[y].push_ranges(next_line.ranges);
+        }
+    }
+
     fn assert_chars(&self, ch: char) {
         assert!(
             ch != '\n',

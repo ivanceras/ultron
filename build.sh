@@ -3,5 +3,5 @@
 set -v
 
 
-RUSTFLAGS=--cfg=web_sys_unstable_apis wasm-pack build packages/ultron-web --target web --release -- --features "ultron/with-navigator-clipboard"
+wasm-pack build packages/ultron-web --target web --release -- --features "ultron/with-navigator-clipboard"
 

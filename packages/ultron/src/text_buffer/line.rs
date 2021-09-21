@@ -34,6 +34,11 @@ impl Line {
         }
     }
 
+    pub(super) fn push_ranges(&mut self, ranges: Vec<Range>) {
+        self.width += ranges.iter().map(|range| range.width).sum::<usize>();
+        self.ranges.extend(ranges);
+    }
+
     /// get the text content of this line
     pub(super) fn text(&self) -> String {
         String::from_iter(

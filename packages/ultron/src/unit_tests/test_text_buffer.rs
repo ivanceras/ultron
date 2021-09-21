@@ -85,6 +85,14 @@ fn break_line() {
 }
 
 #[test]
+fn join_line() {
+    let raw = "Hello\n world";
+    let mut buffer = TextBuffer::from_str(Options::default(), raw);
+    buffer.join_line(0, 0);
+    assert_eq!(buffer.to_string(), "Hello world");
+}
+
+#[test]
 fn insert_5_lines() {
     let raw = "Hello world";
     let mut buffer = TextBuffer::from_str(Options::default(), raw);
@@ -94,6 +102,18 @@ fn insert_5_lines() {
     buffer.break_line(0, 1);
     buffer.break_line(0, 1);
     assert_eq!(buffer.to_string(), "Hello\n\n\n\n\n world");
+}
+
+#[test]
+fn join_5_lines() {
+    let raw = "Hello\n\n\n\n\n world";
+    let mut buffer = TextBuffer::from_str(Options::default(), raw);
+    buffer.join_line(0, 0);
+    buffer.join_line(0, 0);
+    buffer.join_line(0, 0);
+    buffer.join_line(0, 0);
+    buffer.join_line(0, 0);
+    assert_eq!(buffer.to_string(), "Hello world");
 }
 
 #[test]

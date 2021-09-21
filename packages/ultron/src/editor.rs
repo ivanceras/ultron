@@ -387,8 +387,12 @@ impl<XMSG> Editor<XMSG> {
     }
 
     pub fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
+        let pos = self.text_buffer.get_position();
         self.text_buffer
             .set_position(cursor_x as usize, cursor_y as usize);
+        let dist_x = cursor_x - pos.x as i32;
+        let dist_y = cursor_y - pos.y as i32;
+        self.recorded.move_cursor(dist_x, dist_y);
     }
 
     fn command_set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {

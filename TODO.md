@@ -12,13 +12,19 @@
 - [ ] Redo/undo
     - [X] Undo/Redo on typing
     - [ ] Undo/redo on cut/copy/paste
+        - [X] Move to
+        - [ ] Add `join_line` to undo break line
 - [ ] multi-layer buffer, so you can drag objects around
 - [X] Draggable separator
 - [X] selection
     - select parts of the text buffer
 - [ ] Scroll the view to when the cursor is not visible on the screen
+    - This is done automatically due the textarea being always on the cursor, which is focused all the time
+        and the browser automatically scroll it to view
 - [ ] Centralize the commands into actions first, so we can send an external messages
     and hook it into history for undor/redo functionality
+    - the command functions are now returning effects, and its up for the caller to wire them.
+        It doesn't need to be the centralized inm the update function as there could be many more variation of commands
 - [ ] Render only lines that are visible to the user, we can calculate the line exposed to the users
 - [ ] Add an api to group action together in Recorded
         ```rust
