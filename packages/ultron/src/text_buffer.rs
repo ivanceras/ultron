@@ -795,10 +795,21 @@ impl TextBuffer {
     /// the last line and last char of the text buffer
     fn max_position(&self) -> Point2<usize> {
         let last_y = self.lines.len().saturating_sub(1);
-        let last_x = if let Some(last_line) = self.lines.get(last_y) {
-            last_line.width.saturating_sub(1)
+
+        // if in block mode use the longest line
+        let last_x = if self.options.use_block_mode {
+            self.lines
+                .iter()
+                .map(|line| line.width.saturating_sub(1))
+                .max()
+                .unwrap_or(0)
         } else {
-            0
+            // else use the width of the last line
+            if let Some(last_line) = self.lines.get(last_y) {
+                last_line.width.saturating_sub(1)
+            } else {
+                0
+            }
         };
         Point2::new(last_x, last_y)
     }
