@@ -87,6 +87,11 @@ impl TextBuffer {
         self.selection_end = None;
     }
 
+    pub fn select_all(&mut self) {
+        self.selection_start = Some(Point2::new(0, 0));
+        self.selection_end = Some(self.max_position());
+    }
+
     /// return the min and max selection bound
     pub fn normalize_selection(
         &self,
@@ -199,6 +204,7 @@ impl TextBuffer {
         start: Point2<usize>,
         end: Point2<usize>,
     ) -> String {
+        log::trace!("cutting from {} to {}", start, end);
         let deleted_text = self.get_text(start, end);
         if self.options.use_block_mode {
             for line_index in start.y..=end.y {
@@ -211,11 +217,12 @@ impl TextBuffer {
             if is_one_line {
                 self.lines[start.y].delete_cells(start.x, end.x);
             } else {
+                // at the last line of selection: delete the cells from 0 to end.x
+                self.lines[end.y].delete_cells_from_start(end.x);
+                // drain the lines in between
                 self.lines.drain(start.y + 1..end.y);
                 // at the first line of selection: delete the cells from start.x to end
                 self.lines[start.y].delete_cells_to_end(start.x);
-                // at the last line of selection: delete the cells from 0 to end.x
-                self.lines[end.y].delete_cells_from_start(end.x);
             }
         }
         deleted_text
@@ -775,12 +782,25 @@ impl TextBuffer {
         self.lines.insert(line_index, line);
     }
 
+    /// return the line where the cursor is located
     fn focused_line(&self) -> Option<&Line> {
         self.lines.get(self.cursor.y)
     }
 
+    /// return the position of the cursor
     pub(crate) fn get_position(&self) -> Point2<usize> {
         self.cursor
+    }
+
+    /// the last line and last char of the text buffer
+    fn max_position(&self) -> Point2<usize> {
+        let last_y = self.lines.len().saturating_sub(1);
+        let last_x = if let Some(last_line) = self.lines.get(last_y) {
+            last_line.width.saturating_sub(1)
+        } else {
+            0
+        };
+        Point2::new(last_x, last_y)
     }
 
     fn calculate_offset(&self, text: &str) -> (usize, usize) {

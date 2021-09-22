@@ -241,6 +241,8 @@ impl Line {
             // delete ranges from 0 to before this end_x location
             self.ranges.drain(0..range_index);
             self.recalc_width();
+        } else {
+            log::trace!("no deletion happened...");
         }
     }
 

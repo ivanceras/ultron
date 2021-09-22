@@ -11,9 +11,10 @@
 - [X] Move the cursor to the user clicked location
 - [ ] Redo/undo
     - [X] Undo/Redo on typing
-    - [ ] Undo/redo on cut/copy/paste
+    - [X] Undo/redo on cut/copy/paste
         - [X] Move to
-        - [ ] Add `join_line` to undo break line
+        - [X] Add `join_line` to undo break line
+    - [ ] Select All
 - [ ] multi-layer buffer, so you can drag objects around
 - [X] Draggable separator
 - [X] selection

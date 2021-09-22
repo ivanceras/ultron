@@ -185,6 +185,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                             let extern_msgs = self.emit_on_change_listeners();
                             Effects::with_external(extern_msgs).measure()
                         }
+                        'a' if is_ctrl => {
+                            self.command_select_all();
+                            Effects::none()
+                        }
                         _ => {
                             self.command_insert_char(c);
                             self.clear_hidden_textarea();
@@ -457,6 +461,10 @@ impl<XMSG> Editor<XMSG> {
         let start = Point2::new(start.x as usize, start.y as usize);
         let end = Point2::new(end.x as usize, end.y as usize);
         self.text_buffer.set_selection(start, end);
+    }
+
+    fn command_select_all(&mut self) {
+        self.text_buffer.select_all();
     }
 
     /// calls on 2 ways to copy
