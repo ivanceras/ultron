@@ -33,6 +33,9 @@
             undone: VecDeque<Vec<Action>>,
         }
         ```
+- [ ] Context Menu (Right click)
+    - undo/redo
+    - cut/copy/paste
 
 ## Features
 - [ ] Smart edit blockmode

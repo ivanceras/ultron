@@ -665,7 +665,7 @@ impl TextBuffer {
         }
     }
 
-    pub(crate) fn join_line(&mut self, _x: usize, y: usize) {
+    pub(crate) fn join_line(&mut self, x: usize, y: usize) {
         if self.lines.get(y + 1).is_some() {
             let next_line = self.lines.remove(y + 1);
             self.lines[y].push_ranges(next_line.ranges);
@@ -775,6 +775,10 @@ impl TextBuffer {
         self.lines.insert(line_index, line);
     }
 
+    fn focused_line(&self) -> Option<&Line> {
+        self.lines.get(self.cursor.y)
+    }
+
     pub(crate) fn get_position(&self) -> Point2<usize> {
         self.cursor
     }
@@ -829,10 +833,17 @@ impl TextBuffer {
         self.cursor.x = 0;
         self.calculate_focused_cell();
     }
+
     pub(crate) fn move_right(&mut self) {
         self.cursor.x = self.cursor.x.saturating_add(1);
         self.calculate_focused_cell();
     }
+    pub(crate) fn move_right_end(&mut self) {
+        let line_width = self.focused_line().map(|l| l.width).unwrap_or(0);
+        self.cursor.x += line_width;
+        self.calculate_focused_cell();
+    }
+
     pub(crate) fn move_x(&mut self, x: usize) {
         self.cursor.x = self.cursor.x.saturating_add(x);
         self.calculate_focused_cell();
@@ -854,11 +865,20 @@ impl TextBuffer {
         self.cursor.y = y;
         self.calculate_focused_cell();
     }
-    pub(crate) fn command_break_line(&mut self) {
-        self.break_line(self.cursor.x, self.cursor.y);
+    pub(crate) fn command_break_line(&mut self, x: usize, y: usize) {
+        self.break_line(x, y);
         self.move_left_start();
         self.move_down();
+        self.calculate_focused_cell();
     }
+
+    pub(crate) fn command_join_line(&mut self, x: usize, y: usize) {
+        self.move_up();
+        self.move_right_end();
+        self.join_line(x, y);
+        self.calculate_focused_cell();
+    }
+
     pub(crate) fn command_delete_back(&mut self) -> Option<char> {
         if self.cursor.x > 0 {
             let c = self

@@ -11,6 +11,8 @@ pub enum Action {
     DeleteForward(String),
     DeleteSelectedForward(Point2<usize>, Point2<usize>, String),
     InsertStringForward(Point2<usize>, Point2<usize>, String),
+    BreakLine(usize, usize),
+    JoinLine(usize, usize),
 }
 
 impl Action {
@@ -56,6 +58,12 @@ impl Action {
                 content.command_insert_text(s);
                 content.set_selection(start_pos, end_pos);
             }
+            Action::BreakLine(x, y) => {
+                content.command_break_line(x, y);
+            }
+            Action::JoinLine(x, y) => {
+                content.command_join_line(x, y);
+            }
         };
     }
 
@@ -72,6 +80,8 @@ impl Action {
             Action::InsertStringForward(start_pos, end_pos, ref s) => {
                 Action::DeleteSelectedForward(start_pos, end_pos, s.clone())
             }
+            Action::BreakLine(x, y) => Action::JoinLine(x, y),
+            Action::JoinLine(x, y) => Action::BreakLine(x, y),
         }
     }
 
@@ -118,6 +128,8 @@ impl Action {
             }
             Action::DeleteSelectedForward(..) => (),
             Action::InsertStringForward(..) => (),
+            Action::BreakLine(..) => (),
+            Action::JoinLine(..) => (),
         }
     }
 

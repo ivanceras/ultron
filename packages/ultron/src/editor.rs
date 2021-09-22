@@ -132,17 +132,21 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 let was_cleared = self.last_char_count == Some(0);
 
                 if char_count == 1 && (was_cleared || char_count_decreased) {
+                    log::trace!("in char_count == 1..");
                     let c = input.chars().next().expect("must be only 1 chr");
                     self.composed_key = Some(c);
                     if c == '\n' {
+                        log::trace!("A new_line is pressed");
                         self.command_break_line();
                     } else {
+                        log::trace!("inserting it as a char: {:?}", c);
                         self.command_insert_char(c);
                     }
+                    log::trace!("clearing textarea");
                     self.clear_hidden_textarea();
                 }
                 self.last_char_count = Some(char_count);
-
+                log::trace!("extern messages");
                 let extern_msgs = self.emit_on_change_listeners();
                 Effects::with_external(extern_msgs).measure()
             }
@@ -372,8 +376,62 @@ impl<XMSG> Editor<XMSG> {
         Effects::with_external(extern_msgs).measure()
     }
 
+    fn command_delete_back(&mut self) -> Effects<Msg, XMSG> {
+        let ch = self.text_buffer.command_delete_back();
+        self.text_buffer.rehighlight();
+        self.recorded.delete(ch);
+        let extern_msgs = self.emit_on_change_listeners();
+        Effects::with_external(extern_msgs).measure()
+    }
+
+    fn command_delete_forward(&mut self) -> Effects<Msg, XMSG> {
+        let ch = self.text_buffer.command_delete_forward();
+        self.recorded.delete_forward(ch);
+        let extern_msgs = self.emit_on_change_listeners();
+        Effects::with_external(extern_msgs).measure()
+    }
+
+    fn command_move_up(&mut self) {
+        self.text_buffer.move_up();
+        self.recorded.move_cursor(0, -1);
+    }
+
+    fn command_move_down(&mut self) {
+        self.text_buffer.move_down();
+        self.recorded.move_cursor(0, 1);
+    }
+
+    fn command_move_left(&mut self) {
+        self.text_buffer.move_left();
+        self.recorded.move_cursor(-1, 0);
+    }
+
+    #[allow(unused)]
+    fn command_move_left_start(&mut self) {
+        let pos = self.text_buffer.get_position();
+        self.text_buffer.move_left_start();
+        let line_width = self.text_buffer.line_width(pos.y).unwrap_or(0) as i32;
+        self.recorded.move_cursor(-line_width, 0);
+    }
+
+    fn command_move_right(&mut self) {
+        self.text_buffer.move_right();
+        self.recorded.move_cursor(1, 0);
+    }
+
     fn command_break_line(&mut self) -> Effects<Msg, XMSG> {
-        self.text_buffer.command_break_line();
+        let pos = self.text_buffer.get_position();
+        self.text_buffer.command_break_line(pos.x, pos.y);
+        self.recorded.break_line(pos.x, pos.y);
+        self.text_buffer.rehighlight();
+        let extern_msgs = self.emit_on_change_listeners();
+        Effects::with_external(extern_msgs).measure()
+    }
+
+    #[allow(unused)]
+    fn command_join_line(&mut self) -> Effects<Msg, XMSG> {
+        let pos = self.text_buffer.get_position();
+        self.text_buffer.command_join_line(pos.x, pos.y);
         self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
@@ -433,9 +491,7 @@ impl<XMSG> Editor<XMSG> {
     fn set_hidden_textarea_with_selection(&self) {
         if let Some(selected_text) = self.text_buffer.selected_text() {
             if let Some(ref hidden_textarea) = self.hidden_textarea {
-                log::trace!("setting the value to textarea: {}", selected_text);
                 hidden_textarea.set_value(&selected_text);
-                log::trace!("textarea value: {}", hidden_textarea.value());
                 hidden_textarea.select();
             }
         }
@@ -490,9 +546,7 @@ impl<XMSG> Editor<XMSG> {
 
         if let Some(selected_text) = self.text_buffer.selected_text() {
             if let Some(ref hidden_textarea) = self.hidden_textarea {
-                log::trace!("setting the value to textarea: {}", selected_text);
                 hidden_textarea.set_value(&selected_text);
-                log::trace!("textarea value: {}", hidden_textarea.value());
                 hidden_textarea.select();
                 let html_document: HtmlDocument =
                     sauron::document().unchecked_into();
@@ -533,31 +587,29 @@ impl<XMSG> Editor<XMSG> {
             "Tab" => {
                 log::trace!("tab key is pressed");
                 let tab = "    ";
-                self.text_buffer.command_insert_text(tab);
+                self.command_insert_text(tab);
                 self.refocus_hidden_textarea();
             }
             "Enter" => {
-                self.text_buffer.command_break_line();
+                self.command_break_line();
             }
             "Backspace" => {
-                let c = self.text_buffer.command_delete_back();
-                self.recorded.delete(c);
+                self.command_delete_back();
             }
             "Delete" => {
-                let c = self.text_buffer.command_delete_forward();
-                self.recorded.delete_forward(c);
+                self.command_delete_forward();
             }
             "ArrowUp" => {
-                self.text_buffer.move_up();
+                self.command_move_up();
             }
             "ArrowDown" => {
-                self.text_buffer.move_down();
+                self.command_move_down();
             }
             "ArrowLeft" => {
-                self.text_buffer.move_left();
+                self.command_move_left();
             }
             "ArrowRight" => {
-                self.text_buffer.move_right();
+                self.command_move_right();
             }
             _ => (),
         }

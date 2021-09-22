@@ -21,6 +21,7 @@ impl Recorded {
         }
     }
     fn record(&mut self, act: Action) {
+        log::trace!("recording: {:?}", act);
         self.undone.clear(); // we are branching to a new sequence of events
         if let Some(a) = self.history.front_mut() {
             if a.same_variant(&act) {
@@ -39,7 +40,10 @@ impl Recorded {
         log::trace!("undoing...");
         let to_undo = match self.history.pop_front() {
             None => return,
-            Some(a) => a,
+            Some(a) => {
+                log::trace!("undoing: {:?}", a);
+                a
+            }
         };
         self.undone.push_front(to_undo.clone());
         while self.undone.len() > UNDO_SIZE {
@@ -112,5 +116,9 @@ impl Recorded {
             self.record(Action::DeleteForward(c.to_string()))
         }
         c
+    }
+
+    pub(crate) fn break_line(&mut self, x: usize, y: usize) {
+        self.record(Action::BreakLine(x, y));
     }
 }
