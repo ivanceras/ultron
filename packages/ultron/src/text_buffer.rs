@@ -893,8 +893,6 @@ impl TextBuffer {
     }
 
     pub(crate) fn command_join_line(&mut self, x: usize, y: usize) {
-        //self.move_up();
-        //self.move_right_end();
         self.join_line(x, y);
         self.set_position(x, y);
         self.calculate_focused_cell();

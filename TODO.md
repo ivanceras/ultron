@@ -14,7 +14,9 @@
     - [X] Undo/redo on cut/copy/paste
         - [X] Move to
         - [X] Add `join_line` to undo break line
-    - [ ] Select All
+    - [X] Select All
+    - [ ] Undo for deleted text selection
+    - [ ] Redo for deletex text selection
 - [ ] multi-layer buffer, so you can drag objects around
 - [X] Draggable separator
 - [X] selection

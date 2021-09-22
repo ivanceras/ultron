@@ -246,6 +246,7 @@ impl Line {
         }
     }
 
+    /// delete cells on this line from `start_x` to `end_x`
     pub(super) fn delete_cells(&mut self, start_x: usize, end_x: usize) {
         println!("deleting cells from {} to {}", start_x, end_x);
         let start = self.calc_range_cell_index_position(start_x);
