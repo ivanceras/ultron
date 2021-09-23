@@ -7,6 +7,10 @@ Ultron is a web based monospace text-editor with syntax highlighting, completely
 ## Feature
 - Real monospace GUI with support for multi-width characters such as CJK and unicode box drawing.
 - Fast, typing latency at ~15ms and cursor move at ~10ms.
+- Block mode
+    - Allows you to do a rectangular selection
+- Virtual edit
+    - Allows you to type in anywhere on the editor, even on areas where there is no line
 
 
 ## Syntax-highlighter for static site generator
@@ -46,9 +50,6 @@ The solution would be to wrap each characters with a `<div>` to force them to be
 Wide characters will be using `<div class"wide_{n}">` where `n` is the unicode_width.
 The style for this char will then be set with a multiplier to the normal width.
 
-Similar projects:
-- [Smith](https://github.com/IGI-111/Smith) to see how it is done.
-- [zee](https://crates.io/crates/zee)
 
 
 ## Build and run the editor
