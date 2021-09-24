@@ -82,6 +82,7 @@ impl TextBuffer {
         self.selection_end = Some(end);
     }
 
+    /// clear the text selection
     pub fn clear_selection(&mut self) {
         self.selection_start = None;
         self.selection_end = None;

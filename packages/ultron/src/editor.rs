@@ -505,6 +505,11 @@ impl<XMSG> Editor<XMSG> {
         }
     }
 
+    /// clear the text selection
+    pub fn clear_selection(&mut self) {
+        self.text_buffer.clear_selection();
+    }
+
     /// this is for newer browsers
     /// This doesn't work on webkit2
     #[cfg(web_sys_unstable_apis)]
