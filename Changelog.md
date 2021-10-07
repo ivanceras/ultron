@@ -1,5 +1,6 @@
 # Changelog
 
+## 0.2.6
 - Add a conventient function in text_highlighter to choose a theme while creating an instance of itself
 - Add clear text selection function
 - Select all for block mode
