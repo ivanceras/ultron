@@ -23,6 +23,11 @@ impl Default for TextHighlighter {
 }
 
 impl TextHighlighter {
+    pub fn with_theme(theme_name: &str) -> Self {
+        let mut text_highlighter = Self::default();
+        text_highlighter.select_theme(theme_name);
+        text_highlighter
+    }
     /// set the theme name
     pub fn select_theme(&mut self, theme_name: &str) {
         if let Some(_) = self.theme_set.themes.get(theme_name) {

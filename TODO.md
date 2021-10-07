@@ -8,6 +8,7 @@
     - [X] Replace, Paste to a selected region
            - The selected region is removed and the clipboard content is inserted
     - [ ] Increase the selection when shift key is pressed
+    - [ ] Pressing any key will delete the selected text.
 - [X] Move the cursor to the user clicked location
 - [ ] Redo/undo
     - [X] Undo/Redo on typing
