@@ -61,7 +61,7 @@ cd ultron
 ./serve.sh
 
 ```
-Then, navigate to http://localhost:4002
+Then, navigate to http://localhost:4004
 
 
 ## Demo

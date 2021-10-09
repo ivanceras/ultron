@@ -115,7 +115,7 @@ impl Line {
             classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
         };
         let is_focused = text_buffer.is_focused_line(line_index);
-        span(
+        div(
             [
                 key(line_index),
                 class_ns("number__line"),
