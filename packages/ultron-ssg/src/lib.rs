@@ -35,16 +35,10 @@ pub fn render_to_string(
 
 fn page<MSG>(buffer: TextBuffer) -> Node<MSG> {
     main(
-        vec![],
-        vec![
-            header(
-                vec![],
-                vec![style(
-                    vec![r#type("text/css")],
-                    vec![text(buffer.style())],
-                )],
-            ),
-            article(vec![], vec![buffer.view()]),
+        [],
+        [
+            header([], [style([r#type("text/css")], [text(buffer.style())])]),
+            article([], [buffer.view()]),
         ],
     )
 }

@@ -366,48 +366,49 @@ impl<XMSG> Editor<XMSG> {
     }
 
     fn command_insert_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
+        let cursor = self.text_buffer.get_position();
         self.text_buffer.command_insert_char(ch);
-        self.recorded.insert(ch);
+        self.recorded.insert_char(cursor, ch);
         self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     pub fn command_replace_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
-        self.text_buffer.command_replace_char(ch);
+        let cursor = self.text_buffer.get_position();
+        if let Some(old_ch) = self.text_buffer.command_replace_char(ch) {
+            self.recorded.replace_char(cursor, old_ch, ch);
+        }
         self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     fn command_delete_back(&mut self) -> Effects<Msg, XMSG> {
+        let cursor = self.text_buffer.get_position();
         let ch = self.text_buffer.command_delete_back();
         self.text_buffer.rehighlight();
-        self.recorded.delete(ch);
+        self.recorded.delete(cursor, ch);
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     fn command_delete_forward(&mut self) -> Effects<Msg, XMSG> {
         let ch = self.text_buffer.command_delete_forward();
-        self.recorded.delete_forward(ch);
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     fn command_move_up(&mut self) {
         self.text_buffer.move_up();
-        self.recorded.move_cursor(0, -1);
     }
 
     fn command_move_down(&mut self) {
         self.text_buffer.move_down();
-        self.recorded.move_cursor(0, 1);
     }
 
     fn command_move_left(&mut self) {
         self.text_buffer.move_left();
-        self.recorded.move_cursor(-1, 0);
     }
 
     #[allow(unused)]
@@ -415,18 +416,16 @@ impl<XMSG> Editor<XMSG> {
         let pos = self.text_buffer.get_position();
         self.text_buffer.move_left_start();
         let line_width = self.text_buffer.line_width(pos.y).unwrap_or(0) as i32;
-        self.recorded.move_cursor(-line_width, 0);
     }
 
     fn command_move_right(&mut self) {
         self.text_buffer.move_right();
-        self.recorded.move_cursor(1, 0);
     }
 
     fn command_break_line(&mut self) -> Effects<Msg, XMSG> {
         let pos = self.text_buffer.get_position();
         self.text_buffer.command_break_line(pos.x, pos.y);
-        self.recorded.break_line(pos.x, pos.y);
+        self.recorded.break_line(pos);
         self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
@@ -436,6 +435,7 @@ impl<XMSG> Editor<XMSG> {
     fn command_join_line(&mut self) -> Effects<Msg, XMSG> {
         let pos = self.text_buffer.get_position();
         self.text_buffer.command_join_line(pos.x, pos.y);
+        self.recorded.join_line(pos);
         self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
@@ -454,7 +454,6 @@ impl<XMSG> Editor<XMSG> {
             .set_position(cursor_x as usize, cursor_y as usize);
         let dist_x = cursor_x - pos.x as i32;
         let dist_y = cursor_y - pos.y as i32;
-        self.recorded.move_cursor(dist_x, dist_y);
     }
 
     fn command_set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {

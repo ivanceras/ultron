@@ -88,11 +88,17 @@ impl Range {
         self.cells.push(cell);
     }
 
-    pub(super) fn replace_cell(&mut self, cell_index: usize, new_cell: Cell) {
+    pub(super) fn replace_cell(
+        &mut self,
+        cell_index: usize,
+        new_cell: Cell,
+    ) -> char {
         if let Some(cell) = self.cells.get_mut(cell_index) {
             self.width -= cell.width;
             self.width += new_cell.width;
+            let old_ch = cell.ch;
             *cell = new_cell;
+            old_ch
         } else {
             panic!("There should be a cell");
         }

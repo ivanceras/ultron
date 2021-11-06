@@ -193,12 +193,13 @@ impl Line {
         range_index: usize,
         cell_index: usize,
         ch: char,
-    ) {
+    ) -> Option<char> {
         if let Some(range) = self.ranges.get_mut(range_index) {
             self.width -= range.width;
             let cell = Cell::from_char(ch);
-            range.replace_cell(cell_index, cell);
+            let old_ch = range.replace_cell(cell_index, cell);
             self.width += range.width;
+            Some(old_ch)
         } else {
             panic!("There should be a range");
         }

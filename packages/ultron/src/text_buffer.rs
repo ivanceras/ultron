@@ -736,16 +736,22 @@ impl TextBuffer {
     }
 
     /// replace the character at this location
-    pub fn replace_char(&mut self, x: usize, y: usize, ch: char) {
+    pub fn replace_char(
+        &mut self,
+        x: usize,
+        y: usize,
+        ch: char,
+    ) -> Option<char> {
         self.assert_chars(ch);
         self.ensure_cell_exist(x + 1, y);
 
         let (range_index, cell_index) = self.lines[y]
             .calc_range_cell_index_position(x)
             .expect("the range_index and cell_index must have existed at this point");
-        self.lines[y].replace_char(range_index, cell_index, ch);
+        self.lines[y].replace_char(range_index, cell_index, ch)
     }
 
+    //TODO: delegrate the deletion of the char to the line and range
     /// delete character at this position
     pub(crate) fn delete_char(&mut self, x: usize, y: usize) -> Option<char> {
         if let Some(line) = self.lines.get_mut(y) {
@@ -845,8 +851,8 @@ impl TextBuffer {
         self.insert_char(self.cursor.x, self.cursor.y, ch);
     }
 
-    pub(crate) fn command_replace_char(&mut self, ch: char) {
-        self.replace_char(self.cursor.x, self.cursor.y, ch);
+    pub(crate) fn command_replace_char(&mut self, ch: char) -> Option<char> {
+        self.replace_char(self.cursor.x, self.cursor.y, ch)
     }
 
     pub(crate) fn command_insert_text(&mut self, text: &str) {
