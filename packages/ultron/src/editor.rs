@@ -178,12 +178,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                         }
                         'z' | 'Z' if is_ctrl => {
                             if is_shift {
-                                self.recorded.redo(&mut self.text_buffer);
+                                self.redo()
                             } else {
-                                self.recorded.undo(&mut self.text_buffer);
+                                self.undo()
                             }
-                            let extern_msgs = self.emit_on_change_listeners();
-                            Effects::with_external(extern_msgs).measure()
                         }
                         'a' if is_ctrl => {
                             self.command_select_all();
@@ -449,11 +447,8 @@ impl<XMSG> Editor<XMSG> {
     }
 
     pub fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
-        let pos = self.text_buffer.get_position();
         self.text_buffer
             .set_position(cursor_x as usize, cursor_y as usize);
-        let dist_x = cursor_x - pos.x as i32;
-        let dist_y = cursor_y - pos.y as i32;
     }
 
     fn command_set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
@@ -494,6 +489,22 @@ impl<XMSG> Editor<XMSG> {
     /// This is used for breaking undo action list
     pub fn bump_history(&mut self) {
         self.recorded.bump_history();
+    }
+
+    pub fn undo(&mut self) -> Effects<Msg, XMSG> {
+        if let Some(location) = self.recorded.undo(&mut self.text_buffer) {
+            self.text_buffer.set_position(location.x, location.y);
+        }
+        let extern_msgs = self.emit_on_change_listeners();
+        Effects::with_external(extern_msgs).measure()
+    }
+
+    pub fn redo(&mut self) -> Effects<Msg, XMSG> {
+        if let Some(location) = self.recorded.redo(&mut self.text_buffer) {
+            self.text_buffer.set_position(location.x, location.y);
+        }
+        let extern_msgs = self.emit_on_change_listeners();
+        Effects::with_external(extern_msgs).measure()
     }
 
     /// set the content of the textarea to selection

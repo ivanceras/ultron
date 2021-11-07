@@ -14,6 +14,18 @@ pub enum Action {
 }
 
 impl Action {
+    /// return the location of this action
+    pub fn location(&self) -> Point2<usize> {
+        match self {
+            Action::Insert(cursor, _ch) => *cursor,
+            Action::Delete(cursor, _ch) => *cursor,
+            Action::Replace(cursor, _old_ch, _new_ch) => *cursor,
+            Action::Move(cursor) => *cursor,
+            Action::BreakLine(cursor) => *cursor,
+            Action::JoinLine(cursor) => *cursor,
+        }
+    }
+
     pub fn apply(&self, content: &mut TextBuffer) {
         match *self {
             Action::Insert(cursor, ch) => {

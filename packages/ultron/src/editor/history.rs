@@ -71,10 +71,14 @@ impl Recorded {
         }
     }
 
-    pub(crate) fn undo(&mut self, text_buffer: &mut TextBuffer) {
+    /// undo the history and return the location of the last occurence
+    pub(crate) fn undo(
+        &mut self,
+        text_buffer: &mut TextBuffer,
+    ) -> Option<Point2<usize>> {
         log::trace!("undoing...");
         let to_undo = match self.history.pop_front() {
-            None => return,
+            None => return None,
             Some(a) => {
                 log::trace!("undoing: {:?}", a);
                 a
@@ -84,20 +88,31 @@ impl Recorded {
         while self.undone.len() > UNDO_SIZE {
             self.undone.pop_back();
         }
+        let mut last_location = None;
         to_undo.actions.iter().rev().for_each(|tu| {
             let inverted = tu.invert();
             log::trace!("inverted: {:?}", inverted);
             inverted.apply(text_buffer);
+            last_location = Some(inverted.location());
         });
+        last_location
     }
 
-    pub(crate) fn redo(&mut self, text_buffer: &mut TextBuffer) {
+    pub(crate) fn redo(
+        &mut self,
+        text_buffer: &mut TextBuffer,
+    ) -> Option<Point2<usize>> {
+        let mut last_location = None;
         let to_redo = match self.undone.pop_front() {
-            None => return,
+            None => return None,
             Some(a) => a,
         };
-        to_redo.actions.iter().for_each(|tr| tr.apply(text_buffer));
+        to_redo.actions.iter().for_each(|tr| {
+            tr.apply(text_buffer);
+            let last_location = tr.location();
+        });
         self.history.push_front(to_redo);
+        last_location
     }
 
     #[allow(unused)]
