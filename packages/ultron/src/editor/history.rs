@@ -9,6 +9,9 @@ const UNDO_SIZE: usize = usize::MAX;
 
 #[derive(Debug)]
 pub struct Recorded {
+    /// a flag whether to continue to last action list or
+    /// create a new one
+    use_new: bool,
     history: VecDeque<ActionList>,
     undone: VecDeque<ActionList>,
 }
@@ -37,21 +40,32 @@ impl ActionList {
 impl Recorded {
     pub fn new() -> Self {
         Recorded {
+            use_new: false,
             history: VecDeque::new(),
             undone: VecDeque::new(),
         }
     }
+    /// Close the current history, such that undo and redo will
+    /// be split in this bump point
+    pub fn bump_history(&mut self) {
+        self.use_new = true;
+        log::trace!("bumping history..");
+    }
+
     fn record(&mut self, act: Action) {
         log::trace!("recording: {:?}", act);
         self.undone.clear(); // we are branching to a new sequence of events
-        if let Some(a) = self.history.front_mut() {
-            if a.same_variant_to_last(&act) {
-                // join similar actions together
-                a.actions.push(act);
-                return;
+        if !self.use_new {
+            if let Some(a) = self.history.front_mut() {
+                if a.same_variant_to_last(&act) {
+                    // join similar actions together
+                    a.actions.push(act);
+                    return;
+                }
             }
         }
         self.history.push_front(ActionList::from(vec![act]));
+        self.use_new = false;
         while self.history.len() > HISTORY_SIZE {
             self.history.pop_back();
         }

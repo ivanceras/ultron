@@ -490,6 +490,12 @@ impl<XMSG> Editor<XMSG> {
         Effects::with_external(extern_msgs).measure()
     }
 
+    /// Make a history separator for the undo/redo
+    /// This is used for breaking undo action list
+    pub fn bump_history(&mut self) {
+        self.recorded.bump_history();
+    }
+
     /// set the content of the textarea to selection
     ///
     /// Note: This is necessary for webkit2.

@@ -1,7 +1,7 @@
 # TODO
 
 ## Functionality
-- [ ] Cut, Copy and Paste
+- [~] Cut, Copy and Paste
         - Use the hacks where a focused textarea is created and the pasted text will
             retrived from there.
             https://stackoverflow.com/questions/2787669/get-html-from-clipboard-in-javascript
@@ -30,7 +30,7 @@
     - the command functions are now returning effects, and its up for the caller to wire them.
         It doesn't need to be the centralized inm the update function as there could be many more variation of commands
 - [ ] Render only lines that are visible to the user, we can calculate the line exposed to the users
-- [ ] Add an api to group action together in Recorded
+- [X] Add an api to group action together in Recorded
         ```rust
         pub struct Recorded{
             history: VecDeque<Vec<Action>>,
