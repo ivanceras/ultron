@@ -5,6 +5,12 @@ pub use sauron;
 
 #[cfg(feature = "with-dom")]
 pub mod editor;
+#[cfg(feature = "with-dom")]
+pub use editor::Editor;
+
+#[cfg(feature = "with-dom")]
+pub use editor::Msg;
+
 mod text_buffer;
 mod util;
 
