@@ -1,6 +1,7 @@
 //#![deny(warnings)]
 pub use text_buffer::TextBuffer;
 
+pub use nalgebra;
 pub use sauron;
 
 #[cfg(feature = "with-dom")]
