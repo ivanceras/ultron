@@ -31,7 +31,6 @@ impl TextHighlighter {
     /// set the theme name
     pub fn select_theme(&mut self, theme_name: &str) {
         if let Some(_) = self.theme_set.themes.get(theme_name) {
-            log::trace!("Setting theme to: {}", theme_name);
             self.theme_name = Some(theme_name.to_string());
         } else {
             format!("The valid theme names are: {:?}", self.get_theme_names());

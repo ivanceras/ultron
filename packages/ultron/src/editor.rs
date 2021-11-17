@@ -98,6 +98,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
             Msg::EditorMounted(target_node) => {
+                log::trace!(
+                    "........Editor is now mounted........ countent: {}",
+                    self.get_content()
+                );
                 let element: &web_sys::Element = target_node.unchecked_ref();
                 self.editor_element = Some(element.clone());
                 Effects::none()
@@ -447,8 +451,13 @@ impl<XMSG> Editor<XMSG> {
     }
 
     pub fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
-        self.text_buffer
-            .set_position(cursor_x as usize, cursor_y as usize);
+        if self.options.use_virtual_edit {
+            self.text_buffer
+                .set_position(cursor_x as usize, cursor_y as usize);
+        } else {
+            self.text_buffer
+                .set_position_clamped(cursor_x as usize, cursor_y as usize);
+        }
     }
 
     fn command_set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
@@ -832,6 +841,10 @@ impl<XMSG> Editor<XMSG> {
         )
     }
 
+    pub fn status_line_height(&self) -> i32 {
+        30
+    }
+
     pub fn view_status_line<Msg>(&self) -> Node<Msg> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
@@ -854,6 +867,7 @@ impl<XMSG> Editor<XMSG> {
                 } else {
                     empty_attr()
                 },
+                style! {height: px(self.status_line_height()) },
             ],
             [
                 text!("line: {}, col: {} ", cursor.y + 1, cursor.x + 1),
@@ -878,5 +892,9 @@ impl<XMSG> Editor<XMSG> {
                 text!("| version:{}", env!("CARGO_PKG_VERSION")),
             ],
         )
+    }
+
+    pub fn get_content(&self) -> String {
+        self.text_buffer.to_string()
     }
 }

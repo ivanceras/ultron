@@ -40,11 +40,15 @@
 - [ ] Context Menu (Right click)
     - undo/redo
     - cut/copy/paste
+- [ ] Add config to ignore mouse-clicks outside of the editor range
 
 ## Features
 - [ ] Smart edit blockmode
     - When typing a key and the next characters next to it is far, say more than 2 space the character is typed in replace mode
         instead of insert mode
+    - [ ] Pressing enter should indent, instead of just moving down
+- [ ] Allow the editor to render different syntax highlighting scheme to a set of lines
+    - Use would be markdown text with code fence in the content
 
 ## Maintenance
 - [ ] Put the css of each of the component to their own module

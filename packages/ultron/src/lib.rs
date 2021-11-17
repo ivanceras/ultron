@@ -1,5 +1,6 @@
 //#![deny(warnings)]
 pub use text_buffer::TextBuffer;
+pub use ultron_syntaxes_themes::TextHighlighter;
 
 pub use nalgebra;
 pub use sauron;
@@ -23,6 +24,8 @@ pub const CH_HEIGHT: u32 = 16;
 pub struct Options {
     /// block mode is when the selection is rectangular
     pub use_block_mode: bool,
+    /// allow the click outside of the bounds of the text content editor
+    pub use_virtual_edit: bool,
     pub show_line_numbers: bool,
     pub show_status_line: bool,
     pub show_cursor: bool,
@@ -42,6 +45,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             use_block_mode: false,
+            use_virtual_edit: true,
             show_line_numbers: true,
             show_status_line: true,
             show_cursor: true,

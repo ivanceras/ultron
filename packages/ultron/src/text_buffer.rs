@@ -52,7 +52,6 @@ impl TextBuffer {
     pub fn from_str(options: Options, content: &str) -> Self {
         let mut text_highlighter = TextHighlighter::default();
         if let Some(theme_name) = &options.theme_name {
-            log::trace!("Selecting theme: {}", theme_name);
             text_highlighter.select_theme(theme_name);
         }
         let mut this = Self {
@@ -903,6 +902,20 @@ impl TextBuffer {
         self.cursor.y = y;
         self.calculate_focused_cell();
     }
+
+    /// set the position to the max_column of the line if it is out of
+    /// bounds
+    pub(crate) fn set_position_clamped(&mut self, mut x: usize, mut y: usize) {
+        if y > self.lines.len() {
+            y = self.lines.len() - 1;
+        }
+        let line = &self.lines[y];
+        if x > line.width {
+            x = line.width - 1;
+        }
+        self.set_position(x, y)
+    }
+
     pub(crate) fn command_break_line(&mut self, x: usize, y: usize) {
         self.break_line(x, y);
         self.move_left_start();
