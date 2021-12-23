@@ -39,6 +39,9 @@ pub struct Options {
     pub use_background: bool,
     pub theme_name: Option<String>,
     pub syntax_token: String,
+    /// whether or not the editor occupy the container element
+    /// false means the editor only expands to the number of lines in the code
+    pub occupy_container: bool,
 }
 
 impl Default for Options {
@@ -54,6 +57,7 @@ impl Default for Options {
             use_background: true,
             theme_name: None,
             syntax_token: "txt".to_string(),
+            occupy_container: true,
         }
     }
 }

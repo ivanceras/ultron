@@ -289,6 +289,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
         div(
             [
                 class(COMPONENT_NAME),
+                classes_flag_namespaced(
+                    COMPONENT_NAME,
+                    [("occupy_container", self.options.occupy_container)],
+                ),
                 on_scroll(Msg::Scrolled),
                 on_mount(|mount| Msg::EditorMounted(mount.target_node)),
             ],
@@ -311,9 +315,12 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 position: "relative",
                 font_size: px(14),
                 cursor: "text",
+                white_space: "normal",
+            },
+
+            ".occupy_container": {
                 width: percent(100),
                 height: percent(100),
-                white_space: "normal",
             },
 
             "pre code":{
