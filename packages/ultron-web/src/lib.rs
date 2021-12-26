@@ -13,6 +13,7 @@ use ultron::Options;
 #[derive(Debug, Clone)]
 pub enum Msg {
     WindowScrolled((i32, i32)),
+    WindowResized(i32, i32),
     EditorMsg(editor::Msg),
     Keydown(web_sys::KeyboardEvent),
     Mouseup(i32, i32),
@@ -42,24 +43,27 @@ impl App {
 
 impl Application<Msg> for App {
     fn init(&mut self) -> Cmd<Self, Msg> {
-        Window::add_event_listeners(vec![
-            on_scroll(Msg::WindowScrolled),
-            on_mousemove(|me| Msg::Mousemove(me.client_x(), me.client_y())),
-            on_mousedown(|me| Msg::Mousedown(me.client_x(), me.client_y())),
-            on_mouseup(|me| Msg::Mouseup(me.client_x(), me.client_y())),
-            on("keydown", |event| {
-                let event = event.as_web().expect("must be a web event");
-                let ke: KeyboardEvent = event
-                    .clone()
-                    .dyn_into()
-                    .expect("unable to cast to keyboard event");
-                if ke.key() == "Tab" {
-                    event.prevent_default();
-                    event.stop_propagation();
-                    Msg::Keydown(ke.clone());
-                }
-                Msg::NoOp
-            }),
+        Cmd::batch([
+            Window::on_resize(Msg::WindowResized),
+            Window::add_event_listeners(vec![
+                on_scroll(Msg::WindowScrolled),
+                on_mousemove(|me| Msg::Mousemove(me.client_x(), me.client_y())),
+                on_mousedown(|me| Msg::Mousedown(me.client_x(), me.client_y())),
+                on_mouseup(|me| Msg::Mouseup(me.client_x(), me.client_y())),
+                on("keydown", |event| {
+                    let event = event.as_web().expect("must be a web event");
+                    let ke: KeyboardEvent = event
+                        .clone()
+                        .dyn_into()
+                        .expect("unable to cast to keyboard event");
+                    if ke.key() == "Tab" {
+                        event.prevent_default();
+                        event.stop_propagation();
+                        Msg::Keydown(ke.clone());
+                    }
+                    Msg::NoOp
+                }),
+            ]),
         ])
     }
     fn style(&self) -> String {
@@ -89,6 +93,11 @@ impl Application<Msg> for App {
                     scroll_top,
                     scroll_left,
                 )));
+                Cmd::none()
+            }
+            Msg::WindowResized(width, height) => {
+                self.editor
+                    .update(editor::Msg::WindowResized { width, height });
                 Cmd::none()
             }
             Msg::EditorMsg(emsg) => {

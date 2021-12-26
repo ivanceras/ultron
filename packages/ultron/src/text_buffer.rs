@@ -33,9 +33,7 @@ pub struct TextBuffer {
     lines: Vec<Line>,
     text_highlighter: TextHighlighter,
     cursor: Point2<usize>,
-    #[allow(unused)]
     selection_start: Option<Point2<usize>>,
-    #[allow(unused)]
     selection_end: Option<Point2<usize>>,
     focused_cell: Option<FocusCell>,
 }

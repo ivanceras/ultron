@@ -38,6 +38,10 @@ pub enum Msg {
     SetMeasurement(Measurements),
     Scrolled((i32, i32)),
     WindowScrolled((i32, i32)),
+    WindowResized {
+        width: i32,
+        height: i32,
+    },
     TextareaInput(String),
 }
 
@@ -45,7 +49,6 @@ pub struct Editor<XMSG> {
     options: Options,
     text_buffer: TextBuffer,
     /// number of lines in a page, when paging up and down
-    #[allow(unused)]
     page_size: usize,
     /// for undo and redo
     recorded: Recorded,
@@ -55,6 +58,8 @@ pub struct Editor<XMSG> {
     scroll_left: f32,
     window_scroll_top: f32,
     window_scroll_left: f32,
+    window_width: f32,
+    window_height: f32,
     /// Other components can listen to the an event.
     /// When the content of the text editor changes, the change listener will be emitted
     change_listeners: Vec<Callback<String, XMSG>>,
@@ -70,10 +75,11 @@ pub struct Editor<XMSG> {
 
 impl<XMSG> Editor<XMSG> {
     pub fn from_str(options: Options, content: &str) -> Self {
+        let (window_width, window_height) = Window::get_size();
         Editor {
             options: options.clone(),
             text_buffer: TextBuffer::from_str(options, content),
-            page_size: 10,
+            page_size: 20,
             recorded: Recorded::new(),
             measurements: None,
             average_update_time: None,
@@ -81,6 +87,8 @@ impl<XMSG> Editor<XMSG> {
             scroll_left: 0.0,
             window_scroll_top: 0.0,
             window_scroll_left: 0.0,
+            window_width: window_width as f32,
+            window_height: window_height as f32,
             change_listeners: vec![],
             change_notify_listeners: vec![],
             hidden_textarea: None,
@@ -98,10 +106,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
             Msg::EditorMounted(target_node) => {
-                log::trace!(
-                    "........Editor is now mounted........ countent: {}",
-                    self.get_content()
-                );
                 let element: &web_sys::Element = target_node.unchecked_ref();
                 self.editor_element = Some(element.clone());
                 Effects::none()
@@ -111,8 +115,14 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 Effects::none()
             }
             Msg::WindowScrolled((scroll_top, scroll_left)) => {
+                log::trace!("scrolling window..");
                 self.window_scroll_top = scroll_top as f32;
                 self.window_scroll_left = scroll_left as f32;
+                Effects::none()
+            }
+            Msg::WindowResized { width, height } => {
+                self.window_width = width as f32;
+                self.window_height = height as f32;
                 Effects::none()
             }
             Msg::Scrolled((scroll_top, scroll_left)) => {
@@ -121,7 +131,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 Effects::none()
             }
             Msg::TextareaInput(input) => {
-                log::trace!("text are input: {:?}", input);
+                log::trace!("textarea input: {:?}", input);
                 let char_count = input.chars().count();
                 // for chrome:
                 // detect if the typed in character was a composed and becomes 1 unicode character
@@ -136,7 +146,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 let was_cleared = self.last_char_count == Some(0);
 
                 if char_count == 1 && (was_cleared || char_count_decreased) {
-                    log::trace!("in char_count == 1..");
+                    log::trace!("in textarea input char_count == 1..");
                     let c = input.chars().next().expect("must be only 1 chr");
                     self.composed_key = Some(c);
                     if c == '\n' {
@@ -148,6 +158,8 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     }
                     log::trace!("clearing textarea");
                     self.clear_hidden_textarea();
+                } else {
+                    log::trace!("char is not inserted becase char_count: {}, was_cleared: {}, char_count_decreased: {}", char_count, was_cleared, char_count_decreased);
                 }
                 self.last_char_count = Some(char_count);
                 log::trace!("extern messages");
@@ -167,6 +179,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 let key = ke.key();
                 self.process_keypresses(&ke);
                 if key.chars().count() == 1 {
+                    log::trace!("In textarea keydown");
                     let c = key.chars().next().expect("must be only 1 chr");
                     match c {
                         'c' if is_ctrl => {
@@ -192,6 +205,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                             Effects::none()
                         }
                         _ => {
+                            log::trace!("for everything else..");
                             self.command_insert_char(c);
                             self.clear_hidden_textarea();
                             let extern_msgs = self.emit_on_change_listeners();
@@ -203,6 +217,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 }
             }
             Msg::Mouseup(client_x, client_y) => {
+                self.focus();
                 let cursor = self.client_to_cursor(client_x, client_y);
                 self.command_set_position(cursor.x, cursor.y);
                 self.selection_end = Some(cursor);
@@ -275,6 +290,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 let key = ke.key();
                 self.process_keypresses(&ke);
                 if key.chars().count() == 1 {
+                    log::trace!("inserting from window keydown event");
                     let c = key.chars().next().expect("must be only 1 chr");
                     self.text_buffer.command_insert_char(c);
                     self.text_buffer.rehighlight();
@@ -819,6 +835,10 @@ impl<XMSG> Editor<XMSG> {
         )
     }
 
+    fn focus(&self) {
+        self.refocus_hidden_textarea();
+    }
+
     fn refocus_hidden_textarea(&self) {
         if let Some(element) = &self.hidden_textarea {
             element.focus().expect("must focus the textarea");
@@ -848,10 +868,26 @@ impl<XMSG> Editor<XMSG> {
         )
     }
 
+    /// height of the status line which displays editor infor such as cursor location
     pub fn status_line_height(&self) -> i32 {
-        30
+        60
     }
 
+    /// calculate the maximumm number of lines that the viewport can show
+    /// at a time
+    fn viewport_lines_capacity(&self) -> i32 {
+        ((self.window_height - self.status_line_height() as f32)
+            / CH_HEIGHT as f32)
+            .ceil() as i32
+    }
+
+    /// the number of page of the editor based on the number of lines
+    fn pages(&self) -> i32 {
+        let n_lines = self.text_buffer.total_lines() as i32;
+        (n_lines - 1) / self.page_size as i32 + 1
+    }
+
+    /// the view for the status line
     pub fn view_status_line<Msg>(&self) -> Node<Msg> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
@@ -897,6 +933,14 @@ impl<XMSG> Editor<XMSG> {
                     comment("")
                 },
                 text!("| version:{}", env!("CARGO_PKG_VERSION")),
+                text!("| window_scroll_top: {}", self.window_scroll_top),
+                text!(
+                    "| window_size: {}x{}",
+                    self.window_width,
+                    self.window_height
+                ),
+                text!("| line max: {}", self.viewport_lines_capacity()),
+                text!("| pages: {}", self.pages()),
             ],
         )
     }

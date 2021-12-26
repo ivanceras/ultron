@@ -55,6 +55,21 @@
     - line, range, cell
 - ~~[ ] Make Line, Range and Cell implement View~~
      - This is not possible since these struct has a custom view function which neeeds access to multiple arguments
+- [ ] Render only the lines that are visible in the viewport
+    - [ ] Determine the number of lines that could fit in the viewport.
+        ```
+         let n_lines = viewport_height / line_height;
+        ```
+    - [ ] Group lines into page, determine if the page is visible in the viewport using the scroll top offset
+          ```
+            let page_size = 20; // how many lines in a page, could also be `n_lines` derived from how many lines that could fit in the viewport
+            let page_height = page_size * line_height;
+          ```
+        - each page has an offset from the top
+          ```
+            let page_offset = page_n * page_height;
+            if scroll_top > page_offset && scroll_top < next_page_offset { show } else {hide}
+          ```
 
 ## Issues
 - [ ] Moving around characters with cell_width of 2
@@ -62,3 +77,6 @@
         This is because movement is merely adding +1 to x or y position.
         - [ ] Need to make cursor movement line cell aware.
 - [ ] When typing very fast, the content in the textarea is accumulated and there is a duplicate on the characters
+- [ ] Clicking outside of the editor will affect the editor, this is because we need to let the editor interact to mouse up drags
+    when shapes are drawn into the canvas.
+    - A solution would be to send the WindowMouseUp event, but not the window click event
