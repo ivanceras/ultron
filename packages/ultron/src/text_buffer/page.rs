@@ -1,12 +1,15 @@
 use super::Line;
 use super::TextBuffer;
+use crate::CH_HEIGHT;
 use itertools::Itertools;
+use sauron::html::attributes::data;
 use sauron::prelude::*;
 
 #[derive(Default)]
 pub(super) struct Page {
     pub(super) lines: Vec<Line>,
     page_size: usize,
+    visible: bool,
 }
 
 impl Page {
@@ -18,8 +21,13 @@ impl Page {
             .map(|chunks| Page {
                 lines: chunks.collect(),
                 page_size,
+                visible: true,
             })
             .collect()
+    }
+
+    pub(super) fn set_visible(&mut self, visible: bool) {
+        self.visible = visible;
     }
 
     pub(super) fn delete_lines_to_end(&mut self, line_index: usize) {
@@ -64,6 +72,11 @@ impl Page {
 
     pub(super) fn total_lines(&self) -> usize {
         self.lines.len()
+    }
+
+    /// the pixel height of this page
+    pub(super) fn page_height(&self) -> u32 {
+        self.total_lines() as u32 * CH_HEIGHT
     }
 
     pub(super) fn max_column(&self) -> usize {
@@ -159,10 +172,22 @@ impl Page {
         page_index: usize,
     ) -> Node<MSG> {
         div(
-            [class("page"), class(format!("page_{}", page_index))],
-            self.lines.iter().enumerate().map(|(line_index, line)| {
-                line.view_line(text_buffer, page_index, line_index)
-            }),
+            [
+                class("page"),
+                class(format!("page_{}", page_index)),
+                style! {height: px(self.page_height())},
+            ],
+            if self.visible {
+                self.lines
+                    .iter()
+                    .enumerate()
+                    .map(|(line_index, line)| {
+                        line.view_line(text_buffer, page_index, line_index)
+                    })
+                    .collect()
+            } else {
+                vec![comment("hidden for optimization")]
+            },
         )
     }
 }

@@ -12,6 +12,8 @@ use css_colors::RGBA;
 use line::Line;
 use nalgebra::Point2;
 use page::Page;
+use parry2d::bounding_volume::BoundingVolume;
+use parry2d::bounding_volume::AABB;
 use range::Range;
 use sauron::html::attributes;
 use sauron::jss::jss_ns;
@@ -38,6 +40,24 @@ pub struct TextBuffer {
     selection_start: Option<Point2<usize>>,
     selection_end: Option<Point2<usize>>,
     focused_cell: Option<FocusCell>,
+    context: Context,
+}
+
+#[derive(Clone)]
+pub struct Context {
+    pub viewport_width: f32,
+    pub viewport_height: f32,
+    pub viewport_scroll_top: f32,
+    pub viewport_scroll_left: f32,
+}
+
+impl Context {
+    fn viewport_box(&self) -> AABB {
+        AABB::new(
+            Point2::new(0.0, 0.0),
+            Point2::new(self.viewport_width, self.viewport_height),
+        )
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -50,7 +70,7 @@ struct FocusCell {
 }
 
 impl TextBuffer {
-    pub fn from_str(options: Options, content: &str) -> Self {
+    pub fn from_str(options: Options, context: Context, content: &str) -> Self {
         let mut text_highlighter = TextHighlighter::default();
         if let Some(theme_name) = &options.theme_name {
             text_highlighter.select_theme(theme_name);
@@ -61,6 +81,7 @@ impl TextBuffer {
             &options.syntax_token,
         );
         let mut this = Self {
+            context,
             pages: Page::from_lines(options.page_size, lines),
             text_highlighter,
             cursor: Point2::new(0, 0),
@@ -74,10 +95,55 @@ impl TextBuffer {
         this
     }
 
+    pub(crate) fn update_context(&mut self, context: Context) {
+        self.context = context;
+        self.update_page_visibility();
+    }
+
+    fn update_page_visibility(&mut self) {
+        let page_visibility: Vec<bool> = self
+            .pages
+            .iter()
+            .enumerate()
+            .map(|(page_index, _page)| self.is_page_visible(page_index))
+            .collect();
+
+        for (visible, page) in page_visibility.iter().zip(self.pages.iter_mut())
+        {
+            page.set_visible(*visible);
+        }
+    }
+
     fn calc_page_line_index(&self, line_index: usize) -> (usize, usize) {
         let page = line_index / self.options.page_size;
         let index = line_index % self.options.page_size;
         (page, index)
+    }
+
+    /// check if page at page_index is visible or not
+    ///
+    /// The page is visible if either the page_top >
+    fn is_page_visible(&self, page_index: usize) -> bool {
+        let page_box = self.page_box(page_index);
+        let viewport_box = self.context.viewport_box();
+        viewport_box.intersects(&page_box)
+    }
+
+    fn page_box(&self, page_index: usize) -> AABB {
+        let page_top: u32 = self.pages[0..page_index]
+            .iter()
+            .map(|page| page.page_height())
+            .sum();
+
+        // distance of the page's top to the viewport top
+        let distance_top = page_top as f32 - self.context.viewport_scroll_top;
+
+        let page_height = self.pages[page_index].page_height() as f32;
+        let page_width = self.pages[page_index].page_width() as f32;
+        AABB::new(
+            Point2::new(0.0, distance_top),
+            Point2::new(page_width, distance_top + page_height),
+        )
     }
 
     /// delete the lines starting from start_line
@@ -204,7 +270,8 @@ impl TextBuffer {
         end: Point2<usize>,
     ) -> String {
         let (start, end) = util::normalize_points(start, end);
-        let mut buffer = TextBuffer::from_str(Options::default(), "");
+        let mut buffer =
+            TextBuffer::from_str(Options::default(), self.context.clone(), "");
         for (page_index, page) in self.pages.iter().enumerate() {
             for (line_index, line) in page.lines.iter().enumerate() {
                 let y = line_index;

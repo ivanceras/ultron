@@ -18,6 +18,7 @@ log = "0.4"
 unicode-width = "0.1"
 css-colors = "1"
 nalgebra = "0.29.0"
+parry2d = "0.7"
 itertools = "0.10"
 
 [dependencies.web-sys]
