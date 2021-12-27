@@ -11,6 +11,7 @@ use css_colors::Color;
 use css_colors::RGBA;
 use line::Line;
 use nalgebra::Point2;
+use page::Page;
 use range::Range;
 use sauron::html::attributes;
 use sauron::jss::jss_ns;
@@ -24,13 +25,14 @@ use unicode_width::UnicodeWidthChar;
 
 mod cell;
 mod line;
+mod page;
 mod range;
 
 /// A text buffer where every insertion of character it will
 /// recompute the highlighting of a line
 pub struct TextBuffer {
     options: Options,
-    lines: Vec<Line>,
+    pages: Vec<Page>,
     text_highlighter: TextHighlighter,
     cursor: Point2<usize>,
     selection_start: Option<Point2<usize>>,
@@ -40,6 +42,7 @@ pub struct TextBuffer {
 
 #[derive(Clone, Copy, Debug)]
 struct FocusCell {
+    page_index: usize,
     line_index: usize,
     range_index: usize,
     cell_index: usize,
@@ -52,12 +55,13 @@ impl TextBuffer {
         if let Some(theme_name) = &options.theme_name {
             text_highlighter.select_theme(theme_name);
         }
+        let lines = Self::highlight_content(
+            content,
+            &text_highlighter,
+            &options.syntax_token,
+        );
         let mut this = Self {
-            lines: Self::highlight_content(
-                content,
-                &text_highlighter,
-                &options.syntax_token,
-            ),
+            pages: Page::from_lines(options.page_size, lines),
             text_highlighter,
             cursor: Point2::new(0, 0),
             selection_start: None,
@@ -70,8 +74,41 @@ impl TextBuffer {
         this
     }
 
+    fn calc_page_line_index(&self, line_index: usize) -> (usize, usize) {
+        let page = line_index / self.options.page_size;
+        let index = line_index % self.options.page_size;
+        (page, index)
+    }
+
+    /// delete the lines starting from start_line
+    fn delete_lines_to_end(&mut self, start_line: usize) {
+        let (page, line_index) = self.calc_page_line_index(start_line);
+        self.pages[page].delete_lines_to_end(line_index);
+        self.pages.drain(page + 1..);
+    }
+
+    fn delete_lines_from_start(&mut self, end_line: usize) {
+        let (page, line_index) = self.calc_page_line_index(end_line);
+        self.pages[page].delete_lines_from_start(line_index);
+        self.pages.drain(0..page);
+    }
+
+    fn delete_lines(&mut self, start_line: usize, end_line: usize) {
+        let (start_page, start_line_index) =
+            self.calc_page_line_index(start_line);
+        let (end_page, end_line_index) = self.calc_page_line_index(end_line);
+        if start_page == end_page {
+            self.pages[start_page]
+                .delete_lines_exclusive(start_line_index, end_line_index);
+        } else {
+            self.pages[end_page].delete_lines_from_start(end_line_index);
+            self.pages[start_page].delete_lines_to_end(start_line_index);
+        }
+        self.pages.drain(start_page..end_page);
+    }
+
     pub fn clear(&mut self) {
-        self.lines.clear();
+        self.pages.clear();
     }
 
     pub fn set_selection(&mut self, start: Point2<usize>, end: Point2<usize>) {
@@ -105,11 +142,16 @@ impl TextBuffer {
 
     fn is_within_position(
         &self,
-        (line_index, range_index, cell_index): (usize, usize, usize),
+        (page_index, line_index, range_index, cell_index): (
+            usize,
+            usize,
+            usize,
+            usize,
+        ),
         start: Point2<usize>,
         end: Point2<usize>,
     ) -> bool {
-        let x = self.lines[line_index]
+        let x = self.pages[page_index].lines[line_index]
             .calc_range_cell_index_to_x(range_index, cell_index);
         let y = line_index;
 
@@ -138,13 +180,14 @@ impl TextBuffer {
     /// check if this cell is within the selection of the textarea
     pub(crate) fn in_selection(
         &self,
+        page_index: usize,
         line_index: usize,
         range_index: usize,
         cell_index: usize,
     ) -> bool {
         if let Some((start, end)) = self.normalize_selection() {
             self.is_within_position(
-                (line_index, range_index, cell_index),
+                (page_index, line_index, range_index, cell_index),
                 start,
                 end,
             )
@@ -162,38 +205,57 @@ impl TextBuffer {
     ) -> String {
         let (start, end) = util::normalize_points(start, end);
         let mut buffer = TextBuffer::from_str(Options::default(), "");
-        for (line_index, line) in self.lines.iter().enumerate() {
-            let y = line_index;
-            for (range_index, range) in line.ranges.iter().enumerate() {
-                for (cell_index, cell) in range.cells.iter().enumerate() {
-                    let x = line
-                        .calc_range_cell_index_to_x(range_index, cell_index);
-                    if self.is_within_position(
-                        (line_index, range_index, cell_index),
-                        start,
-                        end,
-                    ) {
-                        if self.options.use_block_mode {
-                            buffer.insert_char(
-                                x - start.x,
-                                y - start.y,
-                                cell.ch,
-                            );
-                        } else {
-                            //if its not in block mode, we only deduct x if it is on the first line
-                            let in_start_selection_line = y == start.y;
-                            let new_x = if in_start_selection_line {
-                                x - start.x
+        for (page_index, page) in self.pages.iter().enumerate() {
+            for (line_index, line) in page.lines.iter().enumerate() {
+                let y = line_index;
+                for (range_index, range) in line.ranges.iter().enumerate() {
+                    for (cell_index, cell) in range.cells.iter().enumerate() {
+                        let x = line.calc_range_cell_index_to_x(
+                            range_index,
+                            cell_index,
+                        );
+                        if self.is_within_position(
+                            (page_index, line_index, range_index, cell_index),
+                            start,
+                            end,
+                        ) {
+                            if self.options.use_block_mode {
+                                buffer.insert_char(
+                                    x - start.x,
+                                    y - start.y,
+                                    cell.ch,
+                                );
                             } else {
-                                x
-                            };
-                            buffer.insert_char(new_x, y - start.y, cell.ch);
+                                //if its not in block mode, we only deduct x if it is on the first line
+                                let in_start_selection_line = y == start.y;
+                                let new_x = if in_start_selection_line {
+                                    x - start.x
+                                } else {
+                                    x
+                                };
+                                buffer.insert_char(new_x, y - start.y, cell.ch);
+                            }
                         }
                     }
                 }
             }
         }
         buffer.to_string()
+    }
+
+    fn delete_cells(&mut self, line: usize, start_x: usize, end_x: usize) {
+        let (page, line_index) = self.calc_page_line_index(line);
+        self.pages[page].delete_cells(line_index, start_x, end_x);
+    }
+
+    fn delete_cells_from_start(&mut self, line: usize, end_x: usize) {
+        let (page, line_index) = self.calc_page_line_index(line);
+        self.pages[page].delete_cells_from_start(line_index, end_x);
+    }
+
+    fn delete_cells_to_end(&mut self, line: usize, start_x: usize) {
+        let (page, line_index) = self.calc_page_line_index(line);
+        self.pages[page].delete_cells_to_end(line_index, start_x);
     }
 
     /// Remove the text within the start and end position then return the deleted text
@@ -207,20 +269,20 @@ impl TextBuffer {
         if self.options.use_block_mode {
             for line_index in start.y..=end.y {
                 println!("deleting cells in line: {}", line_index);
-                self.lines[line_index].delete_cells(start.x, end.x);
+                self.delete_cells(line_index, start.x, end.x);
             }
         } else {
             let is_one_line = start.y == end.y;
             //delete the lines in between
             if is_one_line {
-                self.lines[start.y].delete_cells(start.x, end.x);
+                self.delete_cells(start.y, start.x, end.x);
             } else {
                 // at the last line of selection: delete the cells from 0 to end.x
-                self.lines[end.y].delete_cells_from_start(end.x);
+                self.delete_cells_from_start(end.y, end.x);
                 // drain the lines in between
-                self.lines.drain(start.y + 1..end.y);
+                self.delete_lines(start.y + 1, end.y);
                 // at the first line of selection: delete the cells from start.x to end
-                self.lines[start.y].delete_cells_to_end(start.x);
+                self.delete_cells_to_end(start.y, start.x);
             }
         }
         deleted_text
@@ -248,9 +310,13 @@ impl TextBuffer {
 
     /// calculate the bounds of the text_buffer
     pub fn bounds(&self) -> Point2<i32> {
-        let total_lines = self.lines.len() as i32;
-        let max_column =
-            self.lines.iter().map(|line| line.width).max().unwrap_or(0) as i32;
+        let total_lines = self.total_lines() as i32;
+        let max_column = self
+            .pages
+            .iter()
+            .map(|page| page.max_column())
+            .max()
+            .unwrap_or(0) as i32;
         Point2::new(max_column, total_lines)
     }
 
@@ -291,14 +357,32 @@ impl TextBuffer {
         self.focused_cell = self.find_focused_cell();
     }
 
+    fn get_line(&self, line: usize) -> Option<&Line> {
+        let (page_index, line_index) = self.calc_page_line_index(line);
+        self.pages
+            .get(page_index)
+            .map(|page| page.lines.get(line_index))
+            .flatten()
+    }
+
+    fn get_line_mut(&mut self, line: usize) -> Option<&mut Line> {
+        let (page, line_index) = self.calc_page_line_index(line);
+        self.pages
+            .get_mut(page)
+            .map(|page| page.lines.get_mut(line_index))
+            .flatten()
+    }
+
     fn find_focused_cell(&self) -> Option<FocusCell> {
-        let line_index = self.cursor.y;
-        if let Some(line) = self.lines.get(line_index) {
+        let line = self.cursor.y;
+        let (page_index, line_index) = self.calc_page_line_index(line);
+        if let Some(line) = self.get_line(line) {
             if let Some((range_index, cell_index)) =
                 line.calc_range_cell_index_position(self.cursor.x)
             {
                 if let Some(range) = line.ranges.get(range_index) {
                     return Some(FocusCell {
+                        page_index,
                         line_index,
                         range_index,
                         cell_index,
@@ -310,17 +394,23 @@ impl TextBuffer {
         return None;
     }
 
-    fn is_focused_line(&self, line_index: usize) -> bool {
+    fn is_focused_line(&self, line: usize) -> bool {
         if let Some(focused_cell) = self.focused_cell {
-            focused_cell.matched_line(line_index)
+            let (page_index, line_index) = self.calc_page_line_index(line);
+            focused_cell.matched_line(page_index, line_index)
         } else {
             false
         }
     }
 
-    fn is_focused_range(&self, line_index: usize, range_index: usize) -> bool {
+    fn is_focused_range(
+        &self,
+        page_index: usize,
+        line_index: usize,
+        range_index: usize,
+    ) -> bool {
         if let Some(focused_cell) = self.focused_cell {
-            focused_cell.matched_range(line_index, range_index)
+            focused_cell.matched_range(page_index, line_index, range_index)
         } else {
             false
         }
@@ -328,12 +418,18 @@ impl TextBuffer {
 
     fn is_focused_cell(
         &self,
+        page_index: usize,
         line_index: usize,
         range_index: usize,
         cell_index: usize,
     ) -> bool {
         if let Some(focused_cell) = self.focused_cell {
-            focused_cell.matched(line_index, range_index, cell_index)
+            focused_cell.matched(
+                page_index,
+                line_index,
+                range_index,
+                cell_index,
+            )
         } else {
             false
         }
@@ -377,7 +473,7 @@ impl TextBuffer {
     /// how wide the numberline based on the character lengths of the number
     fn numberline_wide(&self) -> usize {
         if self.options.show_line_numbers {
-            self.lines.len().to_string().len()
+            self.total_lines().to_string().len()
         } else {
             0
         }
@@ -418,23 +514,23 @@ impl TextBuffer {
             },
         ];
 
-        let rendered_lines = self
-            .lines
+        let rendered_pages = self
+            .pages
             .iter()
             .enumerate()
-            .map(|(line_index, line)| line.view_line(&self, line_index));
+            .map(|(page_index, page)| page.view_page(&self, page_index));
 
         if self.options.use_for_ssg {
             // using div works well when select-copying for both chrome and firefox
             // this is ideal for statis site generation highlighting
-            div(code_attributes, rendered_lines)
+            div(code_attributes, rendered_pages)
         } else {
             // using <pre><code> works well when copying in chrome
             // but in firefox, it creates a double line when select-copying the text
             // whe need to use <pre><code> in order for typing whitespace works.
             pre(
                 [class_ns("code_wrapper")],
-                [code(code_attributes, rendered_lines)],
+                [code(code_attributes, rendered_pages)],
             )
         }
     }
@@ -611,7 +707,7 @@ impl TextBuffer {
 impl TextBuffer {
     /// the total number of lines of this text canvas
     pub(crate) fn total_lines(&self) -> usize {
-        self.lines.len()
+        self.pages.iter().map(|page| page.total_lines()).sum()
     }
 
     /// the cursor is in virtual position when the position
@@ -622,37 +718,49 @@ impl TextBuffer {
 
     /// rerun highlighter on the content
     pub(crate) fn rehighlight(&mut self) {
-        self.lines = Self::highlight_content(
+        let lines = Self::highlight_content(
             &self.to_string(),
             &self.text_highlighter,
             &self.options.syntax_token,
         );
+        self.pages = Page::from_lines(self.options.page_size, lines);
     }
 
     /// the width of the line at line `n`
-    #[allow(unused)]
     pub(crate) fn line_width(&self, n: usize) -> Option<usize> {
-        self.lines.get(n).map(|l| l.width)
+        let (page, line_index) = self.calc_page_line_index(n);
+        self.pages[page].line_width(line_index)
     }
 
     /// add more lines, used internally
     fn add_lines(&mut self, n: usize) {
-        for _i in 0..n {
-            self.lines.push(Line::default());
+        if let Some(last) = self.pages.last_mut() {
+            let last_total_lines = last.total_lines();
+            if last_total_lines < self.options.page_size {
+                let capacity =
+                    self.options.page_size as i32 - last_total_lines as i32;
+                let to_add = n.min(capacity as usize);
+                last.add_lines(to_add);
+                let excess = n as i32 - capacity as i32;
+                if excess > 0 {
+                    self.add_lines(excess as usize)
+                }
+            } else {
+                self.add_page(1);
+                self.add_lines(n);
+            }
         }
     }
 
     /// fill columns at line y putting a space in each of the cells
     fn add_cell(&mut self, y: usize, n: usize) {
-        let ch = ' ';
-        for _i in 0..n {
-            self.lines[y].push_char(ch);
-        }
+        let (page, line_index) = self.calc_page_line_index(y);
+        self.pages[page].add_cell(line_index, n);
     }
 
     /// break at line y and put the characters after x on the next line
     pub(crate) fn break_line(&mut self, x: usize, y: usize) {
-        if let Some(line) = self.lines.get_mut(y) {
+        if let Some(line) = self.get_line_mut(y) {
             let (range_index, col) = line
                 .calc_range_cell_index_position(x)
                 .unwrap_or(line.range_cell_next());
@@ -671,10 +779,8 @@ impl TextBuffer {
     }
 
     pub(crate) fn join_line(&mut self, x: usize, y: usize) {
-        if self.lines.get(y + 1).is_some() {
-            let next_line = self.lines.remove(y + 1);
-            self.lines[y].push_ranges(next_line.ranges);
-        }
+        let (page, line_index) = self.calc_page_line_index(y);
+        self.pages[page].join_line(x, line_index);
     }
 
     fn assert_chars(&self, ch: char) {
@@ -693,11 +799,8 @@ impl TextBuffer {
         self.assert_chars(ch);
         self.ensure_cell_exist(x, y);
 
-        let (range_index, cell_index) = self.lines[y]
-            .calc_range_cell_index_position(x)
-            .unwrap_or(self.lines[y].range_cell_next());
-
-        self.lines[y].insert_char(range_index, cell_index, ch);
+        let (page, line_index) = self.calc_page_line_index(y);
+        self.pages[page].insert_char_to_line(line_index, x, ch);
     }
 
     fn insert_line_text(&mut self, x: usize, y: usize, text: &str) {
@@ -717,7 +820,6 @@ impl TextBuffer {
         if lines.len() == 1 {
             self.insert_line_text(x, y, lines[0]);
         } else {
-            dbg!(&self.lines);
             let mut new_col = x;
             let mut new_line = y;
             for (line_index, line) in lines.iter().enumerate() {
@@ -742,53 +844,65 @@ impl TextBuffer {
         self.assert_chars(ch);
         self.ensure_cell_exist(x + 1, y);
 
-        let (range_index, cell_index) = self.lines[y]
-            .calc_range_cell_index_position(x)
-            .expect("the range_index and cell_index must have existed at this point");
-        self.lines[y].replace_char(range_index, cell_index, ch)
+        let (page, line_index) = self.calc_page_line_index(y);
+        self.pages[page].replace_char_to_line(line_index, x, ch)
     }
 
     //TODO: delegrate the deletion of the char to the line and range
     /// delete character at this position
     pub(crate) fn delete_char(&mut self, x: usize, y: usize) -> Option<char> {
-        if let Some(line) = self.lines.get_mut(y) {
-            if let Some((range_index, col)) =
-                line.calc_range_cell_index_position(x)
-            {
-                if let Some(range) = line.ranges.get_mut(range_index) {
-                    if range.cells.get(col).is_some() {
-                        let cell = range.cells.remove(col);
-                        return Some(cell.ch);
-                    }
-                }
-            }
-        }
-        None
+        let (page, line_index) = self.calc_page_line_index(y);
+        self.pages[page].delete_char_to_line(line_index, x)
     }
 
     fn ensure_cell_exist(&mut self, x: usize, y: usize) {
         self.ensure_line_exist(y);
-        let cell_gap = x.saturating_sub(self.lines[y].width);
+        let cell_gap = x.saturating_sub(self.get_line(y).unwrap().width);
         if cell_gap > 0 {
             self.add_cell(y, cell_gap);
         }
     }
 
     fn ensure_line_exist(&mut self, y: usize) {
-        let line_gap = y.saturating_add(1).saturating_sub(self.total_lines());
+        let (page, line_index) = self.calc_page_line_index(y);
+        self.ensure_page_exist(page);
+        let line_gap = line_index
+            .saturating_add(1)
+            .saturating_sub(self.total_lines());
         if line_gap > 0 {
             self.add_lines(line_gap);
         }
     }
 
-    fn insert_line(&mut self, line_index: usize, line: Line) {
-        self.ensure_line_exist(line_index.saturating_sub(1));
-        self.lines.insert(line_index, line);
+    fn total_pages(&self) -> usize {
+        self.pages.len()
+    }
+
+    fn ensure_page_exist(&mut self, page_index: usize) {
+        let page_gap = page_index
+            .saturating_add(1)
+            .saturating_sub(self.total_pages());
+        if page_gap > 0 {
+            self.add_page(page_gap);
+        }
+    }
+
+    fn add_page(&mut self, n_pages: usize) {
+        for _ in 0..n_pages {
+            self.pages.push(Page::default());
+        }
+    }
+
+    /// insert a line at this line: y
+    fn insert_line(&mut self, y: usize, line: Line) {
+        self.ensure_line_exist(y.saturating_sub(1));
+        let (page, line_index) = self.calc_page_line_index(y);
+        self.pages[page].insert_line(line_index, line);
     }
 
     /// return the line where the cursor is located
     fn focused_line(&self) -> Option<&Line> {
-        self.lines.get(self.cursor.y)
+        self.get_line(self.cursor.y)
     }
 
     /// return the position of the cursor
@@ -798,18 +912,18 @@ impl TextBuffer {
 
     /// the last line and last char of the text buffer
     fn max_position(&self) -> Point2<usize> {
-        let last_y = self.lines.len().saturating_sub(1);
+        let last_y = self.total_lines().saturating_sub(1);
 
         // if in block mode use the longest line
         let last_x = if self.options.use_block_mode {
-            self.lines
+            self.pages
                 .iter()
-                .map(|line| line.width.saturating_sub(1))
+                .map(|page| page.page_width().saturating_sub(1))
                 .max()
                 .unwrap_or(0)
         } else {
             // else use the width of the last line
-            if let Some(last_line) = self.lines.get(last_y) {
+            if let Some(last_line) = self.get_line(last_y) {
                 last_line.width.saturating_sub(1)
             } else {
                 0
@@ -904,12 +1018,14 @@ impl TextBuffer {
     /// set the position to the max_column of the line if it is out of
     /// bounds
     pub(crate) fn set_position_clamped(&mut self, mut x: usize, mut y: usize) {
-        if y > self.lines.len() {
-            y = self.lines.len() - 1;
+        let total_lines = self.total_lines();
+        if y > total_lines {
+            y = total_lines - 1;
         }
-        let line = &self.lines[y];
-        if x > line.width {
-            x = line.width - 1;
+        let (page, line_index) = self.calc_page_line_index(y);
+        let line_width = self.pages[page].line_width(line_index).unwrap();
+        if x > line_width {
+            x = line_width - 1;
         }
         self.set_position(x, y)
     }
@@ -960,9 +1076,9 @@ impl TextBuffer {
 
 impl ToString for TextBuffer {
     fn to_string(&self) -> String {
-        self.lines
+        self.pages
             .iter()
-            .map(|line| line.text())
+            .map(|page| page.to_string())
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -971,19 +1087,31 @@ impl ToString for TextBuffer {
 impl FocusCell {
     fn matched(
         &self,
+        page_index: usize,
         line_index: usize,
         range_index: usize,
         cell_index: usize,
     ) -> bool {
-        self.line_index == line_index
+        self.page_index == page_index
+            && self.line_index == line_index
             && self.range_index == range_index
             && self.cell_index == cell_index
     }
-    fn matched_line(&self, line_index: usize) -> bool {
-        self.line_index == line_index
+    fn matched_page(&self, page_index: usize) -> bool {
+        self.page_index == page_index
     }
-    fn matched_range(&self, line_index: usize, range_index: usize) -> bool {
-        self.line_index == line_index && self.range_index == range_index
+    fn matched_line(&self, page_index: usize, line_index: usize) -> bool {
+        self.matched_page(page_index) && self.line_index == line_index
+    }
+    fn matched_range(
+        &self,
+        page_index: usize,
+        line_index: usize,
+        range_index: usize,
+    ) -> bool {
+        self.matched_page(page_index)
+            && self.matched_line(page_index, line_index)
+            && self.range_index == range_index
     }
 }
 
@@ -995,7 +1123,7 @@ mod test {
     fn test_ensure_line_exist() {
         let mut buffer = TextBuffer::from_str(Options::default(), "");
         buffer.ensure_line_exist(10);
-        assert!(buffer.lines.get(10).is_some());
+        assert!(buffer.pages[0].lines.get(10).is_some());
         assert_eq!(buffer.total_lines(), 11);
     }
 }

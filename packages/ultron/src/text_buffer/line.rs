@@ -106,6 +106,7 @@ impl Line {
     pub(super) fn view_line<MSG>(
         &self,
         text_buffer: &TextBuffer,
+        page_index: usize,
         line_index: usize,
     ) -> Node<MSG> {
         let class_ns = |class_names| {
@@ -115,9 +116,11 @@ impl Line {
             classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
         };
         let is_focused = text_buffer.is_focused_line(line_index);
+        let line_number =
+            page_index * text_buffer.options.page_size + line_index + 1;
         div(
             [
-                key(line_index),
+                key(line_number),
                 class_ns("number__line"),
                 classes_ns_flag([("line_focused", is_focused)]),
             ],
@@ -146,7 +149,7 @@ impl Line {
                                 empty_attr()
                             },
                         ],
-                        [text(line_index + 1)],
+                        [text(line_number)],
                     ),
                 ),
                 span(
@@ -155,6 +158,7 @@ impl Line {
                         |(range_index, range)| {
                             range.view_range(
                                 text_buffer,
+                                page_index,
                                 line_index,
                                 range_index,
                             )

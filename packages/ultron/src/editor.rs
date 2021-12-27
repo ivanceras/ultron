@@ -48,8 +48,6 @@ pub enum Msg {
 pub struct Editor<XMSG> {
     options: Options,
     text_buffer: TextBuffer,
-    /// number of lines in a page, when paging up and down
-    page_size: usize,
     /// for undo and redo
     recorded: Recorded,
     measurements: Option<Measurements>,
@@ -79,7 +77,6 @@ impl<XMSG> Editor<XMSG> {
         Editor {
             options: options.clone(),
             text_buffer: TextBuffer::from_str(options, content),
-            page_size: 20,
             recorded: Recorded::new(),
             measurements: None,
             average_update_time: None,
@@ -884,7 +881,7 @@ impl<XMSG> Editor<XMSG> {
     /// the number of page of the editor based on the number of lines
     fn pages(&self) -> i32 {
         let n_lines = self.text_buffer.total_lines() as i32;
-        (n_lines - 1) / self.page_size as i32 + 1
+        (n_lines - 1) / self.options.page_size as i32 + 1
     }
 
     /// the view for the status line

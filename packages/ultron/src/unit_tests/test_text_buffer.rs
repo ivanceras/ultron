@@ -276,6 +276,12 @@ fn test_cut_text_multi_line() {
 }
 
 #[test]
+// before text
+// Hello world
+// after text
+//
+// before text
+// text
 fn test_cut_text_2lines_multi_line() {
     let raw = "before text\nHello world\nafter text";
     let mut buffer = TextBuffer::from_str(Options::default(), raw);

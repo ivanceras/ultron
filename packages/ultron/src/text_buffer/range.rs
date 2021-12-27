@@ -43,6 +43,7 @@ impl Range {
     pub(super) fn view_range<MSG>(
         &self,
         text_buffer: &TextBuffer,
+        page_index: usize,
         line_index: usize,
         range_index: usize,
     ) -> Node<MSG> {
@@ -57,7 +58,8 @@ impl Range {
         };
         let background = util::to_rgba(self.style.background);
         let foreground = util::to_rgba(self.style.foreground);
-        let is_focused = text_buffer.is_focused_range(line_index, range_index);
+        let is_focused =
+            text_buffer.is_focused_range(page_index, line_index, range_index);
         span(
             [
                 class_ns("range"),
@@ -72,7 +74,13 @@ impl Range {
                 },
             ],
             self.cells.iter().enumerate().map(|(cell_index, cell)| {
-                cell.view_cell(text_buffer, line_index, range_index, cell_index)
+                cell.view_cell(
+                    text_buffer,
+                    page_index,
+                    line_index,
+                    range_index,
+                    cell_index,
+                )
             }),
         )
     }

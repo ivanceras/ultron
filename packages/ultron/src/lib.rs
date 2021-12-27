@@ -42,6 +42,8 @@ pub struct Options {
     /// whether or not the editor occupy the container element
     /// false means the editor only expands to the number of lines in the code
     pub occupy_container: bool,
+    /// number of lines in a page, when paging up and down
+    pub page_size: usize,
 }
 
 impl Default for Options {
@@ -58,6 +60,7 @@ impl Default for Options {
             theme_name: None,
             syntax_token: "txt".to_string(),
             occupy_container: true,
+            page_size: 20,
         }
     }
 }

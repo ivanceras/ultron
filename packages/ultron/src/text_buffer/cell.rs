@@ -23,6 +23,7 @@ impl Cell {
     pub(super) fn view_cell<MSG>(
         &self,
         text_buffer: &TextBuffer,
+        page_index: usize,
         line_index: usize,
         range_index: usize,
         cell_index: usize,
@@ -36,11 +37,19 @@ impl Cell {
                 class_name_flags,
             )
         };
-        let is_focused =
-            text_buffer.is_focused_cell(line_index, range_index, cell_index);
+        let is_focused = text_buffer.is_focused_cell(
+            page_index,
+            line_index,
+            range_index,
+            cell_index,
+        );
 
-        let is_selected =
-            text_buffer.in_selection(line_index, range_index, cell_index);
+        let is_selected = text_buffer.in_selection(
+            page_index,
+            line_index,
+            range_index,
+            cell_index,
+        );
 
         span(
             [
