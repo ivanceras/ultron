@@ -43,7 +43,7 @@ pub struct TextBuffer {
     context: Context,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Context {
     pub viewport_width: f32,
     pub viewport_height: f32,
@@ -315,10 +315,12 @@ impl TextBuffer {
         self.pages[page].delete_cells(line_index, start_x, end_x);
     }
 
+    /*
     fn delete_cells_from_start(&mut self, line: usize, end_x: usize) {
         let (page, line_index) = self.calc_page_line_index(line);
         self.pages[page].delete_cells_from_start(line_index, end_x);
     }
+    */
 
     fn delete_cells_to_end(&mut self, line: usize, start_x: usize) {
         let (page, line_index) = self.calc_page_line_index(line);
@@ -345,7 +347,7 @@ impl TextBuffer {
                 self.delete_cells(start.y, start.x, end.x);
             } else {
                 // at the last line of selection: delete the cells from 0 to end.x
-                self.delete_cells_from_start(end.y, end.x);
+                self.delete_cells(end.y, 0, end.x);
                 // drain the lines in between
                 self.delete_lines(start.y + 1, end.y);
                 // at the first line of selection: delete the cells from start.x to end
@@ -1188,7 +1190,8 @@ mod test {
 
     #[test]
     fn test_ensure_line_exist() {
-        let mut buffer = TextBuffer::from_str(Options::default(), "");
+        let mut buffer =
+            TextBuffer::from_str(Options::default(), Context::default(), "");
         buffer.ensure_line_exist(10);
         assert!(buffer.pages[0].lines.get(10).is_some());
         assert_eq!(buffer.total_lines(), 11);

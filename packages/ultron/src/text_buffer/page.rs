@@ -55,6 +55,7 @@ impl Page {
         self.lines[line_index].delete_cells(start_x, end_x);
     }
 
+    /*
     pub(super) fn delete_cells_from_start(
         &mut self,
         line_index: usize,
@@ -62,6 +63,7 @@ impl Page {
     ) {
         self.lines[line_index].delete_cells_from_start(end_x);
     }
+    */
     pub(super) fn delete_cells_to_end(
         &mut self,
         line_index: usize,

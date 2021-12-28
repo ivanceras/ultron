@@ -2,8 +2,8 @@
 
 use ultron::sauron::html::tags::style;
 use ultron::sauron::prelude::*;
-use ultron::Options;
 use ultron::TextBuffer;
+use ultron::{Context, Options};
 
 pub fn render<MSG>(
     content: &str,
@@ -20,7 +20,7 @@ pub fn render<MSG>(
         syntax_token: syntax_token.to_string(),
         ..Default::default()
     };
-    let buffer = TextBuffer::from_str(options, content);
+    let buffer = TextBuffer::from_str(options, Context::default(), content);
     page(buffer)
 }
 
