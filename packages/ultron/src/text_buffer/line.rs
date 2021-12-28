@@ -39,6 +39,7 @@ impl Line {
         self.ranges.extend(ranges);
     }
 
+    //TODO: implement this using ToString
     /// get the text content of this line
     pub(super) fn text(&self) -> String {
         String::from_iter(
@@ -228,6 +229,24 @@ impl Line {
             // drain all ranges beyond `range_index`
             self.ranges.drain(range_index + 1..);
             self.recalc_width();
+        }
+    }
+
+    /// get text of this line starting from `start_x` to end of the line
+    pub(super) fn get_text_to_end(&self, start_x: usize) -> Option<String> {
+        if let Some((range_index, cell_index)) =
+            self.calc_range_cell_index_position(start_x)
+        {
+            let start_text =
+                self.ranges[range_index].get_text_to_end(cell_index);
+            let end_text = self.ranges[range_index + 1..]
+                .iter()
+                .map(|range| range.to_string())
+                .collect::<Vec<_>>()
+                .join("");
+            Some([start_text, end_text].join(""))
+        } else {
+            None
         }
     }
 

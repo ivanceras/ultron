@@ -326,6 +326,17 @@ fn test_cut_text_2lines_multi_line() {
     assert_eq!(buffer.to_string(), "before text\n\n text");
 }
 
+// before text
+// Hello world
+// after text
+//
+// world
+// text
+//
+// before text
+// Hello
+// after
+//
 #[test]
 fn test_cut_text_2lines_multi_line_block_mode() {
     let raw = "before text\nHello world\nafter text";

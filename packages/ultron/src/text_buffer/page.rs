@@ -34,6 +34,14 @@ impl Page {
         self.lines.drain(line_index..);
     }
 
+    pub(super) fn get_text_lines_to_end(&self, line_index: usize) -> String {
+        self.lines[line_index..]
+            .iter()
+            .map(|line| line.text())
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
     /// delete lines from start_index to end_index (inclusive)
     pub(super) fn delete_lines(
         &mut self,
@@ -43,6 +51,17 @@ impl Page {
         self.lines.drain(start_index..=end_index);
     }
 
+    pub(super) fn get_text_in_lines(
+        &self,
+        start_index: usize,
+        end_index: usize,
+    ) -> String {
+        self.lines[start_index..=end_index]
+            .iter()
+            .map(|line| line.text())
+            .join("\n")
+    }
+
     /// delete lines from start_line to end_line(exlcusive)
     pub(super) fn delete_lines_exclusive(
         &mut self,
@@ -50,6 +69,18 @@ impl Page {
         end_line: usize,
     ) {
         self.lines.drain(start_line..end_line);
+    }
+
+    pub(super) fn get_text_in_lines_exclusive(
+        &self,
+        start_line: usize,
+        end_line: usize,
+    ) -> String {
+        self.lines[start_line..end_line]
+            .iter()
+            .map(|line| line.text())
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
     pub(super) fn delete_cells_in_line(
@@ -67,6 +98,23 @@ impl Page {
         start_x: usize,
     ) {
         self.lines[line_index].delete_cells_to_end(start_x);
+    }
+
+    pub(super) fn get_text_to_end(
+        &self,
+        line_index: usize,
+        start_x: usize,
+    ) -> Option<String> {
+        self.lines[line_index].get_text_to_end(start_x)
+    }
+
+    pub(super) fn get_text_in_line(
+        &self,
+        line_index: usize,
+        start_x: usize,
+        end_x: usize,
+    ) -> Option<String> {
+        self.lines[line_index].get_text(start_x, end_x)
     }
 
     pub(super) fn total_lines(&self) -> usize {

@@ -163,8 +163,34 @@ impl TextBuffer {
         } else {
             self.pages[end_page].delete_lines(0, end_line_index);
             self.pages[start_page].delete_lines_to_end(start_line_index);
+            self.pages.drain(start_page..end_page);
         }
-        self.pages.drain(start_page..end_page);
+    }
+
+    fn get_text_in_lines(&self, start_line: usize, end_line: usize) -> String {
+        let (start_page, start_line_index) =
+            self.calc_page_line_index(start_line);
+        let (end_page, end_line_index) = self.calc_page_line_index(end_line);
+        if start_page == end_page {
+            self.pages[start_page]
+                .get_text_in_lines_exclusive(start_line_index, end_line_index)
+        } else {
+            let end_text =
+                self.pages[end_page].get_text_in_lines(0, end_line_index);
+            let start_text =
+                self.pages[start_page].get_text_lines_to_end(start_line_index);
+
+            let mid_text = self.pages[start_page..end_page]
+                .iter()
+                .map(|page| page.to_string())
+                .collect::<Vec<_>>()
+                .join("\n");
+            if mid_text.is_empty() {
+                [start_text, end_text].join("\n")
+            } else {
+                [start_text, mid_text, end_text].join("\n")
+            }
+        }
     }
 
     pub fn clear(&mut self) {
@@ -256,6 +282,7 @@ impl TextBuffer {
         }
     }
 
+    /*
     /// TODO: build the text using the technique used in cut_text, which is more efficient way and
     /// less code
     pub(crate) fn get_text(
@@ -303,6 +330,7 @@ impl TextBuffer {
         }
         buffer.to_string()
     }
+    */
 
     fn delete_cells_in_line(
         &mut self,
@@ -314,9 +342,25 @@ impl TextBuffer {
         self.pages[page].delete_cells_in_line(line_index, start_x, end_x);
     }
 
+    fn get_text_in_line(
+        &self,
+        line: usize,
+        start_x: usize,
+        end_x: usize,
+    ) -> Option<String> {
+        let (page, line_index) = self.calc_page_line_index(line);
+        self.pages[page].get_text_in_line(line_index, start_x, end_x)
+    }
+
+    /// delete cells in line `line` starting from cell `start_x` to end of the line
     fn delete_cells_to_end(&mut self, line: usize, start_x: usize) {
         let (page, line_index) = self.calc_page_line_index(line);
         self.pages[page].delete_cells_to_end(line_index, start_x);
+    }
+
+    fn get_text_to_end(&self, line: usize, start_x: usize) -> Option<String> {
+        let (page, line_index) = self.calc_page_line_index(line);
+        self.pages[page].get_text_to_end(line_index, start_x)
     }
 
     /// Remove the text within the start and end position then return the deleted text
@@ -347,6 +391,44 @@ impl TextBuffer {
             }
         }
         deleted_text
+    }
+
+    pub(crate) fn get_text(
+        &self,
+        start: Point2<usize>,
+        end: Point2<usize>,
+    ) -> String {
+        if self.options.use_block_mode {
+            (start.y..=end.y)
+                .map(|line_index| {
+                    self.get_text_in_line(line_index, start.x, end.x)
+                        .unwrap_or(String::from(""))
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        } else {
+            let is_one_line = start.y == end.y;
+            //delete the lines in between
+            if is_one_line {
+                self.get_text_in_line(start.y, start.x, end.x)
+                    .unwrap_or(String::from(""))
+            } else {
+                let end_text = self
+                    .get_text_in_line(end.y, 0, end.x)
+                    .unwrap_or(String::from(""));
+
+                let mid_text = self.get_text_in_lines(start.y + 1, end.y);
+
+                let start_text = self
+                    .get_text_to_end(start.y, start.x)
+                    .unwrap_or(String::from(""));
+                if mid_text.is_empty() {
+                    [start_text, end_text].join("\n")
+                } else {
+                    [start_text, mid_text, end_text].join("\n")
+                }
+            }
+        }
     }
 
     pub(crate) fn selected_text(&self) -> Option<String> {
