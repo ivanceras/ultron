@@ -52,7 +52,7 @@ impl Page {
         self.lines.drain(start_line..end_line);
     }
 
-    pub(super) fn delete_cells(
+    pub(super) fn delete_cells_in_line(
         &mut self,
         line_index: usize,
         start_x: usize,

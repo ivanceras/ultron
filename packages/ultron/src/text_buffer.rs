@@ -304,9 +304,14 @@ impl TextBuffer {
         buffer.to_string()
     }
 
-    fn delete_cells(&mut self, line: usize, start_x: usize, end_x: usize) {
+    fn delete_cells_in_line(
+        &mut self,
+        line: usize,
+        start_x: usize,
+        end_x: usize,
+    ) {
         let (page, line_index) = self.calc_page_line_index(line);
-        self.pages[page].delete_cells(line_index, start_x, end_x);
+        self.pages[page].delete_cells_in_line(line_index, start_x, end_x);
     }
 
     fn delete_cells_to_end(&mut self, line: usize, start_x: usize) {
@@ -325,16 +330,16 @@ impl TextBuffer {
         if self.options.use_block_mode {
             for line_index in start.y..=end.y {
                 println!("deleting cells in line: {}", line_index);
-                self.delete_cells(line_index, start.x, end.x);
+                self.delete_cells_in_line(line_index, start.x, end.x);
             }
         } else {
             let is_one_line = start.y == end.y;
             //delete the lines in between
             if is_one_line {
-                self.delete_cells(start.y, start.x, end.x);
+                self.delete_cells_in_line(start.y, start.x, end.x);
             } else {
                 // at the last line of selection: delete the cells from 0 to end.x
-                self.delete_cells(end.y, 0, end.x);
+                self.delete_cells_in_line(end.y, 0, end.x);
                 // drain the lines in between
                 self.delete_lines(start.y + 1, end.y);
                 // at the first line of selection: delete the cells from start.x to end
