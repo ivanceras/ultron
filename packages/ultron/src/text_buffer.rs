@@ -153,12 +153,6 @@ impl TextBuffer {
         self.pages.drain(page + 1..);
     }
 
-    fn delete_lines_from_start(&mut self, end_line: usize) {
-        let (page, line_index) = self.calc_page_line_index(end_line);
-        self.pages[page].delete_lines_from_start(line_index);
-        self.pages.drain(0..page);
-    }
-
     fn delete_lines(&mut self, start_line: usize, end_line: usize) {
         let (start_page, start_line_index) =
             self.calc_page_line_index(start_line);
@@ -167,7 +161,7 @@ impl TextBuffer {
             self.pages[start_page]
                 .delete_lines_exclusive(start_line_index, end_line_index);
         } else {
-            self.pages[end_page].delete_lines_from_start(end_line_index);
+            self.pages[end_page].delete_lines(0, end_line_index);
             self.pages[start_page].delete_lines_to_end(start_line_index);
         }
         self.pages.drain(start_page..end_page);
@@ -314,13 +308,6 @@ impl TextBuffer {
         let (page, line_index) = self.calc_page_line_index(line);
         self.pages[page].delete_cells(line_index, start_x, end_x);
     }
-
-    /*
-    fn delete_cells_from_start(&mut self, line: usize, end_x: usize) {
-        let (page, line_index) = self.calc_page_line_index(line);
-        self.pages[page].delete_cells_from_start(line_index, end_x);
-    }
-    */
 
     fn delete_cells_to_end(&mut self, line: usize, start_x: usize) {
         let (page, line_index) = self.calc_page_line_index(line);

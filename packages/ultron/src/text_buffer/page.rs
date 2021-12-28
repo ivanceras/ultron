@@ -34,8 +34,13 @@ impl Page {
         self.lines.drain(line_index..);
     }
 
-    pub(super) fn delete_lines_from_start(&mut self, line_index: usize) {
-        self.lines.drain(0..=line_index);
+    /// delete lines from start_index to end_index (inclusive)
+    pub(super) fn delete_lines(
+        &mut self,
+        start_index: usize,
+        end_index: usize,
+    ) {
+        self.lines.drain(start_index..=end_index);
     }
 
     /// delete lines from start_line to end_line(exlcusive)
@@ -46,6 +51,7 @@ impl Page {
     ) {
         self.lines.drain(start_line..end_line);
     }
+
     pub(super) fn delete_cells(
         &mut self,
         line_index: usize,
@@ -55,15 +61,6 @@ impl Page {
         self.lines[line_index].delete_cells(start_x, end_x);
     }
 
-    /*
-    pub(super) fn delete_cells_from_start(
-        &mut self,
-        line_index: usize,
-        end_x: usize,
-    ) {
-        self.lines[line_index].delete_cells_from_start(end_x);
-    }
-    */
     pub(super) fn delete_cells_to_end(
         &mut self,
         line_index: usize,

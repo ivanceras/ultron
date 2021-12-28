@@ -128,13 +128,6 @@ impl Range {
         self.recalc_width();
     }
 
-    /*
-    /// delete cells from start to end_index (inclusive)
-    pub(super) fn delete_cells_from_start(&mut self, end_index: usize) {
-        self.cells.drain(0..=end_index);
-    }
-    */
-
     /// delet the cells from start to end (inclusive)
     pub(super) fn delete_cells(
         &mut self,
@@ -142,11 +135,6 @@ impl Range {
         end_index: usize,
     ) {
         self.cells.drain(start_index..=end_index);
-    }
-
-    /// get the text of cells from 0 to end_index (inclusive)
-    pub(super) fn get_text_from_start(&self, end_index: usize) -> String {
-        String::from_iter(self.cells[0..=end_index].iter().map(|cell| cell.ch))
     }
 
     /// get text of cells from start_index to end

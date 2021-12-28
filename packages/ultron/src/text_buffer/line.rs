@@ -231,28 +231,6 @@ impl Line {
         }
     }
 
-    /*
-    /// delete from the 0 to end_x
-    pub(super) fn delete_cells_from_start(&mut self, end_x: usize) {
-        if let Some((range_index, cell_index)) =
-            self.calc_range_cell_index_position(end_x)
-        {
-            log::trace!("deleting cells from start to {}", end_x);
-            log::trace!(
-                "range_index: {}, cell_index: {}",
-                range_index,
-                cell_index
-            );
-            self.ranges[range_index].delete_cells_from_start(cell_index);
-            // delete ranges from 0 to before this end_x location
-            self.ranges.drain(0..range_index);
-            self.recalc_width();
-        } else {
-            log::trace!("no deletion happened...");
-        }
-    }
-    */
-
     /// delete cells on this line from `start_x` to `end_x`
     pub(super) fn delete_cells(&mut self, start_x: usize, end_x: usize) {
         println!("deleting cells from {} to {}", start_x, end_x);
@@ -273,29 +251,6 @@ impl Line {
             }
             self.ranges.drain(start_range..end_range);
             self.recalc_width();
-        }
-    }
-
-    /// get text from the 0 to end_x
-    pub(super) fn get_text_from_start(
-        &mut self,
-        end_x: usize,
-    ) -> Option<String> {
-        if let Some((range_index, cell_index)) =
-            self.calc_range_cell_index_position(end_x)
-        {
-            let end_text =
-                self.ranges[range_index].get_text_from_start(cell_index);
-            // delete ranges from 0 to before this end_x location
-            let start_text = self.ranges[0..range_index]
-                .iter()
-                .map(|range| range.to_string())
-                .collect::<Vec<_>>()
-                .join("");
-
-            Some([start_text, end_text].join(""))
-        } else {
-            None
         }
     }
 
@@ -320,8 +275,7 @@ impl Line {
                     self.ranges[start_range].get_text(start_cell, end_cell);
                 Some(mid_text)
             } else {
-                let from_start =
-                    self.ranges[end_range].get_text_from_start(end_cell);
+                let from_start = self.ranges[end_range].get_text(0, end_cell);
                 let to_end =
                     self.ranges[start_range].get_text_to_end(start_cell);
                 let mid_text = self.ranges[start_range..end_range]
