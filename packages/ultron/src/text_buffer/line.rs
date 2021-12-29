@@ -116,7 +116,7 @@ impl Line {
         let classes_ns_flag = |class_name_flags| {
             classes_flag_namespaced(COMPONENT_NAME, class_name_flags)
         };
-        let is_focused = text_buffer.is_focused_line(line_index);
+        let is_focused = text_buffer.is_focused_line(page_index, line_index);
         let line_number =
             page_index * text_buffer.options.page_size + line_index + 1;
         div(

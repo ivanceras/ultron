@@ -239,7 +239,7 @@ impl TextBuffer {
     ) -> bool {
         let x = self.pages[page_index].lines[line_index]
             .calc_range_cell_index_to_x(range_index, cell_index);
-        let y = line_index;
+        let y = self.options.page_size * page_index + line_index;
 
         if self.options.use_block_mode {
             x >= start.x && x <= end.x && y >= start.y && y <= end.y
@@ -537,9 +537,8 @@ impl TextBuffer {
         return None;
     }
 
-    fn is_focused_line(&self, line: usize) -> bool {
+    fn is_focused_line(&self, page_index: usize, line_index: usize) -> bool {
         if let Some(focused_cell) = self.focused_cell {
-            let (page_index, line_index) = self.calc_page_line_index(line);
             focused_cell.matched_line(page_index, line_index)
         } else {
             false
