@@ -866,6 +866,7 @@ impl TextBuffer {
             &self.options.syntax_token,
         );
         self.pages = Page::from_lines(self.options.page_size, lines);
+        self.calculate_focused_cell();
     }
 
     /// the width of the line at line `n`
@@ -994,7 +995,9 @@ impl TextBuffer {
     /// delete character at this position
     pub(crate) fn delete_char(&mut self, x: usize, y: usize) -> Option<char> {
         let (page, line_index) = self.calc_page_line_index(y);
-        self.pages[page].delete_char_to_line(line_index, x)
+        let c = self.pages[page].delete_char_to_line(line_index, x);
+        self.calculate_focused_cell();
+        c
     }
 
     fn ensure_cell_exist(&mut self, x: usize, y: usize) {
@@ -1114,7 +1117,6 @@ impl TextBuffer {
         let (x, y) = self.calculate_offset(text);
         self.move_y(y);
         self.move_x(x);
-        self.calculate_focused_cell();
     }
     pub(crate) fn move_left(&mut self) {
         self.cursor.x = self.cursor.x.saturating_sub(1);
@@ -1176,13 +1178,11 @@ impl TextBuffer {
         self.break_line(x, y);
         self.move_left_start();
         self.move_down();
-        self.calculate_focused_cell();
     }
 
     pub(crate) fn command_join_line(&mut self, x: usize, y: usize) {
         self.join_line(x, y);
         self.set_position(x, y);
-        self.calculate_focused_cell();
     }
 
     pub(crate) fn command_delete_back(&mut self) -> Option<char> {
@@ -1197,7 +1197,6 @@ impl TextBuffer {
     }
     pub(crate) fn command_delete_forward(&mut self) -> Option<char> {
         let c = self.delete_char(self.cursor.x, self.cursor.y);
-        self.calculate_focused_cell();
         c
     }
     pub(crate) fn command_delete_selected_forward(&mut self) -> Option<String> {
@@ -1210,9 +1209,7 @@ impl TextBuffer {
         }
     }
     pub(crate) fn move_to(&mut self, pos: Point2<usize>) {
-        self.cursor.x = pos.x;
-        self.cursor.y = pos.y;
-        self.calculate_focused_cell();
+        self.set_position(pos.x, pos.y);
     }
 }
 

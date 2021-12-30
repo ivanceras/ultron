@@ -80,3 +80,5 @@
 - [ ] Clicking outside of the editor will affect the editor, this is because we need to let the editor interact to mouse up drags
     when shapes are drawn into the canvas.
     - A solution would be to send the WindowMouseUp event, but not the window click event
+- Putting the cursor before a quote and typing will make the cursor disappear
+    - This might at before any range

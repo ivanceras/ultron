@@ -299,8 +299,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 if key.chars().count() == 1 {
                     log::trace!("inserting from window keydown event");
                     let c = key.chars().next().expect("must be only 1 chr");
-                    self.text_buffer.command_insert_char(c);
-                    self.text_buffer.rehighlight();
+                    self.command_insert_char(c);
                 }
                 let extern_msgs = self.emit_on_change_listeners();
                 Effects::with_external(extern_msgs)
