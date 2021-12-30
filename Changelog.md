@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+- fix: highlighted character line calculation, page_index is now taken into account, fixing multiple highlighting into 1 only
+- Improve the implementation of get_text
+- refactor: use a more descriptive name for functions
+- chore: remove uncessary functions: delete_from_start variant since the it could be replace with a delete variant with 0 as the start_index argument
+- Add paging to the textbuffer
+   - feat: add optimization for showing/hiding lines that are not visible in the viewport
+   - feat: add paging to TextBuffer, this will provide optimization by hiding pages when it is not visible in the viewport
+   - feat: introduce paging and calculation of max_lines per viewport
+- feat: add a flag to indicate whether or not the editor should occupy the whole container
+- feat: add option use_virtual_edit flag which controls the behavior of cursor and mouse_clicks limited by the editor content size
+- chore: expose nalgebra from the crate
+- Export Editor and Msg from ultron
+- Make the Undo/Redo work
+    - Set the text_buffer location to the last undo/redo location
+    - Add a feature to bump history, to allow separation of undo/redo action list
+    - revamp Action and History to use char specific action instead of string, this revamps the undo/redo feature in the editor
+    - Use div in lines to make copy and pasting work out of the box in the browsers
+
 ## 0.2.6
 - Add a conventient function in text_highlighter to choose a theme while creating an instance of itself
 - Add clear text selection function
