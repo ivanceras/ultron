@@ -282,56 +282,6 @@ impl TextBuffer {
         }
     }
 
-    /*
-    /// TODO: build the text using the technique used in cut_text, which is more efficient way and
-    /// less code
-    pub(crate) fn get_text(
-        &self,
-        start: Point2<usize>,
-        end: Point2<usize>,
-    ) -> String {
-        let (start, end) = util::normalize_points(start, end);
-        let mut buffer =
-            TextBuffer::from_str(Options::default(), self.context.clone(), "");
-        for (page_index, page) in self.pages.iter().enumerate() {
-            for (line_index, line) in page.lines.iter().enumerate() {
-                let y = line_index;
-                for (range_index, range) in line.ranges.iter().enumerate() {
-                    for (cell_index, cell) in range.cells.iter().enumerate() {
-                        let x = line.calc_range_cell_index_to_x(
-                            range_index,
-                            cell_index,
-                        );
-                        if self.is_within_position(
-                            (page_index, line_index, range_index, cell_index),
-                            start,
-                            end,
-                        ) {
-                            if self.options.use_block_mode {
-                                buffer.insert_char(
-                                    x - start.x,
-                                    y - start.y,
-                                    cell.ch,
-                                );
-                            } else {
-                                //if its not in block mode, we only deduct x if it is on the first line
-                                let in_start_selection_line = y == start.y;
-                                let new_x = if in_start_selection_line {
-                                    x - start.x
-                                } else {
-                                    x
-                                };
-                                buffer.insert_char(new_x, y - start.y, cell.ch);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        buffer.to_string()
-    }
-    */
-
     fn delete_cells_in_line(
         &mut self,
         line: usize,
