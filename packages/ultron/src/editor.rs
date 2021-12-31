@@ -70,6 +70,7 @@ pub struct Editor<XMSG> {
     is_selecting: bool,
     selection_start: Option<Point2<i32>>,
     selection_end: Option<Point2<i32>>,
+    is_processing_key: bool,
 }
 
 impl<XMSG> Editor<XMSG> {
@@ -103,6 +104,7 @@ impl<XMSG> Editor<XMSG> {
             is_selecting: false,
             selection_start: None,
             selection_end: None,
+            is_processing_key: false,
         }
     }
 }
@@ -138,7 +140,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 Effects::none()
             }
             Msg::TextareaInput(input) => {
-                log::trace!("textarea input: {:?}", input);
+                if self.is_processing_key {
+                    log::warn!("---> Something is already processing a key.. returning early in from TextareaInput");
+                    return Effects::none();
+                }
                 let char_count = input.chars().count();
                 // for chrome:
                 // detect if the typed in character was a composed and becomes 1 unicode character
@@ -153,6 +158,8 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 let was_cleared = self.last_char_count == Some(0);
 
                 if char_count == 1 && (was_cleared || char_count_decreased) {
+                    self.clear_hidden_textarea();
+                    self.is_processing_key = true;
                     log::trace!("in textarea input char_count == 1..");
                     let c = input.chars().next().expect("must be only 1 chr");
                     self.composed_key = Some(c);
@@ -163,8 +170,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                         log::trace!("inserting it as a char: {:?}", c);
                         self.command_insert_char(c);
                     }
-                    log::trace!("clearing textarea");
-                    self.clear_hidden_textarea();
+                    self.is_processing_key = false;
                 } else {
                     log::trace!("char is not inserted becase char_count: {}, was_cleared: {}, char_count_decreased: {}", char_count, was_cleared, char_count_decreased);
                 }
@@ -174,6 +180,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 Effects::with_external(extern_msgs).measure()
             }
             Msg::TextareaKeydown(ke) => {
+                if self.is_processing_key {
+                    log::warn!("Something is already processing a key.. returning early in from TextareaKeydown");
+                    return Effects::none();
+                }
                 let is_ctrl = ke.ctrl_key();
                 let is_shift = ke.shift_key();
                 log::trace!(
@@ -212,9 +222,11 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                             Effects::none()
                         }
                         _ => {
-                            log::trace!("for everything else..");
-                            self.command_insert_char(c);
                             self.clear_hidden_textarea();
+                            self.is_processing_key = true;
+                            log::trace!("for everything else: {}", c);
+                            self.command_insert_char(c);
+                            self.is_processing_key = false;
                             let extern_msgs = self.emit_on_change_listeners();
                             Effects::with_external(extern_msgs).measure()
                         }
@@ -407,6 +419,7 @@ impl<XMSG> Editor<XMSG> {
 
     fn command_insert_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
         let cursor = self.text_buffer.get_position();
+        log::trace!("inserting char: {}, at cursor: {}", ch, cursor);
         self.text_buffer.command_insert_char(ch);
         self.recorded.insert_char(cursor, ch);
         self.text_buffer.rehighlight();
@@ -667,6 +680,7 @@ impl<XMSG> Editor<XMSG> {
                 self.refocus_hidden_textarea();
             }
             "Enter" => {
+                self.clear_hidden_textarea();
                 self.command_break_line();
             }
             "Backspace" => {
@@ -836,6 +850,7 @@ impl<XMSG> Editor<XMSG> {
                         );
                         Msg::Paste(pasted_text)
                     }),
+                    // for listening to CTRL+C, CTRL+V, CTRL+X
                     on_keydown(Msg::TextareaKeydown),
                     focus(true),
                     autofocus(true),
@@ -843,6 +858,7 @@ impl<XMSG> Editor<XMSG> {
                     autocapitalize("none"),
                     autocomplete("off"),
                     spellcheck("off"),
+                    // for processing unicode characters typed via: CTRL+U<unicode number> (linux),
                     on_input(|input| Msg::TextareaInput(input.value)),
                 ],
                 [],
@@ -863,6 +879,8 @@ impl<XMSG> Editor<XMSG> {
     fn clear_hidden_textarea(&self) {
         if let Some(element) = &self.hidden_textarea {
             element.set_value("");
+        } else {
+            panic!("there should always be hidden textarea");
         }
     }
 

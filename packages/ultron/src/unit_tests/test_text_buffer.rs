@@ -96,6 +96,51 @@ fn break_line() {
 }
 
 #[test]
+fn break_line_then_insert_1() {
+    let raw = "Hello world\n\nHowdy";
+    let mut buffer =
+        TextBuffer::from_str(Options::default(), Context::default(), raw);
+    buffer.break_line(0, 1);
+    assert_eq!(buffer.to_string(), "Hello world\n\n\nHowdy");
+    buffer.insert_char(0, 1, '1');
+    assert_eq!(buffer.to_string(), "Hello world\n1\n\nHowdy");
+}
+
+#[test]
+fn break_line_in_non_existing_cell() {
+    let raw = "Hello world\n\nHowdy";
+    let mut buffer =
+        TextBuffer::from_str(Options::default(), Context::default(), raw);
+    buffer.break_line(2, 1);
+    assert_eq!(buffer.to_string(), "Hello world\n\n\nHowdy");
+    buffer.insert_char(0, 2, '1');
+    assert_eq!(buffer.to_string(), "Hello world\n\n1\nHowdy");
+}
+
+#[test]
+fn break_line_then_insert_1_below() {
+    let raw = "Hello world\n\nHowdy";
+    let mut buffer =
+        TextBuffer::from_str(Options::default(), Context::default(), raw);
+    buffer.break_line(0, 1);
+    assert_eq!(buffer.to_string(), "Hello world\n\n\nHowdy");
+    buffer.insert_char(0, 2, '1');
+    assert_eq!(buffer.to_string(), "Hello world\n\n1\nHowdy");
+}
+
+#[test]
+fn break_line_then_insert_2_below() {
+    let raw = "Hello world\n\nHowdy";
+    let mut buffer =
+        TextBuffer::from_str(Options::default(), Context::default(), raw);
+    buffer.break_line(0, 1);
+    buffer.break_line(0, 1);
+    assert_eq!(buffer.to_string(), "Hello world\n\n\n\nHowdy");
+    buffer.insert_char(0, 3, '2');
+    assert_eq!(buffer.to_string(), "Hello world\n\n\n2\nHowdy");
+}
+
+#[test]
 fn join_line() {
     let raw = "Hello\n world";
     let mut buffer =

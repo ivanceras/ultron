@@ -321,6 +321,9 @@ impl Line {
             let cell = Cell::from_char(ch);
             range.insert_cell(cell_index, cell);
             self.width += range.width;
+        } else {
+            //panic!("There should already be range at this location, range_index:{}, cell_index: {}, total ranges: {}",range_index, cell_index, self.ranges.len());
+            self.push_char(ch);
         }
     }
 }

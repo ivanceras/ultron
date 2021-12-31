@@ -319,7 +319,6 @@ impl TextBuffer {
         start: Point2<usize>,
         end: Point2<usize>,
     ) -> String {
-        log::trace!("cutting from {} to {}", start, end);
         let deleted_text = self.get_text(start, end);
         if self.options.use_block_mode {
             for line_index in start.y..=end.y {
@@ -842,6 +841,9 @@ impl TextBuffer {
                 self.add_page(1);
                 self.add_lines(n);
             }
+        } else {
+            self.add_page(1);
+            self.add_lines(n);
         }
     }
 
@@ -866,8 +868,12 @@ impl TextBuffer {
                 rest.insert(0, other);
                 self.insert_line(y + 1, Line::from_ranges(rest));
             } else {
-                self.insert_line(y, Line::default());
+                //self.insert_line(y, Line::default());
+                line.push_range(Range::default());
+                self.insert_line(y + 1, Line::default());
             }
+        } else {
+            log::error!("There is no line {}", y);
         }
     }
 
@@ -891,7 +897,6 @@ impl TextBuffer {
     pub fn insert_char(&mut self, x: usize, y: usize, ch: char) {
         self.assert_chars(ch);
         self.ensure_cell_exist(x, y);
-
         let (page, line_index) = self.calc_page_line_index(y);
         self.pages[page].insert_char_to_line(line_index, x, ch);
     }
@@ -950,11 +955,19 @@ impl TextBuffer {
         c
     }
 
+    /// return true if the the cell already exist, false if the cell doesn't exist and needs to add
+    /// more char
     fn ensure_cell_exist(&mut self, x: usize, y: usize) {
         self.ensure_line_exist(y);
         let cell_gap = x.saturating_sub(self.get_line(y).unwrap().width);
-        if cell_gap > 0 {
-            self.add_cell(y, cell_gap);
+        self.add_cell(y, cell_gap);
+    }
+
+    fn cell_exist(&self, x: usize, y: usize) -> bool {
+        if let Some(line) = self.get_line(y) {
+            line.width >= x
+        } else {
+            false
         }
     }
 
