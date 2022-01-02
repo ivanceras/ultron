@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- limit the movement of cursor in arrow keys when virtual edit is turn off.
 - fix: highlighted character line calculation, page_index is now taken into account, fixing multiple highlighting into 1 only
 - Improve the implementation of get_text
 - refactor: use a more descriptive name for functions
