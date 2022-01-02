@@ -403,13 +403,16 @@ impl TextBuffer {
     /// calculate the bounds of the text_buffer
     pub fn bounds(&self) -> Point2<i32> {
         let total_lines = self.total_lines() as i32;
-        let max_column = self
-            .pages
+        let max_column = self.max_column() as i32;
+        Point2::new(max_column, total_lines)
+    }
+
+    pub fn max_column(&self) -> usize {
+        self.pages
             .iter()
             .map(|page| page.max_column())
             .max()
-            .unwrap_or(0) as i32;
-        Point2::new(max_column, total_lines)
+            .unwrap_or(0)
     }
 
     pub fn set_options(&mut self, options: Options) {
@@ -1094,6 +1097,12 @@ impl TextBuffer {
         self.cursor.x = self.cursor.x.saturating_add(1);
         self.calculate_focused_cell();
     }
+    pub(crate) fn move_right_clamped(&mut self) {
+        if self.cursor.x < self.max_column() {
+            self.move_right();
+        }
+    }
+
     pub(crate) fn move_right_end(&mut self) {
         let line_width = self.focused_line().map(|l| l.width).unwrap_or(0);
         self.cursor.x += line_width;
@@ -1115,6 +1124,11 @@ impl TextBuffer {
     pub(crate) fn move_down(&mut self) {
         self.cursor.y = self.cursor.y.saturating_add(1);
         self.calculate_focused_cell();
+    }
+    pub(crate) fn move_down_clamped(&mut self) {
+        if self.cursor.y + 1 < self.total_lines() {
+            self.move_down()
+        }
     }
     pub(crate) fn set_position(&mut self, x: usize, y: usize) {
         self.cursor.x = x;

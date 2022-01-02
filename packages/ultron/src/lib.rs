@@ -1,4 +1,4 @@
-//#![deny(warnings)]
+#![deny(warnings)]
 pub use text_buffer::TextBuffer;
 pub use ultron_syntaxes_themes::TextHighlighter;
 
@@ -51,7 +51,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             use_block_mode: false,
-            use_virtual_edit: true,
+            use_virtual_edit: false,
             show_line_numbers: true,
             show_status_line: true,
             show_cursor: true,

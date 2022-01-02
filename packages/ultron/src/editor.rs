@@ -447,7 +447,7 @@ impl<XMSG> Editor<XMSG> {
     }
 
     fn command_delete_forward(&mut self) -> Effects<Msg, XMSG> {
-        let ch = self.text_buffer.command_delete_forward();
+        let _ch = self.text_buffer.command_delete_forward();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
@@ -457,22 +457,23 @@ impl<XMSG> Editor<XMSG> {
     }
 
     fn command_move_down(&mut self) {
-        self.text_buffer.move_down();
+        if self.options.use_virtual_edit {
+            self.text_buffer.move_down();
+        } else {
+            self.text_buffer.move_down_clamped();
+        }
     }
 
     fn command_move_left(&mut self) {
         self.text_buffer.move_left();
     }
 
-    #[allow(unused)]
-    fn command_move_left_start(&mut self) {
-        let pos = self.text_buffer.get_position();
-        self.text_buffer.move_left_start();
-        let line_width = self.text_buffer.line_width(pos.y).unwrap_or(0) as i32;
-    }
-
     fn command_move_right(&mut self) {
-        self.text_buffer.move_right();
+        if self.options.use_virtual_edit {
+            self.text_buffer.move_right();
+        } else {
+            self.text_buffer.move_right_clamped();
+        }
     }
 
     fn command_break_line(&mut self) -> Effects<Msg, XMSG> {
