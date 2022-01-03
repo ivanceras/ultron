@@ -76,6 +76,7 @@ impl TextBuffer {
             text_highlighter.select_theme(theme_name);
         }
         let lines = Self::highlight_content(
+            &options,
             content,
             &text_highlighter,
             &options.syntax_token,
@@ -420,6 +421,7 @@ impl TextBuffer {
     }
 
     fn highlight_content(
+        options: &Options,
         content: &str,
         text_highlighter: &TextHighlighter,
         syntax_token: &str,
@@ -432,7 +434,11 @@ impl TextBuffer {
             .map(|line| {
                 let line_str = String::from_iter(line.chars());
                 let style_range: Vec<(Style, &str)> =
-                    line_highlighter.highlight(&line_str, syntax_set);
+                    if options.use_syntax_highlighter {
+                        line_highlighter.highlight(&line_str, syntax_set)
+                    } else {
+                        vec![(Style::default(), &line_str)]
+                    };
 
                 let ranges: Vec<Range> = style_range
                     .into_iter()
@@ -813,6 +819,7 @@ impl TextBuffer {
     /// rerun highlighter on the content
     pub(crate) fn rehighlight(&mut self) {
         let lines = Self::highlight_content(
+            &self.options,
             &self.to_string(),
             &self.text_highlighter,
             &self.options.syntax_token,

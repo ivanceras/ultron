@@ -82,3 +82,7 @@
     - A solution would be to send the WindowMouseUp event, but not the window click event
 - Putting the cursor before a quote and typing will make the cursor disappear
     - This might at before any range
+- [ ] The long svgbob example is taking a long time to update.
+    - 180ms when syntax highlighting is enabled
+        - scrolling is 20ms
+    - 80ms when syntax highlighting is disabled

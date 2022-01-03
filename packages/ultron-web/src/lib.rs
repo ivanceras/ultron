@@ -28,8 +28,8 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
-        let content = include_str!("../test_data/hello.rs");
-        //let content = include_str!("../test_data/svgbob.md");
+        //let content = include_str!("../test_data/hello.rs");
+        let content = include_str!("../test_data/svgbob.md");
         let options = Options {
             syntax_token: "rust".to_string(),
             theme_name: Some("solarized-light".to_string()),
@@ -89,11 +89,10 @@ impl Application<Msg> for App {
         match msg {
             Msg::WindowScrolled((scroll_top, scroll_left)) => {
                 log::trace!("scrolled: {},{}", scroll_top, scroll_left);
-                self.editor.update(editor::Msg::WindowScrolled((
-                    scroll_top,
-                    scroll_left,
-                )));
-                Cmd::none()
+                let effects = self.editor.update(editor::Msg::WindowScrolled(
+                    (scroll_top, scroll_left),
+                ));
+                Cmd::from(effects.localize(Msg::EditorMsg)).measure()
             }
             Msg::WindowResized(width, height) => {
                 self.editor

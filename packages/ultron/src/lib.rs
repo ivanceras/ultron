@@ -45,6 +45,8 @@ pub struct Options {
     pub occupy_container: bool,
     /// number of lines in a page, when paging up and down
     pub page_size: usize,
+    /// a flag to use syntax highlighting or not
+    pub use_syntax_highlighter: bool,
 }
 
 impl Default for Options {
@@ -62,6 +64,7 @@ impl Default for Options {
             syntax_token: "txt".to_string(),
             occupy_container: true,
             page_size: 20,
+            use_syntax_highlighter: true,
         }
     }
 }
