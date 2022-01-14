@@ -55,10 +55,6 @@ pub struct Editor<XMSG> {
     average_update_time: Option<f64>,
     scroll_top: f32,
     scroll_left: f32,
-    window_scroll_top: f32,
-    window_scroll_left: f32,
-    window_width: f32,
-    window_height: f32,
     /// Other components can listen to the an event.
     /// When the content of the text editor changes, the change listener will be emitted
     change_listeners: Vec<Callback<String, XMSG>>,
@@ -71,18 +67,23 @@ pub struct Editor<XMSG> {
     selection_start: Option<Point2<i32>>,
     selection_end: Option<Point2<i32>>,
     is_processing_key: bool,
+    context: Context,
+}
+
+pub fn build_context() -> Context {
+    let (window_width, window_height) = Window::get_size();
+    let (window_scroll_top, window_scroll_left) = (0.0, 0.0); //TODO: get actual window scroll
+    Context {
+        viewport_width: window_width as f32,
+        viewport_height: window_height as f32,
+        viewport_scroll_top: window_scroll_top,
+        viewport_scroll_left: window_scroll_left,
+    }
 }
 
 impl<XMSG> Editor<XMSG> {
     pub fn from_str(options: Options, content: &str) -> Self {
-        let (window_width, window_height) = Window::get_size();
-        let (window_scroll_top, window_scroll_left) = (0.0, 0.0); //TODO: get actual window scroll
-        let context = Context {
-            viewport_width: window_width as f32,
-            viewport_height: window_height as f32,
-            viewport_scroll_top: window_scroll_top,
-            viewport_scroll_left: window_scroll_left,
-        };
+        let context = build_context();
         Editor {
             options: options.clone(),
             text_buffer: TextBuffer::from_str(options, context, content),
@@ -91,10 +92,6 @@ impl<XMSG> Editor<XMSG> {
             average_update_time: None,
             scroll_top: 0.0,
             scroll_left: 0.0,
-            window_scroll_top,
-            window_scroll_left,
-            window_width: window_width as f32,
-            window_height: window_height as f32,
             change_listeners: vec![],
             change_notify_listeners: vec![],
             hidden_textarea: None,
@@ -105,6 +102,7 @@ impl<XMSG> Editor<XMSG> {
             selection_start: None,
             selection_end: None,
             is_processing_key: false,
+            context,
         }
     }
 }
@@ -123,15 +121,15 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::WindowScrolled((scroll_top, scroll_left)) => {
                 log::trace!("scrolling window..");
-                self.window_scroll_top = scroll_top as f32;
-                self.window_scroll_left = scroll_left as f32;
-                self.text_buffer.update_context(self.get_context());
+                self.context.viewport_scroll_top = scroll_top as f32;
+                self.context.viewport_scroll_left = scroll_left as f32;
+                self.text_buffer.update_context(self.context);
                 Effects::none()
             }
             Msg::WindowResized { width, height } => {
-                self.window_width = width as f32;
-                self.window_height = height as f32;
-                self.text_buffer.update_context(self.get_context());
+                self.context.viewport_width = width as f32;
+                self.context.viewport_height = height as f32;
+                self.text_buffer.update_context(self.context);
                 Effects::none()
             }
             Msg::Scrolled((scroll_top, scroll_left)) => {
@@ -406,15 +404,6 @@ impl<XMSG> Editor<XMSG> {
         self.options = options.clone();
         self.text_buffer.set_options(options);
         self
-    }
-
-    fn get_context(&self) -> Context {
-        Context {
-            viewport_width: self.window_width as f32,
-            viewport_height: self.window_height as f32,
-            viewport_scroll_top: self.window_scroll_top,
-            viewport_scroll_left: self.window_scroll_left,
-        }
     }
 
     fn command_insert_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
@@ -910,7 +899,7 @@ impl<XMSG> Editor<XMSG> {
     /// calculate the maximumm number of lines that the viewport can show
     /// at a time
     fn viewport_lines_capacity(&self) -> i32 {
-        ((self.window_height - self.status_line_height() as f32)
+        ((self.context.viewport_height - self.status_line_height() as f32)
             / CH_HEIGHT as f32)
             .ceil() as i32
     }
@@ -967,11 +956,14 @@ impl<XMSG> Editor<XMSG> {
                     comment("")
                 },
                 text!("| version:{}", env!("CARGO_PKG_VERSION")),
-                text!("| window_scroll_top: {}", self.window_scroll_top),
+                text!(
+                    "| window_scroll_top: {}",
+                    self.context.viewport_scroll_top
+                ),
                 text!(
                     "| window_size: {}x{}",
-                    self.window_width,
-                    self.window_height
+                    self.context.viewport_width,
+                    self.context.viewport_height
                 ),
                 text!("| line max: {}", self.viewport_lines_capacity()),
                 text!("| pages: {}", self.pages()),

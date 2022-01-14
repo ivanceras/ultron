@@ -85,4 +85,8 @@
 - [ ] The long svgbob example is taking a long time to update.
     - 180ms when syntax highlighting is enabled
         - scrolling is 20ms
+        - building the view: 50ms
+        - patching : 40ms
     - 80ms when syntax highlighting is disabled
+- [X] When `replace_char` is called for the next page, it applies to the first page instead
+- [ ] replace addition and subtraction operation with saturating_add and saturating_sub.

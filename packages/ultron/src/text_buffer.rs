@@ -43,7 +43,7 @@ pub struct TextBuffer {
     context: Context,
 }
 
-#[derive(Clone, Default)]
+#[derive(Copy, Clone, Default)]
 pub struct Context {
     pub viewport_width: f32,
     pub viewport_height: f32,
@@ -125,9 +125,13 @@ impl TextBuffer {
     ///
     /// The page is visible if either the page_top >
     fn is_page_visible(&self, page_index: usize) -> bool {
-        let page_box = self.page_box(page_index);
-        let viewport_box = self.context.viewport_box();
-        viewport_box.intersects(&page_box)
+        if self.options.use_paging_optimization {
+            let page_box = self.page_box(page_index);
+            let viewport_box = self.context.viewport_box();
+            viewport_box.intersects(&page_box)
+        } else {
+            true
+        }
     }
 
     fn page_box(&self, page_index: usize) -> AABB {
@@ -300,7 +304,10 @@ impl TextBuffer {
         end_x: usize,
     ) -> Option<String> {
         let (page, line_index) = self.calc_page_line_index(line);
-        self.pages[page].get_text_in_line(line_index, start_x, end_x)
+        self.pages
+            .get(page)
+            .map(|p| p.get_text_in_line(line_index, start_x, end_x))
+            .flatten()
     }
 
     /// delete cells in line `line` starting from cell `start_x` to end of the line
@@ -323,7 +330,6 @@ impl TextBuffer {
         let deleted_text = self.get_text(start, end);
         if self.options.use_block_mode {
             for line_index in start.y..=end.y {
-                println!("deleting cells in line: {}", line_index);
                 self.delete_cells_in_line(line_index, start.x, end.x);
             }
         } else {
@@ -829,32 +835,13 @@ impl TextBuffer {
     }
 
     /// the width of the line at line `n`
-    pub(crate) fn line_width(&self, n: usize) -> Option<usize> {
+    pub(crate) fn line_width(&self, n: usize) -> usize {
         let (page, line_index) = self.calc_page_line_index(n);
-        self.pages[page].line_width(line_index)
-    }
-
-    /// add more lines, used internally
-    fn add_lines(&mut self, n: usize) {
-        if let Some(last) = self.pages.last_mut() {
-            let last_total_lines = last.total_lines();
-            if last_total_lines < self.options.page_size {
-                let capacity =
-                    self.options.page_size as i32 - last_total_lines as i32;
-                let to_add = n.min(capacity as usize);
-                last.add_lines(to_add);
-                let excess = n as i32 - capacity as i32;
-                if excess > 0 {
-                    self.add_lines(excess as usize)
-                }
-            } else {
-                self.add_page(1);
-                self.add_lines(n);
-            }
-        } else {
-            self.add_page(1);
-            self.add_lines(n);
-        }
+        self.pages
+            .get(page)
+            .map(|p| p.line_width(line_index))
+            .flatten()
+            .unwrap_or(0)
     }
 
     /// fill columns at line y putting a space in each of the cells
@@ -931,7 +918,6 @@ impl TextBuffer {
             let mut new_col = x;
             let mut new_line = y;
             for (line_index, line) in lines.iter().enumerate() {
-                println!("inserting {} at {},{}", line, new_col, new_line);
                 if line_index + 1 < lines.len() {
                     self.break_line(new_col, new_line);
                 }
@@ -969,7 +955,7 @@ impl TextBuffer {
     /// more char
     fn ensure_cell_exist(&mut self, x: usize, y: usize) {
         self.ensure_line_exist(y);
-        let cell_gap = x.saturating_sub(self.get_line(y).unwrap().width);
+        let cell_gap = x.saturating_sub(self.line_width(y));
         self.add_cell(y, cell_gap);
     }
 
@@ -984,12 +970,11 @@ impl TextBuffer {
     fn ensure_line_exist(&mut self, y: usize) {
         let (page, line_index) = self.calc_page_line_index(y);
         self.ensure_page_exist(page);
-        let line_gap = line_index
-            .saturating_add(1)
-            .saturating_sub(self.total_lines());
-        if line_gap > 0 {
-            self.add_lines(line_gap);
+
+        for p in 0..page {
+            self.pages[p].fill_page();
         }
+        self.pages[page].ensure_line_exist(line_index);
     }
 
     fn total_pages(&self) -> usize {
@@ -1007,7 +992,8 @@ impl TextBuffer {
 
     fn add_page(&mut self, n_pages: usize) {
         for _ in 0..n_pages {
-            self.pages.push(Page::default());
+            self.pages
+                .push(Page::with_page_size(self.options.page_size));
         }
     }
 
@@ -1148,12 +1134,11 @@ impl TextBuffer {
     pub(crate) fn set_position_clamped(&mut self, mut x: usize, mut y: usize) {
         let total_lines = self.total_lines();
         if y > total_lines {
-            y = total_lines - 1;
+            y = total_lines.saturating_sub(1);
         }
-        let (page, line_index) = self.calc_page_line_index(y);
-        let line_width = self.pages[page].line_width(line_index).unwrap();
+        let line_width = self.line_width(y);
         if x > line_width {
-            x = line_width - 1;
+            x = line_width.saturating_sub(1);
         }
         self.set_position(x, y)
     }

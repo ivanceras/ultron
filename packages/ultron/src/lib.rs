@@ -27,6 +27,9 @@ pub struct Options {
     pub use_block_mode: bool,
     /// allow the click outside of the bounds of the text content editor
     pub use_virtual_edit: bool,
+    /// allow the editor to show or hide pages for optimization
+    /// Note: set this to false when using the editor as a headless buffer
+    pub use_paging_optimization: bool,
     pub show_line_numbers: bool,
     pub show_status_line: bool,
     pub show_cursor: bool,
@@ -54,6 +57,7 @@ impl Default for Options {
         Self {
             use_block_mode: false,
             use_virtual_edit: false,
+            use_paging_optimization: false,
             show_line_numbers: true,
             show_status_line: true,
             show_cursor: true,

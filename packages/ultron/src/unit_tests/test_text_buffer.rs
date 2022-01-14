@@ -9,7 +9,7 @@ fn line_length() {
     let buffer =
         TextBuffer::from_str(Options::default(), Context::default(), raw);
     assert_eq!(buffer.total_lines(), 1);
-    assert_eq!(buffer.line_width(0), Some(11));
+    assert_eq!(buffer.line_width(0), 11);
 }
 
 #[test]
@@ -239,9 +239,9 @@ fn lines_2() {
     let buffer =
         TextBuffer::from_str(Options::default(), Context::default(), raw);
     assert_eq!(buffer.total_lines(), 2);
-    assert_eq!(buffer.line_width(0), Some(5));
-    assert_eq!(buffer.line_width(1), Some(5));
-    assert_eq!(buffer.line_width(2), None);
+    assert_eq!(buffer.line_width(0), 5);
+    assert_eq!(buffer.line_width(1), 5);
+    assert_eq!(buffer.line_width(2), 0);
 }
 
 #[test]
@@ -250,7 +250,7 @@ fn cjk() {
     let buffer =
         TextBuffer::from_str(Options::default(), Context::default(), raw);
     assert_eq!(buffer.total_lines(), 1);
-    assert_eq!(buffer.line_width(0), Some(14));
+    assert_eq!(buffer.line_width(0), 14);
 }
 
 #[test]
@@ -305,6 +305,15 @@ fn replace_end() {
         TextBuffer::from_str(Options::default(), Context::default(), raw);
     buffer.replace_char(4, 0, 'Y');
     assert_eq!(buffer.to_string(), "HellY");
+}
+
+#[test]
+fn replace_char_on_next_page() {
+    let raw = "Hello";
+    let mut buffer =
+        TextBuffer::from_str(Options::default(), Context::default(), raw);
+    buffer.replace_char(4, 30, 'Y');
+    assert_eq!(buffer.to_string(), "Hello\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    Y");
 }
 
 #[test]

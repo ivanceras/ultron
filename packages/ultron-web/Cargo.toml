@@ -17,7 +17,7 @@ ultron = { version = "0.2.6", path = "../ultron", features = ["with-measure"] }
 log = "0.4"
 console_log = { version = "0.2", features = ["color"]}
 console_error_panic_hook = "0.1"
-#wee_alloc = { version = "0.4", optional = true }
+wee_alloc = { version = "0.4", optional = true }
 
 
 [profile.release]
@@ -25,6 +25,6 @@ console_error_panic_hook = "0.1"
 # optimize for binary size
 #opt-level = "s"
 # optimize for binary size, but also turn off loop vectorization.
-#opt-level = "z"
-#lto = true
-#panic = "abort"
+opt-level = "z"
+lto = true
+panic = "abort"

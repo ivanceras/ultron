@@ -219,12 +219,6 @@ impl Line {
         if let Some((range_index, cell_index)) =
             self.calc_range_cell_index_position(start_x)
         {
-            log::trace!("delete cells to end, starting from: {}", start_x);
-            log::trace!(
-                "range_index: {}, cell_index: {}",
-                range_index,
-                cell_index
-            );
             self.ranges[range_index].delete_cells_to_end(cell_index);
             // drain all ranges beyond `range_index`
             self.ranges.drain(range_index + 1..);
@@ -252,7 +246,6 @@ impl Line {
 
     /// delete cells on this line from `start_x` to `end_x`
     pub(super) fn delete_cells(&mut self, start_x: usize, end_x: usize) {
-        println!("deleting cells from {} to {}", start_x, end_x);
         let start = self.calc_range_cell_index_position(start_x);
 
         // if None, it is because it beyond the cell index of this line, so we use the last_range
@@ -279,7 +272,6 @@ impl Line {
         start_x: usize,
         end_x: usize,
     ) -> Option<String> {
-        println!("getting text from cells from {} to {}", start_x, end_x);
         let start = self.calc_range_cell_index_position(start_x);
 
         // if None, it is because it beyond the cell index of this line, so we use the last_range

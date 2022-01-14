@@ -5,14 +5,30 @@ use itertools::Itertools;
 use sauron::html::attributes::data;
 use sauron::prelude::*;
 
-#[derive(Default)]
+#[derive(Debug)]
 pub(super) struct Page {
     pub(super) lines: Vec<Line>,
     page_size: usize,
+    /// pages are visible by default
     visible: bool,
 }
 
 impl Page {
+    pub fn with_page_size(page_size: usize) -> Self {
+        Self {
+            lines: vec![Line::default()],
+            page_size,
+            visible: true,
+        }
+    }
+    /// fill up lines such that the total lines in this page will be equal to the page_size
+    pub fn fill_page(&mut self) {
+        let lines_len = self.lines.len();
+        let line_gap = self.page_size.saturating_sub(lines_len);
+        for _ in 0..line_gap {
+            self.lines.push(Line::default());
+        }
+    }
     pub(super) fn from_lines(page_size: usize, lines: Vec<Line>) -> Vec<Self> {
         lines
             .into_iter()
@@ -142,6 +158,15 @@ impl Page {
     pub(super) fn add_lines(&mut self, n: usize) {
         for _i in 0..n {
             self.lines.push(Line::default());
+        }
+    }
+
+    pub(super) fn ensure_line_exist(&mut self, line_index: usize) {
+        let line_gap = line_index
+            .saturating_add(1)
+            .saturating_sub(self.total_lines());
+        if line_gap > 0 {
+            self.add_lines(line_gap);
         }
     }
 

@@ -139,12 +139,10 @@ impl Application<Msg> for App {
     }
 }
 
-/*
 #[cfg(target_arch = "wasm32")]
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-*/
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
