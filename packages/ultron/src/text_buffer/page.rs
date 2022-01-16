@@ -10,7 +10,7 @@ pub(super) struct Page {
     pub(super) lines: Vec<Line>,
     page_size: usize,
     /// pages are visible by default
-    visible: bool,
+    pub(super) visible: bool,
 }
 
 impl Page {
@@ -240,11 +240,13 @@ impl Page {
 
     pub(super) fn view_page<MSG>(
         &self,
-        text_buffer: &TextBuffer,
+        text_buffer: &TextBuffer<MSG>,
         page_index: usize,
     ) -> Node<MSG> {
         div(
             [
+                // skip diffinf when this page is not shown
+                skip(!self.visible),
                 class("page"),
                 class(format!("page_{}", page_index)),
                 style! {height: px(self.page_height())},

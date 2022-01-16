@@ -26,7 +26,7 @@ impl Action {
         }
     }
 
-    pub fn apply(&self, content: &mut TextBuffer) {
+    pub fn apply<MSG>(&self, content: &mut TextBuffer<MSG>) {
         match *self {
             Action::Insert(cursor, ch) => {
                 content.insert_char(cursor.x, cursor.y, ch);

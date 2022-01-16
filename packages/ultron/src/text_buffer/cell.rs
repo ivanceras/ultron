@@ -22,7 +22,7 @@ impl Cell {
 
     pub(super) fn view_cell<MSG>(
         &self,
-        text_buffer: &TextBuffer,
+        text_buffer: &TextBuffer<MSG>,
         page_index: usize,
         line_index: usize,
         range_index: usize,
@@ -68,7 +68,7 @@ impl Cell {
         )
     }
 
-    fn view_ch<MSG>(&self, text_buffer: &TextBuffer) -> Node<MSG> {
+    fn view_ch<MSG>(&self, text_buffer: &TextBuffer<MSG>) -> Node<MSG> {
         // we use nbsp; when rendering for static site generator
         // while using the actual whitespace when used/typing in the editor
         if text_buffer.options.use_for_ssg && self.ch.is_whitespace() {

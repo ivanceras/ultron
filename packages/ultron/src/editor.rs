@@ -48,7 +48,7 @@ pub enum Msg {
 
 pub struct Editor<XMSG> {
     options: Options,
-    text_buffer: TextBuffer,
+    text_buffer: TextBuffer<Msg>,
     /// for undo and redo
     recorded: Recorded,
     measurements: Option<Measurements>,

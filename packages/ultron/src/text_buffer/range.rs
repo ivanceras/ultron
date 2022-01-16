@@ -42,7 +42,7 @@ impl Range {
 
     pub(super) fn view_range<MSG>(
         &self,
-        text_buffer: &TextBuffer,
+        text_buffer: &TextBuffer<MSG>,
         page_index: usize,
         line_index: usize,
         range_index: usize,

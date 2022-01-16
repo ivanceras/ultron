@@ -57,7 +57,7 @@ impl Default for Options {
         Self {
             use_block_mode: false,
             use_virtual_edit: false,
-            use_paging_optimization: false,
+            use_paging_optimization: true,
             show_line_numbers: true,
             show_status_line: true,
             show_cursor: true,

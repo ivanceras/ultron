@@ -106,7 +106,7 @@ impl Line {
 
     pub(super) fn view_line<MSG>(
         &self,
-        text_buffer: &TextBuffer,
+        text_buffer: &TextBuffer<MSG>,
         page_index: usize,
         line_index: usize,
     ) -> Node<MSG> {

@@ -19,6 +19,7 @@ use sauron::html::attributes;
 use sauron::jss::jss_ns;
 use sauron::prelude::*;
 use sauron::Node;
+use std::collections::HashMap;
 use std::iter::FromIterator;
 use ultron_syntaxes_themes::TextHighlighter;
 use ultron_syntaxes_themes::{Style, Theme};
@@ -32,7 +33,7 @@ mod range;
 
 /// A text buffer where every insertion of character it will
 /// recompute the highlighting of a line
-pub struct TextBuffer {
+pub struct TextBuffer<MSG> {
     options: Options,
     pages: Vec<Page>,
     text_highlighter: TextHighlighter,
@@ -41,6 +42,7 @@ pub struct TextBuffer {
     selection_end: Option<Point2<usize>>,
     focused_cell: Option<FocusCell>,
     context: Context,
+    page_cache: HashMap<usize, Node<MSG>>,
 }
 
 #[derive(Copy, Clone, Default)]
@@ -69,7 +71,7 @@ struct FocusCell {
     cell: Option<Cell>,
 }
 
-impl TextBuffer {
+impl<MSG> TextBuffer<MSG> {
     pub fn from_str(options: Options, context: Context, content: &str) -> Self {
         let mut text_highlighter = TextHighlighter::default();
         if let Some(theme_name) = &options.theme_name {
@@ -90,10 +92,26 @@ impl TextBuffer {
             selection_end: None,
             focused_cell: None,
             options,
+            page_cache: HashMap::default(),
         };
 
         this.calculate_focused_cell();
+        this.cache_pages();
         this
+    }
+
+    pub(crate) fn cache_pages(&mut self) {
+        self.page_cache = HashMap::from_iter(
+            self.pages
+                .iter()
+                .enumerate()
+                .map(|(i, page)| (i, page.view_page(self, i))),
+        );
+    }
+
+    fn recache_page(&mut self, page: usize) {
+        self.page_cache
+            .insert(page, self.pages[page].view_page(self, page));
     }
 
     pub(crate) fn update_context(&mut self, context: Context) {
@@ -200,6 +218,7 @@ impl TextBuffer {
 
     pub fn clear(&mut self) {
         self.pages.clear();
+        self.page_cache.clear();
     }
 
     pub fn set_selection(&mut self, start: Point2<usize>, end: Point2<usize>) {
@@ -295,6 +314,7 @@ impl TextBuffer {
     ) {
         let (page, line_index) = self.calc_page_line_index(line);
         self.pages[page].delete_cells_in_line(line_index, start_x, end_x);
+        self.recache_page(page);
     }
 
     fn get_text_in_line(
@@ -314,6 +334,7 @@ impl TextBuffer {
     fn delete_cells_to_end(&mut self, line: usize, start_x: usize) {
         let (page, line_index) = self.calc_page_line_index(line);
         self.pages[page].delete_cells_to_end(line_index, start_x);
+        self.recache_page(page);
     }
 
     fn get_text_to_end(&self, line: usize, start_x: usize) -> Option<String> {
@@ -600,7 +621,7 @@ impl TextBuffer {
         }
     }
 
-    pub fn view<MSG>(&self) -> Node<MSG> {
+    pub fn view(&self) -> Node<MSG> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
@@ -620,11 +641,22 @@ impl TextBuffer {
             },
         ];
 
-        let rendered_pages = self
-            .pages
-            .iter()
-            .enumerate()
-            .map(|(page_index, page)| page.view_page(&self, page_index));
+        let rendered_pages =
+            self.pages.iter().enumerate().map(|(page_index, page)| {
+                if page.visible {
+                    if self.options.use_paging_optimization {
+                        if let Some(view) = self.page_cache.get(&page_index) {
+                            view.clone()
+                        } else {
+                            page.view_page(&self, page_index)
+                        }
+                    } else {
+                        page.view_page(&self, page_index)
+                    }
+                } else {
+                    comment("page not visible")
+                }
+            });
 
         if self.options.use_for_ssg {
             // using div works well when select-copying for both chrome and firefox
@@ -810,7 +842,7 @@ impl TextBuffer {
 /// text manipulation
 /// This are purely manipulating text into the text buffer.
 /// The cursor shouldn't be move here, since it is done by the commands functions
-impl TextBuffer {
+impl<MSG> TextBuffer<MSG> {
     /// the total number of lines of this text canvas
     pub(crate) fn total_lines(&self) -> usize {
         self.pages.iter().map(|page| page.total_lines()).sum()
@@ -877,6 +909,7 @@ impl TextBuffer {
     pub(crate) fn join_line(&mut self, x: usize, y: usize) {
         let (page, line_index) = self.calc_page_line_index(y);
         self.pages[page].join_line(x, line_index);
+        self.recache_page(page);
     }
 
     fn assert_chars(&self, ch: char) {
@@ -896,6 +929,7 @@ impl TextBuffer {
         self.ensure_cell_exist(x, y);
         let (page, line_index) = self.calc_page_line_index(y);
         self.pages[page].insert_char_to_line(line_index, x, ch);
+        self.recache_page(page);
     }
 
     fn insert_line_text(&mut self, x: usize, y: usize, text: &str) {
@@ -939,7 +973,9 @@ impl TextBuffer {
         self.ensure_cell_exist(x + 1, y);
 
         let (page, line_index) = self.calc_page_line_index(y);
-        self.pages[page].replace_char_to_line(line_index, x, ch)
+        let ch = self.pages[page].replace_char_to_line(line_index, x, ch);
+        self.recache_page(page);
+        ch
     }
 
     //TODO: delegrate the deletion of the char to the line and range
@@ -948,6 +984,7 @@ impl TextBuffer {
         let (page, line_index) = self.calc_page_line_index(y);
         let c = self.pages[page].delete_char_to_line(line_index, x);
         self.calculate_focused_cell();
+        self.recache_page(page);
         c
     }
 
@@ -1002,6 +1039,7 @@ impl TextBuffer {
         self.ensure_line_exist(y.saturating_sub(1));
         let (page, line_index) = self.calc_page_line_index(y);
         self.pages[page].insert_line(line_index, line);
+        self.recache_page(page);
     }
 
     /// return the line where the cursor is located
@@ -1054,7 +1092,7 @@ impl TextBuffer {
 ///
 /// functions that are preceeded with command also moves the
 /// cursor and highlight the texts
-impl TextBuffer {
+impl<MSG> TextBuffer<MSG> {
     pub(crate) fn command_insert_char(&mut self, ch: char) {
         self.insert_char(self.cursor.x, self.cursor.y, ch);
         let width = ch.width().expect("must have a unicode width");
@@ -1182,7 +1220,7 @@ impl TextBuffer {
     }
 }
 
-impl ToString for TextBuffer {
+impl<MSG> ToString for TextBuffer<MSG> {
     fn to_string(&self) -> String {
         self.pages
             .iter()
