@@ -2,7 +2,7 @@
 name = "ultron-ssg"
 version = "0.2.6"
 authors = ["Jovansonlee Cesar <ivanceras@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A syntax highlighting library ideal for usage in a static site generator"
 license = "MIT"
 repository = "https://github.com/ivanceras/ultron"

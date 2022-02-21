@@ -2,7 +2,7 @@
 name = "ultron"
 version = "0.2.6"
 authors = ["Jovansonlee Cesar <ivanceras@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A web base text-editor with strong focus on displaying multi-width characters correctly"
 license = "MIT"
 repository = "https://github.com/ivanceras/ultron"
@@ -11,8 +11,7 @@ readme = "../../README.md"
 keywords = ["web", "editor", "monospace"]
 
 [dependencies]
-#sauron = { version = "0.43.9", default-features = false, features = ["with-measure"] }
-sauron = { version = "0.43.9", path = "../../../sauron", default-features = false, features = ["with-measure"] }
+sauron = { version = "0.44.0", default-features = false, features = ["with-measure"] }
 ultron-syntaxes-themes = { version = "0.2.6", path = "../syntaxes-themes" }
 log = "0.4"
 unicode-width = "0.1"

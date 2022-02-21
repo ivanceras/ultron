@@ -1,9 +1,9 @@
 #![deny(warnings)]
 
-use ultron::sauron::html::tags::style;
-use ultron::sauron::prelude::*;
-use ultron::TextBuffer;
-use ultron::{Context, Options};
+use ultron::{
+    sauron::{html::tags::style, prelude::*},
+    Context, Options, TextBuffer,
+};
 
 pub fn render<MSG>(
     content: &str,
@@ -33,7 +33,7 @@ pub fn render_to_string(
     node.render_to_string()
 }
 
-fn page<MSG>(buffer: TextBuffer) -> Node<MSG> {
+fn page<MSG>(buffer: TextBuffer<MSG>) -> Node<MSG> {
     main(
         [],
         [

@@ -9,16 +9,10 @@ members = [
 ]
 
 [patch.crates-io]
-#sauron = { path = "../sauron", default-features = false }
 
 [profile.release]
-# https://doc.rust-lang.org/cargo/reference/profiles.html
-# optimize for binary size
-#opt-level = "s"
-# optimize for binary size, but also turn off loop vectorization.
 opt-level = "z"
 lto = true
 panic = "abort"
-# https://github.com/johnthagen/min-sized-rust
 codegen-units = 1
-strip = true  # Automatically strip symbols from the binary.
+strip = true  
