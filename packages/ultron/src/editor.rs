@@ -1,18 +1,17 @@
-use crate::text_buffer::Context;
-use crate::Options;
-use crate::TextBuffer;
-use crate::CH_HEIGHT;
-use crate::CH_WIDTH;
-use crate::COMPONENT_NAME;
+use crate::{
+    text_buffer::Context, Options, TextBuffer, CH_HEIGHT, CH_WIDTH,
+    COMPONENT_NAME,
+};
 use css_colors::Color;
 use history::Recorded;
 use nalgebra::Point2;
-use sauron::html::attributes;
-use sauron::html::units;
-use sauron::jss::jss_ns;
-use sauron::prelude::*;
-use sauron::wasm_bindgen::JsCast;
-use sauron::Measurements;
+use sauron::{
+    html::{attributes, units},
+    jss_ns,
+    prelude::*,
+    wasm_bindgen::JsCast,
+    Measurements,
+};
 
 pub(crate) mod action;
 mod history;

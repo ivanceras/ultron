@@ -1,14 +1,12 @@
 #![deny(warnings)]
-use ultron::editor;
-use ultron::editor::Editor;
+use ultron::{editor, editor::Editor};
 
 #[allow(unused)]
 use ultron::sauron;
-use ultron::sauron::jss::jss;
-use ultron::sauron::prelude::*;
-use ultron::sauron::wasm_bindgen::JsCast;
-use ultron::sauron::Window;
-use ultron::Options;
+use ultron::{
+    sauron::{jss, prelude::*, wasm_bindgen::JsCast, Window},
+    Options,
+};
 
 #[derive(Debug, Clone)]
 pub enum Msg {

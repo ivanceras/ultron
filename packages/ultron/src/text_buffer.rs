@@ -1,28 +1,16 @@
 #![allow(unused)]
 
-use crate::util;
-use crate::Options;
-use crate::CH_HEIGHT;
-use crate::CH_WIDTH;
-use crate::COMPONENT_NAME;
+use crate::{util, Options, CH_HEIGHT, CH_WIDTH, COMPONENT_NAME};
 use cell::Cell;
-use css_colors::rgba;
-use css_colors::Color;
-use css_colors::RGBA;
+use css_colors::{rgba, Color, RGBA};
 use line::Line;
 use nalgebra::Point2;
 use page::Page;
-use parry2d::bounding_volume::BoundingVolume;
-use parry2d::bounding_volume::AABB;
+use parry2d::bounding_volume::{BoundingVolume, AABB};
 use range::Range;
-use sauron::html::attributes;
-use sauron::jss::jss_ns;
-use sauron::prelude::*;
-use sauron::Node;
-use std::collections::HashMap;
-use std::iter::FromIterator;
-use ultron_syntaxes_themes::TextHighlighter;
-use ultron_syntaxes_themes::{Style, Theme};
+use sauron::{html::attributes, jss_ns, prelude::*, Node};
+use std::{collections::HashMap, iter::FromIterator};
+use ultron_syntaxes_themes::{Style, TextHighlighter, Theme};
 #[allow(unused)]
 use unicode_width::UnicodeWidthChar;
 
