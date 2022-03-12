@@ -798,14 +798,8 @@ impl<XMSG> Editor<XMSG> {
     }
 
     /// convert current cursor position to client coordinate relative to the editor div
-    pub fn cursor_to_client(&self) -> Point2<i32> {
-        let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
-        let cursor = self.text_buffer.get_position();
-
-        let top = cursor.y as i32 * CH_HEIGHT as i32;
-        let left = (cursor.x as i32 + numberline_wide as i32) * CH_WIDTH as i32;
-
-        Point2::new(left, top)
+    pub fn cursor_to_client(&self) -> Point2<f32> {
+        self.text_buffer.calculate_cursor_location()
     }
 
     fn view_hidden_textarea(&self) -> Node<Msg> {
@@ -966,6 +960,7 @@ impl<XMSG> Editor<XMSG> {
                 ),
                 text!("| line max: {}", self.viewport_lines_capacity()),
                 text!("| pages: {}", self.pages()),
+                text!("| focused: {:?}", self.text_buffer.focused_cell),
             ],
         )
     }

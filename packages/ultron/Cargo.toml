@@ -11,7 +11,7 @@ readme = "../../README.md"
 keywords = ["web", "editor", "monospace"]
 
 [dependencies]
-sauron = { version = "0.45.0", default-features = false, features = ["with-measure"] }
+sauron = { version = "0.49.2", default-features = false, features = ["with-measure"] }
 ultron-syntaxes-themes = { version = "0.2.6", path = "../syntaxes-themes" }
 log = "0.4"
 unicode-width = "0.1"

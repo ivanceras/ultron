@@ -28,7 +28,7 @@ pub struct TextBuffer<MSG> {
     cursor: Point2<usize>,
     selection_start: Option<Point2<usize>>,
     selection_end: Option<Point2<usize>>,
-    focused_cell: Option<FocusCell>,
+    pub(crate) focused_cell: Option<FocusCell>,
     context: Context,
     page_cache: HashMap<usize, Node<MSG>>,
 }
@@ -51,7 +51,7 @@ impl Context {
 }
 
 #[derive(Clone, Copy, Debug)]
-struct FocusCell {
+pub(crate) struct FocusCell {
     page_index: usize,
     line_index: usize,
     range_index: usize,
@@ -157,6 +157,15 @@ impl<MSG> TextBuffer<MSG> {
         )
     }
 
+    pub(crate) fn calculate_cursor_location(&self) -> Point2<f32> {
+        let numberline_wide = self.get_numberline_wide();
+        let (page, line) = self.calc_page_line_index(self.cursor.y);
+        let page_height = self.pages[page].page_height();
+        let top = self.cursor.y as f32 * CH_HEIGHT as f32;
+        let left = (self.cursor.x + numberline_wide) as f32 * CH_WIDTH as f32;
+        Point2::new(left, top)
+    }
+
     /// delete the lines starting from start_line
     fn delete_lines_to_end(&mut self, start_line: usize) {
         let (page, line_index) = self.calc_page_line_index(start_line);
@@ -186,6 +195,8 @@ impl<MSG> TextBuffer<MSG> {
             self.pages[start_page]
                 .get_text_in_lines_exclusive(start_line_index, end_line_index)
         } else {
+            let (start_page, end_page) =
+                util::normalize_number(start_page, end_page);
             let end_text =
                 self.pages[end_page].get_text_in_lines(0, end_line_index);
             let start_text =

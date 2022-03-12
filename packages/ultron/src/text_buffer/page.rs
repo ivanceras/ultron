@@ -1,5 +1,6 @@
 use super::Line;
 use super::TextBuffer;
+use crate::util;
 use crate::CH_HEIGHT;
 use itertools::Itertools;
 use sauron::html::attributes::data;
@@ -64,6 +65,8 @@ impl Page {
         start_index: usize,
         end_index: usize,
     ) {
+        let (start_line, end_line) =
+            util::normalize_number(start_index, end_index);
         self.lines.drain(start_index..=end_index);
     }
 
@@ -72,6 +75,8 @@ impl Page {
         start_index: usize,
         end_index: usize,
     ) -> String {
+        let (start_line, end_line) =
+            util::normalize_number(start_index, end_index);
         self.lines[start_index..=end_index]
             .iter()
             .map(|line| line.text())
@@ -84,6 +89,8 @@ impl Page {
         start_line: usize,
         end_line: usize,
     ) {
+        let (start_line, end_line) =
+            util::normalize_number(start_line, end_line);
         self.lines.drain(start_line..end_line);
     }
 
@@ -92,6 +99,8 @@ impl Page {
         start_line: usize,
         end_line: usize,
     ) -> String {
+        let (start_line, end_line) =
+            util::normalize_number(start_line, end_line);
         self.lines[start_line..end_line]
             .iter()
             .map(|line| line.text())
@@ -245,8 +254,8 @@ impl Page {
     ) -> Node<MSG> {
         div(
             [
-                // skip diffinf when this page is not shown
-                skip(!self.visible),
+                // skip diffing when this page is not shown
+                //skip(!self.visible),
                 class("page"),
                 class(format!("page_{}", page_index)),
                 style! {height: px(self.page_height())},

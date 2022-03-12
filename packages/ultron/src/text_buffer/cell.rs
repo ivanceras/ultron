@@ -43,6 +43,7 @@ impl Cell {
             range_index,
             cell_index,
         );
+        log::trace!("is focused for cell {:?}: {}", self, is_focused);
 
         let is_selected = text_buffer.in_selection(
             page_index,

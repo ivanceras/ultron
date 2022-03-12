@@ -21,3 +21,11 @@ where
     let max_y = p1.y.max(p2.y);
     (Point2::new(min_x, min_y), Point2::new(max_x, max_y))
 }
+
+pub(crate) fn normalize_number(n1: usize, n2: usize) -> (usize, usize) {
+    if n1 > n2 {
+        (n2, n1)
+    } else {
+        (n1, n2)
+    }
+}
