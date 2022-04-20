@@ -70,6 +70,7 @@
             let page_offset = page_n * page_height;
             if scroll_top > page_offset && scroll_top < next_page_offset { show } else {hide}
           ```
+- [ ] Simplify the text buffer, just a `Vec<Vec<char>>`, no paging, no ranges, no char.
 
 ## Issues
 - [ ] Moving around characters with cell_width of 2

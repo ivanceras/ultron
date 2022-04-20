@@ -26,8 +26,8 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
-        let content = include_str!("../test_data/hello.rs");
-        //let content = include_str!("../test_data/svgbob.md");
+        //let content = include_str!("../test_data/hello.rs");
+        let content = include_str!("../test_data/svgbob.md");
         let options = Options {
             syntax_token: "rust".to_string(),
             theme_name: Some("solarized-light".to_string()),

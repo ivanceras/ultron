@@ -1,4 +1,5 @@
 #![deny(warnings)]
+#![allow(unused)]
 pub use text_buffer::TextBuffer;
 pub use ultron_syntaxes_themes::TextHighlighter;
 

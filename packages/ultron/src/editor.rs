@@ -47,7 +47,7 @@ pub enum Msg {
 
 pub struct Editor<XMSG> {
     options: Options,
-    text_buffer: TextBuffer<Msg>,
+    text_buffer: TextBuffer,
     /// for undo and redo
     recorded: Recorded,
     measurements: Option<Measurements>,
@@ -122,13 +122,13 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 log::trace!("scrolling window..");
                 self.context.viewport_scroll_top = scroll_top as f32;
                 self.context.viewport_scroll_left = scroll_left as f32;
-                self.text_buffer.update_context(self.context);
+                //self.text_buffer.update_context(self.context);
                 Effects::none()
             }
             Msg::WindowResized { width, height } => {
                 self.context.viewport_width = width as f32;
                 self.context.viewport_height = height as f32;
-                self.text_buffer.update_context(self.context);
+                //self.text_buffer.update_context(self.context);
                 Effects::none()
             }
             Msg::Scrolled((scroll_top, scroll_left)) => {
@@ -331,11 +331,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 self.view_hidden_textarea(),
                 self.text_buffer.view(),
                 view_if(self.options.show_status_line, self.view_status_line()),
-                view_if(
-                    self.options.show_cursor
-                        && self.text_buffer.is_in_virtual_position(),
-                    self.view_virtual_cursor(),
-                ),
+                view_if(self.options.show_cursor, self.view_virtual_cursor()),
             ],
         )
     }
@@ -410,7 +406,7 @@ impl<XMSG> Editor<XMSG> {
         log::trace!("inserting char: {}, at cursor: {}", ch, cursor);
         self.text_buffer.command_insert_char(ch);
         self.recorded.insert_char(cursor, ch);
-        self.text_buffer.rehighlight();
+        //self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
@@ -420,7 +416,7 @@ impl<XMSG> Editor<XMSG> {
         if let Some(old_ch) = self.text_buffer.command_replace_char(ch) {
             self.recorded.replace_char(cursor, old_ch, ch);
         }
-        self.text_buffer.rehighlight();
+        //self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
@@ -428,7 +424,7 @@ impl<XMSG> Editor<XMSG> {
     fn command_delete_back(&mut self) -> Effects<Msg, XMSG> {
         let cursor = self.text_buffer.get_position();
         let ch = self.text_buffer.command_delete_back();
-        self.text_buffer.rehighlight();
+        //self.text_buffer.rehighlight();
         self.recorded.delete(cursor, ch);
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
@@ -468,7 +464,7 @@ impl<XMSG> Editor<XMSG> {
         let pos = self.text_buffer.get_position();
         self.text_buffer.command_break_line(pos.x, pos.y);
         self.recorded.break_line(pos);
-        self.text_buffer.rehighlight();
+        //self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
@@ -478,14 +474,14 @@ impl<XMSG> Editor<XMSG> {
         let pos = self.text_buffer.get_position();
         self.text_buffer.command_join_line(pos.x, pos.y);
         self.recorded.join_line(pos);
-        self.text_buffer.rehighlight();
+        //self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     fn command_insert_text(&mut self, text: &str) -> Effects<Msg, XMSG> {
         self.text_buffer.command_insert_text(text);
-        self.text_buffer.rehighlight();
+        //self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
@@ -912,6 +908,7 @@ impl<XMSG> Editor<XMSG> {
         div(
             [
                 class_ns("status"),
+                /*
                 if let Some(gutter_bg) = self.text_buffer.gutter_background() {
                     style! {
                         background_color: gutter_bg.to_css(),
@@ -926,6 +923,7 @@ impl<XMSG> Editor<XMSG> {
                 } else {
                     empty_attr()
                 },
+                */
                 style! {height: px(self.status_line_height()) },
             ],
             [
@@ -960,7 +958,7 @@ impl<XMSG> Editor<XMSG> {
                 ),
                 text!("| line max: {}", self.viewport_lines_capacity()),
                 text!("| pages: {}", self.pages()),
-                text!("| focused: {:?}", self.text_buffer.focused_cell),
+                //text!("| focused: {:?}", self.text_buffer.focused_cell),
             ],
         )
     }

@@ -72,9 +72,9 @@ impl Recorded {
     }
 
     /// undo the history and return the location of the last occurence
-    pub(crate) fn undo<MSG>(
+    pub(crate) fn undo(
         &mut self,
-        text_buffer: &mut TextBuffer<MSG>,
+        text_buffer: &mut TextBuffer,
     ) -> Option<Point2<usize>> {
         log::trace!("undoing...");
         let to_undo = match self.history.pop_front() {
@@ -98,9 +98,9 @@ impl Recorded {
         last_location
     }
 
-    pub(crate) fn redo<MSG>(
+    pub(crate) fn redo(
         &mut self,
-        text_buffer: &mut TextBuffer<MSG>,
+        text_buffer: &mut TextBuffer,
     ) -> Option<Point2<usize>> {
         let mut last_location = None;
         let to_redo = match self.undone.pop_front() {

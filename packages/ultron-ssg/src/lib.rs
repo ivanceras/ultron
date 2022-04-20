@@ -33,7 +33,7 @@ pub fn render_to_string(
     node.render_to_string()
 }
 
-fn page<MSG>(buffer: TextBuffer<MSG>) -> Node<MSG> {
+fn page<MSG>(buffer: TextBuffer) -> Node<MSG> {
     main(
         [],
         [
