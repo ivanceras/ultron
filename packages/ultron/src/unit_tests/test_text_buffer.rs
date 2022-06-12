@@ -150,6 +150,30 @@ fn join_line() {
 }
 
 #[test]
+fn ensure_line_exist5() {
+    let mut buffer =
+        TextBuffer::from_str(Options::default(), Context::default(), "");
+    buffer.ensure_line_exist(5);
+    assert_eq!(buffer.total_lines(), 6);
+}
+
+#[test]
+fn ensure_cell_exist5_2() {
+    let mut buffer =
+        TextBuffer::from_str(Options::default(), Context::default(), "");
+    buffer.ensure_cell_exist(5, 2);
+    assert_eq!(buffer.to_string(), "\n\n      ");
+}
+
+#[test]
+fn ensure_cell_exist0_0() {
+    let mut buffer =
+        TextBuffer::from_str(Options::default(), Context::default(), "");
+    buffer.ensure_cell_exist(0, 0);
+    assert_eq!(buffer.to_string(), " ");
+}
+
+#[test]
 fn insert_5_lines() {
     let raw = "Hello world";
     let mut buffer =

@@ -10,6 +10,7 @@ use ultron_syntaxes_themes::{Style, TextHighlighter, Theme};
 #[allow(unused)]
 use unicode_width::UnicodeWidthChar;
 
+#[derive(Clone, Copy)]
 pub struct Ch {
     ch: char,
     width: usize,
@@ -82,6 +83,15 @@ impl TextBuffer {
     ) -> String {
         "".to_string()
     }
+
+    pub(crate) fn get_text(
+        &self,
+        start: Point2<usize>,
+        end: Point2<usize>,
+    ) -> String {
+        "".to_string()
+    }
+
     pub(crate) fn selected_text(&self) -> Option<String> {
         None
     }
@@ -349,7 +359,31 @@ impl TextBuffer {
     fn add_cell(&mut self, y: usize, n: usize) {}
 
     /// break at line y and put the characters after x on the next line
-    pub(crate) fn break_line(&mut self, x: usize, y: usize) {}
+    pub(crate) fn break_line(&mut self, x: usize, y: usize) {
+        self.ensure_cell_exist(x, y);
+        let line = &self.chars[y];
+        let mut width_sum = 0;
+        let mut break_point = 0;
+        for (i, ch) in line.iter().enumerate() {
+            if width_sum < x {
+                width_sum += ch.width;
+            }
+            if width_sum == x {
+                break_point = i;
+                break;
+            }
+        }
+        let (break1, break2): (Vec<_>, Vec<_>) = line
+            .iter()
+            .enumerate()
+            .partition(|(i, ch)| *i <= break_point);
+
+        let break1: Vec<Ch> = break1.into_iter().map(|(_, ch)| *ch).collect();
+        let break2: Vec<Ch> = break2.into_iter().map(|(_, ch)| *ch).collect();
+        self.chars.remove(y);
+        self.chars.push(break1);
+        self.chars.push(break2);
+    }
 
     pub(crate) fn join_line(&mut self, x: usize, y: usize) {}
 
@@ -364,8 +398,50 @@ impl TextBuffer {
         );
     }
 
+    /// ensure line at index y exist
+    pub fn ensure_line_exist(&mut self, y: usize) {
+        let total_lines = self.total_lines();
+        let diff = y.saturating_add(1).saturating_sub(total_lines);
+        println!("adding {} lines", diff);
+        for _ in 0..diff {
+            self.chars.push(vec![]);
+        }
+    }
+
+    pub fn ensure_before_line_exist(&mut self, y: usize) {
+        self.ensure_line_exist(y.saturating_sub(1));
+    }
+
+    /// ensure line in index y exist and the cell at index x
+    pub fn ensure_cell_exist(&mut self, x: usize, y: usize) {
+        self.ensure_line_exist(y);
+        let column_len = self.chars[y].len();
+        let diff = x.saturating_add(1).saturating_sub(column_len);
+        println!("adding {} columns to line {}", diff, y);
+        for _ in 0..diff {
+            self.chars[y].push(Ch::new(' '));
+        }
+    }
+
+    pub fn ensure_before_cell_exist(&mut self, x: usize, y: usize) {
+        self.ensure_cell_exist(x.saturating_sub(1), y);
+    }
+
     /// insert a character at this x and y and move cells after it to the right
-    pub fn insert_char(&mut self, x: usize, y: usize, ch: char) {}
+    pub fn insert_char(&mut self, x: usize, y: usize, ch: char) {
+        self.ensure_before_cell_exist(x, y);
+        let mut width_sum = 0;
+        let line = &self.chars[y];
+        for (i, ch) in line.iter().enumerate() {
+            if width_sum < x {
+                width_sum += ch.width;
+            }
+            if width_sum == x {
+                break;
+            }
+        }
+        self.chars[y].insert(x, Ch::new(ch));
+    }
 
     fn insert_line_text(&mut self, x: usize, y: usize, text: &str) {}
 
@@ -378,7 +454,20 @@ impl TextBuffer {
         y: usize,
         ch: char,
     ) -> Option<char> {
-        None
+        self.ensure_cell_exist(x, y);
+        let mut width_sum = 0;
+        let line = &self.chars[y];
+        for (i, ch) in line.iter().enumerate() {
+            if width_sum < x {
+                width_sum += ch.width;
+            }
+            if width_sum == x {
+                break;
+            }
+        }
+        let ex_ch = self.chars[y].remove(x);
+        self.chars[y].insert(x, Ch::new(ch));
+        Some(ex_ch.ch)
     }
 
     /// delete character at this position
@@ -529,6 +618,10 @@ impl TextBuffer {
     }
     pub(crate) fn move_to(&mut self, pos: Point2<usize>) {
         self.set_position(pos.x, pos.y);
+    }
+
+    pub fn clear(&mut self) {
+        self.chars.clear();
     }
 }
 
