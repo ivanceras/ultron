@@ -10,7 +10,7 @@ use ultron_syntaxes_themes::{Style, TextHighlighter, Theme};
 #[allow(unused)]
 use unicode_width::UnicodeWidthChar;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Ch {
     ch: char,
     width: usize,
@@ -19,7 +19,7 @@ pub struct Ch {
 impl Ch {
     fn new(ch: char) -> Self {
         Self {
-            width: ch.width().expect("must have a width"),
+            width: ch.width().unwrap_or(0),
             ch,
         }
     }
@@ -347,6 +347,13 @@ impl TextBuffer {
         self.chars.len()
     }
 
+    fn lines(&self) -> Vec<String> {
+        self.chars
+            .iter()
+            .map(|line| String::from_iter(line.iter().map(|ch| ch.ch)))
+            .collect()
+    }
+
     /// the width of the line at line `n`
     pub(crate) fn line_width(&self, n: usize) -> usize {
         self.chars
@@ -360,29 +367,34 @@ impl TextBuffer {
 
     /// break at line y and put the characters after x on the next line
     pub(crate) fn break_line(&mut self, x: usize, y: usize) {
-        self.ensure_cell_exist(x, y);
+        println!("lines before breaking line: {:#?}", self.lines());
+        self.ensure_before_cell_exist(x, y);
         let line = &self.chars[y];
-        let mut width_sum = 0;
-        let mut break_point = 0;
-        for (i, ch) in line.iter().enumerate() {
-            if width_sum < x {
-                width_sum += ch.width;
-            }
-            if width_sum == x {
-                break_point = i;
-                break;
-            }
-        }
-        let (break1, break2): (Vec<_>, Vec<_>) = line
-            .iter()
-            .enumerate()
-            .partition(|(i, ch)| *i <= break_point);
+        if let Some(break_point) = self.column_index(x, y) {
+            let (break1, break2): (Vec<_>, Vec<_>) = line
+                .iter()
+                .enumerate()
+                .partition(|(i, ch)| *i < break_point);
 
-        let break1: Vec<Ch> = break1.into_iter().map(|(_, ch)| *ch).collect();
-        let break2: Vec<Ch> = break2.into_iter().map(|(_, ch)| *ch).collect();
-        self.chars.remove(y);
-        self.chars.push(break1);
-        self.chars.push(break2);
+            let break1: Vec<Ch> =
+                break1.into_iter().map(|(_, ch)| *ch).collect();
+            let break2: Vec<Ch> =
+                break2.into_iter().map(|(_, ch)| *ch).collect();
+            dbg!(&break1);
+            dbg!(&break2);
+            println!("lines before removing: {:#?}", self.lines());
+            self.chars.remove(y);
+            println!("lines after removing: {:#?}", self.lines());
+            self.chars.insert(y, break2);
+            println!("lines after inserting break2: {:#?}", self.lines());
+            self.chars.insert(y, break1);
+            println!("lines after inserting break1: {:#?}", self.lines());
+        } else {
+            println!(
+                "no column index.. inserting a blank line to the next line"
+            );
+            self.chars.insert(y + 1, vec![]);
+        }
     }
 
     pub(crate) fn join_line(&mut self, x: usize, y: usize) {}
@@ -400,6 +412,7 @@ impl TextBuffer {
 
     /// ensure line at index y exist
     pub fn ensure_line_exist(&mut self, y: usize) {
+        println!("ensuring line {} exist", y);
         let total_lines = self.total_lines();
         let diff = y.saturating_add(1).saturating_sub(total_lines);
         println!("adding {} lines", diff);
@@ -409,14 +422,18 @@ impl TextBuffer {
     }
 
     pub fn ensure_before_line_exist(&mut self, y: usize) {
-        self.ensure_line_exist(y.saturating_sub(1));
+        println!("ensuring before line {} exist", y);
+        if y > 0 {
+            self.ensure_line_exist(y.saturating_sub(1));
+        }
     }
 
     /// ensure line in index y exist and the cell at index x
     pub fn ensure_cell_exist(&mut self, x: usize, y: usize) {
+        println!("ensuring {},{} exist", x, y);
         self.ensure_line_exist(y);
-        let column_len = self.chars[y].len();
-        let diff = x.saturating_add(1).saturating_sub(column_len);
+        let line_width = self.line_width(y);
+        let diff = x.saturating_add(1).saturating_sub(line_width);
         println!("adding {} columns to line {}", diff, y);
         for _ in 0..diff {
             self.chars[y].push(Ch::new(' '));
@@ -424,23 +441,44 @@ impl TextBuffer {
     }
 
     pub fn ensure_before_cell_exist(&mut self, x: usize, y: usize) {
-        self.ensure_cell_exist(x.saturating_sub(1), y);
+        println!("ensuring before {},{} exist", x, y);
+        self.ensure_line_exist(y);
+        if x > 0 {
+            self.ensure_cell_exist(x.saturating_sub(1), y);
+        }
+    }
+
+    /// calculate the column index base on position of x and y
+    fn column_index(&self, x: usize, y: usize) -> Option<usize> {
+        if let Some(line) = self.chars.get(y) {
+            let mut width_sum = 0;
+            for (i, ch) in line.iter().enumerate() {
+                if width_sum == x {
+                    return Some(i);
+                }
+                width_sum += ch.width;
+            }
+            println!("reach the end of the loop for column_index");
+            None
+        } else {
+            println!("no line for this column_index");
+            None
+        }
     }
 
     /// insert a character at this x and y and move cells after it to the right
     pub fn insert_char(&mut self, x: usize, y: usize, ch: char) {
         self.ensure_before_cell_exist(x, y);
-        let mut width_sum = 0;
-        let line = &self.chars[y];
-        for (i, ch) in line.iter().enumerate() {
-            if width_sum < x {
-                width_sum += ch.width;
-            }
-            if width_sum == x {
-                break;
-            }
+        let new_ch = Ch::new(ch);
+        let line_width = self.line_width(y);
+        if let Some(column_index) = self.column_index(x, y) {
+            let diff =
+                x.saturating_sub(column_index).saturating_sub(new_ch.width);
+            let insert_index = column_index;
+            self.chars[y].insert(insert_index, new_ch);
+        } else {
+            self.chars[y].push(new_ch);
         }
-        self.chars[y].insert(x, Ch::new(ch));
     }
 
     fn insert_line_text(&mut self, x: usize, y: usize, text: &str) {}
@@ -455,24 +493,22 @@ impl TextBuffer {
         ch: char,
     ) -> Option<char> {
         self.ensure_cell_exist(x, y);
-        let mut width_sum = 0;
-        let line = &self.chars[y];
-        for (i, ch) in line.iter().enumerate() {
-            if width_sum < x {
-                width_sum += ch.width;
-            }
-            if width_sum == x {
-                break;
-            }
-        }
-        let ex_ch = self.chars[y].remove(x);
-        self.chars[y].insert(x, Ch::new(ch));
+        let new_ch = Ch::new(ch);
+        let column_index =
+            self.column_index(x, y).expect("must have a column index");
+        let ex_ch = self.chars[y].remove(column_index);
+        self.chars[y].insert(column_index, Ch::new(ch));
         Some(ex_ch.ch)
     }
 
     /// delete character at this position
     pub(crate) fn delete_char(&mut self, x: usize, y: usize) -> Option<char> {
-        None
+        if let Some(column_index) = self.column_index(x, y) {
+            let ex_ch = self.chars[y].remove(column_index);
+            Some(ex_ch.ch)
+        } else {
+            None
+        }
     }
 
     /// return the position of the cursor

@@ -112,9 +112,9 @@ fn break_line_in_non_existing_cell() {
     let mut buffer =
         TextBuffer::from_str(Options::default(), Context::default(), raw);
     buffer.break_line(2, 1);
-    assert_eq!(buffer.to_string(), "Hello world\n\n\nHowdy");
+    assert_eq!(buffer.to_string(), "Hello world\n  \n\nHowdy");
     buffer.insert_char(0, 2, '1');
-    assert_eq!(buffer.to_string(), "Hello world\n\n1\nHowdy");
+    assert_eq!(buffer.to_string(), "Hello world\n  \n1\nHowdy");
 }
 
 #[test]
@@ -250,11 +250,11 @@ fn insert_anywhere_cell_10_10() {
 }
 
 #[test]
-fn breaking_line_anywhere_cell_no_effect_on_nosuchline() {
+fn breaking_line_anywhere_will_make_lines_on_it() {
     let mut buffer =
         TextBuffer::from_str(Options::default(), Context::default(), "");
     buffer.break_line(2, 5);
-    assert_eq!(buffer.to_string(), "");
+    assert_eq!(buffer.to_string(), "\n\n\n\n\n  \n");
 }
 
 #[test]
@@ -282,7 +282,7 @@ fn insert_end_cjk() {
     let raw = "Hello 文件系统";
     let mut buffer =
         TextBuffer::from_str(Options::default(), Context::default(), raw);
-    buffer.insert_char(13, 0, 'Y');
+    buffer.insert_char(14, 0, 'Y');
     assert_eq!(buffer.to_string(), "Hello 文件系统Y");
 }
 
