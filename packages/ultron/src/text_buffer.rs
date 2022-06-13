@@ -481,9 +481,14 @@ impl TextBuffer {
         }
     }
 
-    fn insert_line_text(&mut self, x: usize, y: usize, text: &str) {}
-
-    pub(crate) fn insert_text(&mut self, x: usize, y: usize, text: &str) {}
+    pub(crate) fn insert_text(&mut self, x: usize, y: usize, text: &str) {
+        let mut width_inc = 0;
+        for ch in text.chars() {
+            let new_ch = Ch::new(ch);
+            self.insert_char(x + width_inc, y, new_ch.ch);
+            width_inc += new_ch.width;
+        }
+    }
 
     /// replace the character at this location
     pub fn replace_char(
