@@ -91,3 +91,5 @@
     - 80ms when syntax highlighting is disabled
 - [X] When `replace_char` is called for the next page, it applies to the first page instead
 - [ ] replace addition and subtraction operation with saturating_add and saturating_sub.
+- [ ] If the top level view of a Program changes, then the original root_node is not set, which causes
+    - [ ] Add a test for replacing the top-level root-node and confirm it is changed

@@ -437,7 +437,11 @@ impl<XMSG> Editor<XMSG> {
     }
 
     fn command_move_up(&mut self) {
-        self.text_buffer.move_up();
+        if self.options.use_virtual_edit {
+            self.text_buffer.move_up();
+        } else {
+            self.text_buffer.move_up_clamped();
+        }
     }
 
     fn command_move_down(&mut self) {

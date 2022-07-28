@@ -582,21 +582,20 @@ impl TextBuffer {
         self.cursor.x = self.cursor.x.saturating_add(1);
         self.calculate_focused_cell();
     }
+    fn line_max_column(&self, line: usize) -> usize {
+        self.chars.get(line).map(|line| line.len()).unwrap_or(0)
+    }
+    fn current_line_max_column(&self) -> usize {
+        self.line_max_column(self.cursor.y)
+    }
     pub(crate) fn move_right_clamped(&mut self) {
-        let line_column = self
-            .chars
-            .get(self.cursor.y)
-            .map(|line| line.len())
-            .unwrap_or(0);
-        if self.cursor.x < line_column {
+        if self.cursor.x < self.current_line_max_column() {
             self.move_right();
         }
     }
 
     pub(crate) fn move_right_end(&mut self) {
-        //let line_width = self.focused_line().map(|l| l.width).unwrap_or(0);
-        //self.cursor.x += line_width;
-        self.calculate_focused_cell();
+        self.cursor.x = self.current_line_max_column();
     }
 
     pub(crate) fn move_x(&mut self, x: usize) {
@@ -615,8 +614,23 @@ impl TextBuffer {
         self.cursor.y = self.cursor.y.saturating_add(1);
         self.calculate_focused_cell();
     }
+    pub(crate) fn move_up_clamped(&mut self) {
+        let target_line = self.cursor.y.saturating_sub(1);
+        let target_line_max_column = self.line_max_column(target_line);
+        if target_line < self.total_lines() {
+            if self.cursor.x > target_line_max_column {
+                self.cursor.x = target_line_max_column;
+            }
+            self.move_up()
+        }
+    }
     pub(crate) fn move_down_clamped(&mut self) {
-        if self.cursor.y + 1 < self.total_lines() {
+        let target_line = self.cursor.y.saturating_add(1);
+        let target_line_max_column = self.line_max_column(target_line);
+        if target_line < self.total_lines() {
+            if self.cursor.x > target_line_max_column {
+                self.cursor.x = target_line_max_column;
+            }
             self.move_down()
         }
     }
