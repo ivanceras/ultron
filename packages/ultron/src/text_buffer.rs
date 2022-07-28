@@ -151,7 +151,8 @@ impl TextBuffer {
             self.chars.iter().enumerate().map(|(number, line)| {
                 div(
                     [class_ns("line")],
-                    line.iter().map(|ch| div([class_ns("ch")], [text(ch.ch)])),
+                    //line.iter().map(|ch| div([class_ns("ch")], [text(ch.ch)])),
+                    [text(String::from_iter(line.iter().map(|l| l.ch)))],
                 )
             });
 
@@ -240,6 +241,7 @@ impl TextBuffer {
                 height: px(CH_HEIGHT),
                 overflow: "hidden",
                 display: "block",
+                user_select: "none",
             },
 
             ".filler": {

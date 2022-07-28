@@ -6,21 +6,30 @@
     <title>Code editor</title>
     <style type="text/css">
         @font-face {
-          font-family: JuliaMono;
-          src: url(./assets/JuliaMono-Light.woff2);
+          font-family: 'Iosevka Fixed';
+          src: url('fonts/iosevka-fixed-regular.woff2') format('woff2'), url('fonts/iosevka-fixed-regular.ttf') format('truetype');
+        }
+        @font-face {
+          font-family: 'Ubuntu';
+          src: url('fonts/Ubuntu-Regular.ttf') format('truetype');
         }
         body {
-            font-family: "JuliaMono", "Fira Sans", "Courier New", Courier,"Lucida Sans Typewriter","Lucida Typewriter",monospace;
+            font-family: "Iosevka Fixed", "Ubuntu", "Fira Sans", "Courier New", Courier,"Lucida Sans Typewriter","Lucida Typewriter",monospace;
             margin: 0;
             /*background-color: rgba(0,43,54,1.0);*/
             height: 100%;
             overflow-x: hidden;
         }
 
+
         #app_container{
           width: 100%;
           height: 100%;
           position: relative;
+        }
+
+        .ultron code, .ultron pre{
+            font-family: "Iosevka Fixed";
         }
 
         .preload_spinner {

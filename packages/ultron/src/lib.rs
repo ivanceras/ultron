@@ -19,7 +19,8 @@ mod text_buffer;
 mod util;
 
 pub const COMPONENT_NAME: &str = "ultron";
-pub const CH_WIDTH: u32 = 8;
+//pub const CH_WIDTH: u32 = 8;
+pub const CH_WIDTH: u32 = 7;
 pub const CH_HEIGHT: u32 = 16;
 
 #[derive(Clone, Debug)]
