@@ -63,7 +63,10 @@ impl TextBuffer {
     }
 
     pub(crate) fn calculate_cursor_location(&self) -> Point2<f32> {
-        Point2::new(0.0, 0.0)
+        Point2::new(
+            self.cursor.x as f32 * CH_WIDTH as f32,
+            self.cursor.y as f32 * CH_HEIGHT as f32,
+        )
     }
     pub fn set_selection(&mut self, start: Point2<usize>, end: Point2<usize>) {}
     /// clear the text selection
@@ -481,13 +484,27 @@ impl TextBuffer {
         }
     }
 
-    pub(crate) fn insert_text(&mut self, x: usize, y: usize, text: &str) {
+    /// insert a text, must not contain a \n
+    fn insert_line_text(&mut self, x: usize, y: usize, text: &str) {
         let mut width_inc = 0;
         for ch in text.chars() {
             let new_ch = Ch::new(ch);
             self.insert_char(x + width_inc, y, new_ch.ch);
             width_inc += new_ch.width;
         }
+    }
+
+    pub(crate) fn insert_text(&mut self, x: usize, y: usize, text: &str) {
+        println!("before inserting text: {:#?}", self.lines());
+        let mut start = x;
+        for (i, line) in text.lines().enumerate() {
+            if i > 0 {
+                self.chars.insert(y + 1, vec![]);
+            }
+            self.insert_line_text(start, y + i, line);
+            start = 0;
+        }
+        println!("after inserting text: {:#?}", self.lines());
     }
 
     /// replace the character at this location
@@ -518,7 +535,7 @@ impl TextBuffer {
 
     /// return the position of the cursor
     pub(crate) fn get_position(&self) -> Point2<usize> {
-        Point2::new(0, 0)
+        self.cursor
     }
 
     fn calculate_offset(&self, text: &str) -> (usize, usize) {
