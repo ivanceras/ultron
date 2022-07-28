@@ -1,10 +1,8 @@
 #![deny(warnings)]
-use ultron::{editor, editor::Editor};
-
-#[allow(unused)]
 use ultron::sauron;
+use ultron::{editor, editor::Editor};
 use ultron::{
-    sauron::{jss, prelude::*, wasm_bindgen::JsCast, Window},
+    sauron::{jss, prelude::*, Window},
     Options,
 };
 
@@ -48,18 +46,10 @@ impl Application<Msg> for App {
                 on_mousemove(|me| Msg::Mousemove(me.client_x(), me.client_y())),
                 on_mousedown(|me| Msg::Mousedown(me.client_x(), me.client_y())),
                 on_mouseup(|me| Msg::Mouseup(me.client_x(), me.client_y())),
-                on("keydown", |event| {
-                    let event = event.as_web().expect("must be a web event");
-                    let ke: KeyboardEvent = event
-                        .clone()
-                        .dyn_into()
-                        .expect("unable to cast to keyboard event");
-                    if ke.key() == "Tab" {
-                        event.prevent_default();
-                        event.stop_propagation();
-                        Msg::Keydown(ke.clone());
-                    }
-                    Msg::NoOp
+                on_keydown(|ke| {
+                    ke.prevent_default();
+                    ke.stop_propagation();
+                    Msg::Keydown(ke)
                 }),
             ]),
         ])
@@ -120,8 +110,9 @@ impl Application<Msg> for App {
                 Cmd::from(effects.localize(Msg::EditorMsg))
             }
             Msg::Keydown(ke) => {
-                self.editor.update(editor::Msg::WindowKeydown(ke));
-                Cmd::none().measure()
+                let effects =
+                    self.editor.update(editor::Msg::WindowKeydown(ke));
+                Cmd::from(effects.localize(Msg::EditorMsg)).measure()
             }
             Msg::NoOp => Cmd::none().no_render(),
         }

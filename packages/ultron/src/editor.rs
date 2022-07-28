@@ -328,7 +328,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 on_mount(|mount| Msg::EditorMounted(mount.target_node)),
             ],
             [
-                self.view_hidden_textarea(),
+                //self.view_hidden_textarea(),
                 self.text_buffer.view(),
                 view_if(self.options.show_status_line, self.view_status_line()),
                 view_if(self.options.show_cursor, self.view_virtual_cursor()),
@@ -860,11 +860,13 @@ impl<XMSG> Editor<XMSG> {
     }
 
     fn clear_hidden_textarea(&self) {
+        /*
         if let Some(element) = &self.hidden_textarea {
             element.set_value("");
         } else {
             panic!("there should always be hidden textarea");
         }
+        */
     }
 
     fn view_virtual_cursor(&self) -> Node<Msg> {
