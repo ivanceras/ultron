@@ -7,8 +7,15 @@ use parry2d::bounding_volume::{BoundingVolume, AABB};
 use sauron::{html::attributes, jss_ns, prelude::*, Node};
 use std::{collections::HashMap, iter::FromIterator};
 use ultron_syntaxes_themes::{Style, TextHighlighter, Theme};
-#[allow(unused)]
 use unicode_width::UnicodeWidthChar;
+
+/// A text buffer where every insertion of character it will
+/// recompute the highlighting of a line
+pub struct TextBuffer {
+    options: Options,
+    chars: Vec<Vec<Ch>>,
+    cursor: Point2<usize>,
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Ch {
@@ -23,14 +30,6 @@ impl Ch {
             ch,
         }
     }
-}
-
-/// A text buffer where every insertion of character it will
-/// recompute the highlighting of a line
-pub struct TextBuffer {
-    options: Options,
-    chars: Vec<Vec<Ch>>,
-    cursor: Point2<usize>,
 }
 
 #[derive(Copy, Clone, Default)]
@@ -541,10 +540,6 @@ impl TextBuffer {
     fn calculate_offset(&self, text: &str) -> (usize, usize) {
         (0, 0)
     }
-
-    fn max_column(&self) -> usize {
-        0
-    }
 }
 
 /// Command implementation here
@@ -588,7 +583,12 @@ impl TextBuffer {
         self.calculate_focused_cell();
     }
     pub(crate) fn move_right_clamped(&mut self) {
-        if self.cursor.x < self.max_column() {
+        let line_column = self
+            .chars
+            .get(self.cursor.y)
+            .map(|line| line.len())
+            .unwrap_or(0);
+        if self.cursor.x < line_column {
             self.move_right();
         }
     }
