@@ -123,7 +123,11 @@ impl TextBuffer {
         0
     }
 
-    pub fn view<MSG>(&self) -> Node<MSG> {
+    pub fn view<MSG>(
+        &self,
+        text_highlighter: &mut TextHighlighter,
+        use_highlighting: bool,
+    ) -> Node<MSG> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
@@ -149,11 +153,28 @@ impl TextBuffer {
 
         let rendered_pages =
             self.chars.iter().enumerate().map(|(number, line)| {
-                div(
-                    [class_ns("line")],
-                    //line.iter().map(|ch| div([class_ns("ch")], [text(ch.ch)])),
-                    [text(String::from_iter(line.iter().map(|l| l.ch)))],
-                )
+                if use_highlighting {
+                    div([class_ns("line")], {
+                        let line_str =
+                            String::from_iter(line.iter().map(|l| l.ch));
+                        let range_style: Vec<(Style, &str)> = text_highlighter
+                            .highlight_line(&line_str)
+                            .expect("must not error");
+
+                        range_style
+                            .into_iter()
+                            .map(|(style, range)| {
+                                span([], [text(range.to_owned())])
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                } else {
+                    div(
+                        [class_ns("line")],
+                        //line.iter().map(|ch| div([class_ns("ch")], [text(ch.ch)])),
+                        [text(String::from_iter(line.iter().map(|l| l.ch)))],
+                    )
+                }
             });
 
         if self.options.use_for_ssg {

@@ -1,6 +1,6 @@
 use crate::{
-    text_buffer::Context, Options, TextBuffer, CH_HEIGHT, CH_WIDTH,
-    COMPONENT_NAME,
+    text_buffer::Context, Options, TextBuffer, TextHighlighter, CH_HEIGHT,
+    CH_WIDTH, COMPONENT_NAME,
 };
 use css_colors::Color;
 use history::Recorded;
@@ -12,6 +12,8 @@ use sauron::{
     wasm_bindgen::JsCast,
     Measurements,
 };
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub(crate) mod action;
 mod history;
@@ -48,6 +50,7 @@ pub enum Msg {
 pub struct Editor<XMSG> {
     options: Options,
     text_buffer: TextBuffer,
+    text_highlighter: Rc<RefCell<TextHighlighter>>,
     /// for undo and redo
     recorded: Recorded,
     measurements: Option<Measurements>,
@@ -83,9 +86,16 @@ pub fn build_context() -> Context {
 impl<XMSG> Editor<XMSG> {
     pub fn from_str(options: Options, content: &str) -> Self {
         let context = build_context();
+        let mut text_highlighter = TextHighlighter::default();
+        if let Some(theme_name) = &options.theme_name {
+            text_highlighter.select_theme(theme_name);
+        }
+        text_highlighter.set_syntax_token(&options.syntax_token);
+
         Editor {
             options: options.clone(),
             text_buffer: TextBuffer::from_str(options, context, content),
+            text_highlighter: Rc::new(RefCell::new(text_highlighter)),
             recorded: Recorded::new(),
             measurements: None,
             average_update_time: None,
@@ -329,7 +339,8 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             ],
             [
                 //self.view_hidden_textarea(),
-                self.text_buffer.view(),
+                self.text_buffer
+                    .view(&mut self.text_highlighter.borrow_mut(), true),
                 view_if(self.options.show_status_line, self.view_status_line()),
                 view_if(self.options.show_cursor, self.view_virtual_cursor()),
             ],
