@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use crate::{util, Options, CH_HEIGHT, CH_WIDTH, COMPONENT_NAME};
 use css_colors::{rgba, Color, RGBA};
 use nalgebra::Point2;

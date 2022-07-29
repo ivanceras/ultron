@@ -40,9 +40,26 @@ impl TextHighlighter {
             .find_syntax_by_token(syntax_token)
             .unwrap_or_else(|| self.syntax_set.find_syntax_plain_text());
         self.syntax_ref = Some(syntax_ref);
+
+        self.set_highlight_lines();
+    }
+
+    /// createa new HighlightLines and override existing
+    /// to reset the underlying parse state
+    fn set_highlight_lines(&mut self) {
+        let syntax_ref = self
+            .syntax_ref
+            .as_ref()
+            .expect("must have syntax_ref already");
         self.highlight_lines =
             Some(HighlightLines::new(syntax_ref, self.active_theme()));
     }
+
+    /// reset syntect parse state by resetting highlight lines
+    pub fn reset(&mut self) {
+        self.set_highlight_lines();
+    }
+
     /// set the theme name
     pub fn select_theme(&mut self, theme_name: &str) {
         if let Some(_) = self.theme_set.themes.get(theme_name) {

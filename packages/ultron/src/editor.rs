@@ -1,8 +1,9 @@
 use crate::{
-    text_buffer::Context, Options, TextBuffer, TextHighlighter, CH_HEIGHT,
-    CH_WIDTH, COMPONENT_NAME,
+    text_buffer::Context, util, Options, TextBuffer, TextHighlighter,
+    CH_HEIGHT, CH_WIDTH, COMPONENT_NAME,
 };
 use css_colors::Color;
+use css_colors::RGBA;
 use history::Recorded;
 use nalgebra::Point2;
 use sauron::{
@@ -14,6 +15,7 @@ use sauron::{
 };
 use std::cell::RefCell;
 use std::rc::Rc;
+use ultron_syntaxes_themes::Style;
 
 pub(crate) mod action;
 mod history;
@@ -50,7 +52,9 @@ pub enum Msg {
 pub struct Editor<XMSG> {
     options: Options,
     text_buffer: TextBuffer,
-    text_highlighter: Rc<RefCell<TextHighlighter>>,
+    text_highlighter: TextHighlighter,
+    /// lines of highlighted ranges
+    highlighted_lines: Vec<Vec<(Style, String)>>,
     /// for undo and redo
     recorded: Recorded,
     measurements: Option<Measurements>,
@@ -92,10 +96,17 @@ impl<XMSG> Editor<XMSG> {
         }
         text_highlighter.set_syntax_token(&options.syntax_token);
 
+        let text_buffer =
+            TextBuffer::from_str(options.clone(), context, content);
+
+        let highlighted_lines =
+            text_buffer.highlight_lines(&mut text_highlighter);
+
         Editor {
-            options: options.clone(),
-            text_buffer: TextBuffer::from_str(options, context, content),
-            text_highlighter: Rc::new(RefCell::new(text_highlighter)),
+            options: options,
+            text_buffer,
+            text_highlighter: text_highlighter,
+            highlighted_lines,
             recorded: Recorded::new(),
             measurements: None,
             average_update_time: None,
@@ -113,6 +124,13 @@ impl<XMSG> Editor<XMSG> {
             is_processing_key: false,
             context,
         }
+    }
+
+    /// rehighlight the texts
+    fn rehighlight(&mut self) {
+        self.text_highlighter.reset();
+        self.highlighted_lines =
+            self.text_buffer.highlight_lines(&mut self.text_highlighter);
     }
 }
 
@@ -319,6 +337,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     log::trace!("inserting from window keydown event");
                     let c = key.chars().next().expect("must be only 1 chr");
                     self.command_insert_char(c);
+                    self.rehighlight();
                 }
                 let extern_msgs = self.emit_on_change_listeners();
                 Effects::with_external(extern_msgs)
@@ -339,8 +358,11 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             ],
             [
                 //self.view_hidden_textarea(),
-                self.text_buffer
-                    .view(&mut self.text_highlighter.borrow_mut(), true),
+                //self.text_buffer.view(),
+                self.text_buffer.view_highlighted_lines(
+                    &self.highlighted_lines,
+                    self.theme_background(),
+                ),
                 view_if(self.options.show_status_line, self.view_status_line()),
                 view_if(self.options.show_cursor, self.view_virtual_cursor()),
             ],
@@ -417,17 +439,38 @@ impl<XMSG> Editor<XMSG> {
         log::trace!("inserting char: {}, at cursor: {}", ch, cursor);
         self.text_buffer.command_insert_char(ch);
         self.recorded.insert_char(cursor, ch);
-        //self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
+    fn theme_background(&self) -> Option<RGBA> {
+        self.text_highlighter
+            .active_theme()
+            .settings
+            .background
+            .map(util::to_rgba)
+    }
+
+    fn gutter_background(&self) -> Option<RGBA> {
+        self.text_highlighter
+            .active_theme()
+            .settings
+            .gutter
+            .map(util::to_rgba)
+    }
+
+    fn gutter_foreground(&self) -> Option<RGBA> {
+        self.text_highlighter
+            .active_theme()
+            .settings
+            .gutter_foreground
+            .map(util::to_rgba)
+    }
     pub fn command_replace_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
         let cursor = self.text_buffer.get_position();
         if let Some(old_ch) = self.text_buffer.command_replace_char(ch) {
             self.recorded.replace_char(cursor, old_ch, ch);
         }
-        //self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
@@ -435,7 +478,6 @@ impl<XMSG> Editor<XMSG> {
     fn command_delete_back(&mut self) -> Effects<Msg, XMSG> {
         let cursor = self.text_buffer.get_position();
         let ch = self.text_buffer.command_delete_back();
-        //self.text_buffer.rehighlight();
         self.recorded.delete(cursor, ch);
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
@@ -479,7 +521,6 @@ impl<XMSG> Editor<XMSG> {
         let pos = self.text_buffer.get_position();
         self.text_buffer.command_break_line(pos.x, pos.y);
         self.recorded.break_line(pos);
-        //self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
@@ -489,14 +530,12 @@ impl<XMSG> Editor<XMSG> {
         let pos = self.text_buffer.get_position();
         self.text_buffer.command_join_line(pos.x, pos.y);
         self.recorded.join_line(pos);
-        //self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     fn command_insert_text(&mut self, text: &str) -> Effects<Msg, XMSG> {
         self.text_buffer.command_insert_text(text);
-        //self.text_buffer.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
@@ -678,16 +717,20 @@ impl<XMSG> Editor<XMSG> {
                 let tab = "    ";
                 self.command_insert_text(tab);
                 self.refocus_hidden_textarea();
+                self.rehighlight();
             }
             "Enter" => {
                 self.clear_hidden_textarea();
                 self.command_break_line();
+                self.rehighlight();
             }
             "Backspace" => {
                 self.command_delete_back();
+                self.rehighlight();
             }
             "Delete" => {
                 self.command_delete_forward();
+                self.rehighlight();
             }
             "ArrowUp" => {
                 self.command_move_up();
@@ -925,22 +968,20 @@ impl<XMSG> Editor<XMSG> {
         div(
             [
                 class_ns("status"),
-                /*
-                if let Some(gutter_bg) = self.text_buffer.gutter_background() {
+                if let Some(gutter_bg) = self.gutter_background() {
                     style! {
                         background_color: gutter_bg.to_css(),
                     }
                 } else {
                     empty_attr()
                 },
-                if let Some(gutter_fg) = self.text_buffer.gutter_foreground() {
+                if let Some(gutter_fg) = self.gutter_foreground() {
                     style! {
                         color: gutter_fg.to_css()
                     }
                 } else {
                     empty_attr()
                 },
-                */
                 style! {height: px(self.status_line_height()) },
             ],
             [
