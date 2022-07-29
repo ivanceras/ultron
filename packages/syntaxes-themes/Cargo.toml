@@ -11,6 +11,6 @@ readme = "../../README.md"
 keywords = ["syntax", "themes", "highlighting"]
 
 [dependencies]
-syntect = { version = "4", default-features = false, features = ["default-fancy"] }
+syntect = { version = "5", default-features = false, features = ["default-fancy"] }
 once_cell = "1"
 log = "0.4"

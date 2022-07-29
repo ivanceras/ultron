@@ -1,4 +1,5 @@
 use crate::HighlightLines;
+use crate::Style;
 use crate::{Color, Theme, ThemeSet};
 use crate::{SyntaxReference, SyntaxSet};
 
@@ -8,6 +9,8 @@ pub struct TextHighlighter {
     syntax_set: &'static SyntaxSet,
     theme_set: &'static ThemeSet,
     theme_name: Option<String>,
+    syntax_ref: Option<&'static SyntaxReference>,
+    highlight_lines: Option<HighlightLines<'static>>,
 }
 
 impl Default for TextHighlighter {
@@ -18,6 +21,8 @@ impl Default for TextHighlighter {
             syntax_set,
             theme_set,
             theme_name: None,
+            syntax_ref: None,
+            highlight_lines: None,
         }
     }
 }
@@ -27,6 +32,16 @@ impl TextHighlighter {
         let mut text_highlighter = Self::default();
         text_highlighter.select_theme(theme_name);
         text_highlighter
+    }
+
+    pub fn set_syntax_token(&mut self, syntax_token: &str) {
+        let syntax_ref: &SyntaxReference = self
+            .syntax_set
+            .find_syntax_by_token(syntax_token)
+            .unwrap_or_else(|| self.syntax_set.find_syntax_plain_text());
+        self.syntax_ref = Some(syntax_ref);
+        self.highlight_lines =
+            Some(HighlightLines::new(syntax_ref, self.active_theme()));
     }
     /// set the theme name
     pub fn select_theme(&mut self, theme_name: &str) {
@@ -46,21 +61,18 @@ impl TextHighlighter {
         self.theme_set.themes.keys().cloned().collect()
     }
 
-    pub fn get_line_highlighter(
-        &self,
-        syntax_token: &str,
-    ) -> (HighlightLines, &SyntaxSet) {
-        let syntax: &SyntaxReference = self
-            .syntax_set
-            .find_syntax_by_token(syntax_token)
-            .unwrap_or_else(|| self.syntax_set.find_syntax_plain_text());
-        (
-            HighlightLines::new(syntax, self.active_theme()),
-            &self.syntax_set,
-        )
+    pub fn highlight_line<'l>(
+        &mut self,
+        line: &'l str,
+    ) -> Result<Vec<(Style, &'l str)>, syntect::Error> {
+        let highlight_lines = self
+            .highlight_lines
+            .as_mut()
+            .expect("must have a highlight line");
+        highlight_lines.highlight_line(line, &self.syntax_set)
     }
 
-    pub fn active_theme(&self) -> &Theme {
+    pub fn active_theme(&self) -> &'static Theme {
         if let Some(theme_name) = self.theme_name.as_ref() {
             &self.theme_set.themes[theme_name]
         } else {
