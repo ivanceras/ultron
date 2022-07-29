@@ -140,6 +140,37 @@ impl TextBuffer {
             .collect()
     }
 
+    // plain view
+    pub fn plain_view<MSG>(&self) -> Node<MSG> {
+        let class_ns = |class_names| {
+            attributes::class_namespaced(COMPONENT_NAME, class_names)
+        };
+        let class_number_wide =
+            format!("number_wide{}", self.numberline_wide());
+
+        let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
+        let rendered_lines = self
+            .lines()
+            .into_iter()
+            .enumerate()
+            .map(|(number, line)| div([class_ns("line")], [text(line)]));
+
+        if self.options.use_for_ssg {
+            // using div works well when select-copying for both chrome and firefox
+            // this is ideal for statis site generation highlighting
+            div(code_attributes, rendered_lines)
+        } else {
+            // using <pre><code> works well when copying in chrome
+            // but in firefox, it creates a double line when select-copying the text
+            // whe need to use <pre><code> in order for typing whitespace works.
+            pre(
+                [class_ns("code_wrapper")],
+                [code(code_attributes, rendered_lines)],
+            )
+        }
+    }
+
+    // highlighted view
     pub fn view_highlighted_lines<MSG>(
         &self,
         highlighted_lines: &[Vec<(Style, String)>],

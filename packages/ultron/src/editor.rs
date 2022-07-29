@@ -127,7 +127,7 @@ impl<XMSG> Editor<XMSG> {
     }
 
     /// rehighlight the texts
-    fn rehighlight(&mut self) {
+    pub fn rehighlight(&mut self) {
         self.text_highlighter.reset();
         self.highlighted_lines =
             self.text_buffer.highlight_lines(&mut self.text_highlighter);
@@ -358,11 +358,14 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             ],
             [
                 //self.view_hidden_textarea(),
-                //self.text_buffer.view(),
-                self.text_buffer.view_highlighted_lines(
-                    &self.highlighted_lines,
-                    self.theme_background(),
-                ),
+                if self.options.use_syntax_highlighter {
+                    self.text_buffer.view_highlighted_lines(
+                        &self.highlighted_lines,
+                        self.theme_background(),
+                    )
+                } else {
+                    self.text_buffer.plain_view()
+                },
                 view_if(self.options.show_status_line, self.view_status_line()),
                 view_if(self.options.show_cursor, self.view_virtual_cursor()),
             ],
