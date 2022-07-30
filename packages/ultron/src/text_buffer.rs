@@ -258,6 +258,8 @@ impl TextBuffer {
                 // to make the background color extend to the longest line, otherwise only the
                 // longest lines has a background-color leaving the shorter lines ugly
                 min_width: "max-content",
+                user_select: "none",
+                "-webkit-user-select": "none",
             },
 
             ".line_block": {
@@ -279,6 +281,7 @@ impl TextBuffer {
                 padding_right: px(CH_WIDTH * self.numberline_padding_wide() as u32),
                 height: px(CH_HEIGHT),
                 user_select: "none",
+                "-webkit-user-select": "none",
             },
             ".number_wide1 .number": {
                 width: px(1 * CH_WIDTH),

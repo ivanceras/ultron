@@ -38,7 +38,7 @@ fn page<MSG>(buffer: TextBuffer) -> Node<MSG> {
         [],
         [
             header([], [style([r#type("text/css")], [text(buffer.style())])]),
-            article([], [buffer.view()]),
+            article([], [buffer.plain_view()]),
         ],
     )
 }

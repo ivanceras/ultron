@@ -379,6 +379,8 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 font_size: px(14),
                 cursor: "text",
                 white_space: "normal",
+                user_select: "none",
+                "-webkit-user-select": "none",
             },
 
             ".occupy_container": {
