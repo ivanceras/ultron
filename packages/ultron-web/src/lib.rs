@@ -1,5 +1,4 @@
 #![deny(warnings)]
-use ultron::sauron;
 use ultron::{editor, editor::Editor};
 use ultron::{
     sauron::{jss, prelude::*, Window},

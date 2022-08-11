@@ -80,7 +80,7 @@ impl Recorded {
         let to_undo = match self.history.pop_front() {
             None => return None,
             Some(a) => {
-                log::trace!("undoing: {:?}", a);
+                log::info!("undoing: {:?}", a);
                 a
             }
         };

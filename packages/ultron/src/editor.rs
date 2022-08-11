@@ -331,16 +331,32 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 Effects::none().no_render()
             }
             Msg::WindowKeydown(ke) => {
+                let is_ctrl = ke.ctrl_key();
+                let is_shift = ke.shift_key();
                 let key = ke.key();
                 self.process_keypresses(&ke);
                 if key.chars().count() == 1 {
                     log::trace!("inserting from window keydown event");
                     let c = key.chars().next().expect("must be only 1 chr");
-                    self.command_insert_char(c);
-                    self.rehighlight();
+                    match c {
+                        'z' | 'Z' if is_ctrl => {
+                            if is_shift {
+                                self.redo()
+                            } else {
+                                self.undo()
+                            }
+                        }
+                        _ => {
+                            self.command_insert_char(c);
+                            self.rehighlight();
+                            let extern_msgs = self.emit_on_change_listeners();
+                            Effects::with_external(extern_msgs)
+                        }
+                    }
+                } else {
+                    log::info!("key: {}", key);
+                    Effects::none()
                 }
-                let extern_msgs = self.emit_on_change_listeners();
-                Effects::with_external(extern_msgs)
             }
         }
     }
