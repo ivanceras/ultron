@@ -2,6 +2,7 @@ use crate::{
     text_buffer::Context, util, Options, TextBuffer, TextHighlighter,
     CH_HEIGHT, CH_WIDTH, COMPONENT_NAME,
 };
+use css_colors::rgba;
 use css_colors::Color;
 use css_colors::RGBA;
 use history::Recorded;
@@ -389,6 +390,9 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
     }
 
     fn style(&self) -> String {
+        let cursor_color = self.cursor_color().unwrap_or(rgba(0, 0, 0, 1.0));
+        let border_color = rgba(0, 0, 0, 1.0);
+        let border_width = 1;
         let css = jss_ns! {COMPONENT_NAME,
             ".": {
                 position: "relative",
@@ -442,6 +446,82 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 user_select: "none",
             },
 
+            ".virtual_cursor": {
+                position: "absolute",
+                width: px(CH_WIDTH + 1),
+                height: px(CH_HEIGHT),
+            },
+
+            ".cursor_center":{
+                width: percent(100),
+                height: percent(100),
+                background_color: cursor_color.to_css(),
+                opacity: percent(50),
+                animation: "cursor_blink-anim 1000ms step-end infinite",
+            },
+
+
+            ".border": {
+                border_color: border_color.to_css(),
+                //box_shadow: format!("{} {}",px([0,0,4]), base.border_shadow.clone()),
+                z_index: 1,
+                opacity: 1,
+                position: "absolute",
+                //transition: format!("all {}ms ease-in",transition_time_ms),
+                border_style: "solid",
+            },
+
+            ".border-left": {
+                top: percent(50),
+                left: 0,
+                height: percent(100),
+                transform: format!("translate({}, {})", 0, percent(-50)),
+                border_width: px([0, 0, 0, border_width]),
+            },
+
+            ".border-right": {
+                top: percent(50),
+                right: 0,
+                height: percent(100),
+                transform: format!("translate({}, {})", 0, percent(-50)),
+                border_width: px([0, 0, 0, border_width]),
+            },
+
+            ".border-top": {
+                top: 0,
+                left: percent(50),
+                width: percent(100),
+                transform: format!("translate({}, {})", percent(-50), 0),
+                border_width: px([border_width, 0, 0, 0]),
+            },
+
+            ".border-bottom": {
+                left: percent(50),
+                width: percent(100),
+                bottom: 0,
+                transform: format!("translate({}, {})", percent(-50), 0),
+                border_width: px([border_width, 0, 0, 0]),
+            },
+
+
+            "@keyframes cursor_blink-anim": {
+              "0%": {
+                opacity: percent(0),
+              },
+              "25%": {
+                opacity: percent(25)
+              },
+              "50%": {
+                opacity: percent(100),
+              },
+              "75%": {
+                opacity: percent(75)
+              },
+              "100%": {
+                opacity: percent(0),
+              },
+            },
+
         };
 
         [css, self.text_buffer.style()].join("\n")
@@ -470,6 +550,9 @@ impl<XMSG> Editor<XMSG> {
             .settings
             .background
             .map(util::to_rgba)
+    }
+    pub(crate) fn cursor_color(&self) -> Option<RGBA> {
+        None
     }
 
     fn gutter_background(&self) -> Option<RGBA> {
@@ -959,7 +1042,13 @@ impl<XMSG> Editor<XMSG> {
                     left: px(cursor.x),
                 },
             ],
-            [],
+            [
+                div([class_ns("border border-left")], []),
+                div([class_ns("border border-right")], []),
+                div([class_ns("border border-top")], []),
+                div([class_ns("border border-bottom")], []),
+                div([class_ns("cursor_center")], []),
+            ],
         )
     }
 

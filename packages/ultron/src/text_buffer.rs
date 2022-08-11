@@ -104,9 +104,6 @@ impl TextBuffer {
         self.options = options;
     }
     fn calculate_focused_cell(&mut self) {}
-    pub(crate) fn cursor_color(&self) -> Option<RGBA> {
-        None
-    }
     /// how wide the numberline based on the character lengths of the number
     fn numberline_wide(&self) -> usize {
         if self.options.show_line_numbers {
@@ -243,8 +240,6 @@ impl TextBuffer {
             .unwrap_or(rgba(100, 100, 100, 0.5));
         */
 
-        let cursor_color = self.cursor_color().unwrap_or(rgba(255, 0, 0, 1.0));
-
         jss_ns! {COMPONENT_NAME,
             ".code_wrapper": {
                 margin: 0,
@@ -310,104 +305,9 @@ impl TextBuffer {
                 overflow: "hidden",
                 display: "block",
                 user_select: "none",
+                "-webkit-user-select": "none",
             },
 
-            ".filler": {
-                width: percent(100),
-            },
-
-            ".line_focused": {
-            },
-
-            ".range": {
-                flex: "none",
-                height: px(CH_HEIGHT),
-                overflow: "hidden",
-                display: "inline-block",
-            },
-
-            ".line .ch": {
-                width: px(CH_WIDTH),
-                height: px(CH_HEIGHT),
-                font_stretch: "ultra-condensed",
-                font_variant_numeric: "slashed-zero",
-                font_kerning: "none",
-                font_size_adjust: "none",
-                font_optical_sizing: "none",
-                position: "relative",
-                overflow: "hidden",
-                align_items: "center",
-                line_height: 1,
-                display: "inline-block",
-            },
-
-            /*
-            ".line .ch::selection": {
-                "background-color": selection_bg.to_css(),
-            },
-
-            ".ch.selected": {
-                background_color:selection_bg.to_css(),
-            },
-            */
-
-            ".virtual_cursor": {
-                position: "absolute",
-                width: px(CH_WIDTH),
-                height: px(CH_HEIGHT),
-                background_color: cursor_color.to_css(),
-                opacity: percent(50),
-                animation: "cursor_blink-anim 1000ms step-end infinite",
-            },
-
-            ".ch .cursor": {
-                position: "absolute",
-                left: 0,
-                width : px(CH_WIDTH),
-                height: px(CH_HEIGHT),
-                background_color: cursor_color.to_css(),
-                display: "inline",
-                animation: "cursor_blink-anim 1000ms step-end infinite",
-            },
-
-            ".ch.wide2 .cursor": {
-                width: px(2 * CH_WIDTH),
-            },
-            ".ch.wide3 .cursor": {
-                width: px(3 * CH_WIDTH),
-            },
-
-            // i-beam cursor
-            ".thin_cursor .cursor": {
-                width: px(2),
-            },
-
-            ".block_cursor .cursor": {
-                width: px(CH_WIDTH),
-            },
-
-
-            ".line .ch.wide2": {
-                width: px(2 * CH_WIDTH),
-                font_size: px(13),
-            },
-
-            ".line .ch.wide3": {
-                width: px(3 * CH_WIDTH),
-                font_size: px(13),
-            },
-
-            "@keyframes cursor_blink-anim": {
-              "50%": {
-                background_color: "transparent",
-                border_color: "transparent",
-              },
-
-              "100%": {
-                background_color: cursor_color.to_css(),
-                border_color: "transparent",
-              },
-            },
         }
     }
 }
