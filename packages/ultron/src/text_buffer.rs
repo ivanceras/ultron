@@ -356,6 +356,8 @@ impl TextBuffer {
                 width: px(CH_WIDTH),
                 height: px(CH_HEIGHT),
                 background_color: cursor_color.to_css(),
+                opacity: percent(50),
+                animation: "cursor_blink-anim 1000ms step-end infinite",
             },
 
             ".ch .cursor": {
