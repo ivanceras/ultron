@@ -469,7 +469,14 @@ impl TextBuffer {
         }
     }
 
-    pub(crate) fn join_line(&mut self, x: usize, y: usize) {}
+    pub(crate) fn join_line(&mut self, x: usize, y: usize) {
+        log::info!("joining line: {}", y);
+        let next_line_index = y.saturating_add(1);
+        let mut next_line = self.chars.remove(next_line_index);
+        log::debug!("next_line: {:?}", next_line);
+        self.chars[y].append(&mut next_line);
+        log::debug!("this line is now: {:?}", self.chars[y]);
+    }
 
     fn assert_chars(&self, ch: char) {
         assert!(

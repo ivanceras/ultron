@@ -615,6 +615,7 @@ impl<XMSG> Editor<XMSG> {
         if let Some(location) = self.recorded.undo(&mut self.text_buffer) {
             self.text_buffer.set_position(location.x, location.y);
         }
+        self.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
@@ -623,6 +624,7 @@ impl<XMSG> Editor<XMSG> {
         if let Some(location) = self.recorded.redo(&mut self.text_buffer) {
             self.text_buffer.set_position(location.x, location.y);
         }
+        self.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
