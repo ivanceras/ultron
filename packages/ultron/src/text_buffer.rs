@@ -91,7 +91,50 @@ impl TextBuffer {
         start: Point2<usize>,
         end: Point2<usize>,
     ) -> String {
-        "".to_string()
+        // if the selection lies in one line only
+        let is_one_line = start.y == end.y;
+        if is_one_line {
+            let selection: &[Ch] = &self.chars[start.y][start.x..=end.x];
+            String::from_iter(selection.iter().map(|ch| ch.ch))
+        } else {
+            // in the first line
+            let start_text: &[Ch] = &self.chars[start.y][start.x..];
+
+            let mid_text_range = start.y + 1..end.y;
+            let mid_text: Option<&[Vec<Ch>]> = if !mid_text_range.is_empty() {
+                Some(&self.chars[mid_text_range])
+            } else {
+                None
+            };
+
+            dbg!(&mid_text);
+
+            // in the last line
+            let end_text: &[Ch] = &self.chars[end.y][0..=end.x];
+
+            let start_text_str: String =
+                String::from_iter(start_text.iter().map(|ch| ch.ch));
+
+            dbg!(&start_text_str);
+
+            let end_text_str: String =
+                String::from_iter(end_text.iter().map(|ch| ch.ch));
+
+            dbg!(&end_text_str);
+            if let Some(mid_text) = mid_text {
+                let mid_text_str: String = mid_text
+                    .iter()
+                    .map(|line| String::from_iter(line.iter().map(|ch| ch.ch)))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                dbg!(&mid_text_str);
+
+                [start_text_str, mid_text_str, end_text_str].join("\n")
+            } else {
+                [start_text_str, end_text_str].join("\n")
+            }
+        }
     }
 
     pub(crate) fn selected_text(&self) -> Option<String> {
@@ -430,6 +473,7 @@ impl TextBuffer {
     }
 
     /// calculate the column index base on position of x and y
+    /// and considering the unicode width of the characters
     fn column_index(&self, x: usize, y: usize) -> Option<usize> {
         if let Some(line) = self.chars.get(y) {
             let mut width_sum = 0;

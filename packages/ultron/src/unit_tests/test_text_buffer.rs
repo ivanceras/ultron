@@ -41,6 +41,33 @@ fn test_get_text_world() {
 }
 
 #[test]
+fn test_get_text_multi_line_world() {
+    let raw = "Hello\nworld and\neverywhere";
+    let buffer =
+        TextBuffer::from_str(Options::default(), Context::default(), raw);
+    let txt = buffer.get_text(Point2::new(0, 1), Point2::new(4, 1));
+    assert_eq!(txt, "world");
+}
+
+#[test]
+fn test_get_text_multi_line_and() {
+    let raw = "Hello\nworld and\neverywhere";
+    let buffer =
+        TextBuffer::from_str(Options::default(), Context::default(), raw);
+    let txt = buffer.get_text(Point2::new(6, 1), Point2::new(8, 1));
+    assert_eq!(txt, "and");
+}
+
+#[test]
+fn test_get_text_multi_line_and_every() {
+    let raw = "Hello\nworld and\neverywhere";
+    let buffer =
+        TextBuffer::from_str(Options::default(), Context::default(), raw);
+    let txt = buffer.get_text(Point2::new(6, 1), Point2::new(4, 2));
+    assert_eq!(txt, "and\nevery");
+}
+
+#[test]
 fn test_text_selection_world() {
     let raw = "Hello world";
     let mut buffer =
