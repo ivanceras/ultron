@@ -83,7 +83,54 @@ impl TextBuffer {
         start: Point2<usize>,
         end: Point2<usize>,
     ) -> String {
-        "".to_string()
+        //let deleted_text = self.get_text(start, end);
+
+        // if the selection lies in one line only
+        let is_one_line = start.y == end.y;
+        if is_one_line {
+            let selection: Vec<Ch> =
+                self.chars[start.y].drain(start.x..=end.x).collect();
+            String::from_iter(selection.iter().map(|ch| ch.ch))
+        } else {
+            // in the last line
+            let end_text: Vec<Ch> =
+                self.chars[end.y].drain(0..=end.x).collect();
+
+            let mid_text_range = start.y + 1..end.y;
+            let mid_text: Option<Vec<Vec<Ch>>> = if !mid_text_range.is_empty() {
+                Some(self.chars.drain(mid_text_range).collect())
+            } else {
+                None
+            };
+            // in the first line
+            let start_text: Vec<Ch> =
+                self.chars[start.y].drain(start.x..).collect();
+
+            dbg!(&mid_text);
+
+            let start_text_str: String =
+                String::from_iter(start_text.iter().map(|ch| ch.ch));
+
+            dbg!(&start_text_str);
+
+            let end_text_str: String =
+                String::from_iter(end_text.iter().map(|ch| ch.ch));
+
+            dbg!(&end_text_str);
+            if let Some(mid_text) = mid_text {
+                let mid_text_str: String = mid_text
+                    .iter()
+                    .map(|line| String::from_iter(line.iter().map(|ch| ch.ch)))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                dbg!(&mid_text_str);
+
+                [start_text_str, mid_text_str, end_text_str].join("\n")
+            } else {
+                [start_text_str, end_text_str].join("\n")
+            }
+        }
     }
 
     pub(crate) fn get_text(
