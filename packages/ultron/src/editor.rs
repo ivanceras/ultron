@@ -941,6 +941,13 @@ impl<XMSG> Editor<XMSG> {
         }
     }
 
+    pub fn relative_client(&self, client_x: i32, client_y: i32) -> Point2<i32> {
+        let editor = self.editor_offset().expect("must have an editor offset");
+        let x = client_x as f32 - editor.x;
+        let y = client_y as f32 - editor.y;
+        Point2::new(x.round() as i32, y.round() as i32)
+    }
+
     /// convert screen coordinate to cursor position
     pub fn client_to_cursor(
         &self,
