@@ -392,7 +392,6 @@ impl TextBuffer {
             ".line": {
                 flex: "none", // dont compress lines
                 height: px(CH_HEIGHT),
-                overflow: "hidden",
                 display: "block",
                 user_select: "none",
                 "-webkit-user-select": "none",
