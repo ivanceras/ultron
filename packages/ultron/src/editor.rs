@@ -580,8 +580,8 @@ impl<XMSG> Editor<XMSG> {
     }
 
     fn command_delete_back(&mut self) -> Effects<Msg, XMSG> {
-        let cursor = self.text_buffer.get_position();
         let ch = self.text_buffer.command_delete_back();
+        let cursor = self.text_buffer.get_position();
         self.recorded.delete(cursor, ch);
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
