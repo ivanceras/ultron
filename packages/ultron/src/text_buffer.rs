@@ -9,8 +9,12 @@ use std::{collections::HashMap, iter::FromIterator};
 use ultron_syntaxes_themes::{Style, TextHighlighter, Theme};
 use unicode_width::UnicodeWidthChar;
 
+/// TODO: Make a TextView which wraps TextBuffer, with options, render view, while TextBuffer is
+/// purely just string manipulation
+///
 /// A text buffer where every insertion of character it will
 /// recompute the highlighting of a line
+#[derive(Clone)]
 pub struct TextBuffer {
     options: Options,
     chars: Vec<Vec<Ch>>,
@@ -19,8 +23,8 @@ pub struct TextBuffer {
 
 #[derive(Clone, Copy, Debug)]
 pub struct Ch {
-    ch: char,
-    width: usize,
+    pub ch: char,
+    pub width: usize,
 }
 
 impl Ch {
@@ -59,6 +63,14 @@ impl TextBuffer {
                 .collect(),
             cursor: Point2::new(0, 0),
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.chars.is_empty()
+    }
+
+    pub fn chars(&self) -> &[Vec<Ch>] {
+        &self.chars
     }
 
     pub(crate) fn calculate_cursor_location(&self) -> Point2<f32> {
