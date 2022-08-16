@@ -437,9 +437,6 @@ impl TextBuffer {
             .unwrap_or(0)
     }
 
-    /// fill columns at line y putting a space in each of the cells
-    fn add_cell(&mut self, y: usize, n: usize) {}
-
     /// break at line y and put the characters after x on the next line
     pub(crate) fn break_line(&mut self, x: usize, y: usize) {
         println!("lines before breaking line: {:#?}", self.lines());
@@ -601,6 +598,17 @@ impl TextBuffer {
         let ex_ch = self.chars[y].remove(column_index);
         self.chars[y].insert(column_index, Ch::new(ch));
         Some(ex_ch.ch)
+    }
+
+    pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
+        if let Some(line) = self.chars.get(y) {
+            let column_index = self.column_index(x, y);
+            column_index
+                .map(|col| line.get(col).map(|ch| ch.ch))
+                .flatten()
+        } else {
+            None
+        }
     }
 
     /// delete character at this position

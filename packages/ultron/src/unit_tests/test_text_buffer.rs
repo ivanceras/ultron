@@ -13,6 +13,14 @@ fn line_length() {
 }
 
 #[test]
+fn test_get_char() {
+    let raw = "Hello world";
+    let buffer =
+        TextBuffer::from_str(Options::default(), Context::default(), raw);
+    assert_eq!(buffer.get_char(6, 0), Some('w'));
+}
+
+#[test]
 fn test_get_text() {
     let raw = "Hello world";
     let buffer =
