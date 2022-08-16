@@ -448,8 +448,12 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 
             ".virtual_cursor": {
                 position: "absolute",
-                width: px(CH_WIDTH + 1),
+                width: px(CH_WIDTH),
                 height: px(CH_HEIGHT),
+                border_width: px(1),
+                border_color: border_color.to_css(),
+                opacity: 1,
+                border_style: "solid",
             },
 
             ".cursor_center":{
@@ -459,50 +463,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 opacity: percent(50),
                 animation: "cursor_blink-anim 1000ms step-end infinite",
             },
-
-
-            ".border": {
-                border_color: border_color.to_css(),
-                //box_shadow: format!("{} {}",px([0,0,4]), base.border_shadow.clone()),
-                z_index: 1,
-                opacity: 1,
-                position: "absolute",
-                //transition: format!("all {}ms ease-in",transition_time_ms),
-                border_style: "solid",
-            },
-
-            ".border-left": {
-                top: percent(50),
-                left: 0,
-                height: percent(100),
-                transform: format!("translate({}, {})", 0, percent(-50)),
-                border_width: px([0, 0, 0, border_width]),
-            },
-
-            ".border-right": {
-                top: percent(50),
-                right: 0,
-                height: percent(100),
-                transform: format!("translate({}, {})", 0, percent(-50)),
-                border_width: px([0, 0, 0, border_width]),
-            },
-
-            ".border-top": {
-                top: 0,
-                left: percent(50),
-                width: percent(100),
-                transform: format!("translate({}, {})", percent(-50), 0),
-                border_width: px([border_width, 0, 0, 0]),
-            },
-
-            ".border-bottom": {
-                left: percent(50),
-                width: percent(100),
-                bottom: 0,
-                transform: format!("translate({}, {})", percent(-50), 0),
-                border_width: px([border_width, 0, 0, 0]),
-            },
-
 
             "@keyframes cursor_blink-anim": {
               "0%": {
@@ -1049,13 +1009,7 @@ impl<XMSG> Editor<XMSG> {
                     left: px(cursor.x),
                 },
             ],
-            [
-                div([class_ns("border border-left")], []),
-                div([class_ns("border border-right")], []),
-                div([class_ns("border border-top")], []),
-                div([class_ns("border border-bottom")], []),
-                div([class_ns("cursor_center")], []),
-            ],
+            [div([class_ns("cursor_center")], [])],
         )
     }
 
