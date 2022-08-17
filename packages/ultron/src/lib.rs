@@ -51,6 +51,9 @@ pub struct Options {
     pub page_size: usize,
     /// a flag to use syntax highlighting or not
     pub use_syntax_highlighter: bool,
+    /// a flag to do replace mode when there is no characters to the right
+    /// and switch to insert mode when there is characters to the right
+    pub use_smart_replace_insert: bool,
 }
 
 impl Default for Options {
@@ -70,6 +73,7 @@ impl Default for Options {
             occupy_container: true,
             page_size: 20,
             use_syntax_highlighter: true,
+            use_smart_replace_insert: false,
         }
     }
 }

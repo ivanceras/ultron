@@ -348,7 +348,11 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                             }
                         }
                         _ => {
-                            self.command_insert_char(c);
+                            if self.options.use_smart_replace_insert {
+                                self.command_smart_replace_insert_char(c);
+                            } else {
+                                self.command_insert_char(c);
+                            }
                             self.rehighlight();
                             let extern_msgs = self.emit_on_change_listeners();
                             Effects::with_external(extern_msgs)
@@ -500,6 +504,28 @@ impl<XMSG> Editor<XMSG> {
         log::trace!("inserting char: {}, at cursor: {}", ch, cursor);
         self.text_buffer.command_insert_char(ch);
         self.recorded.insert_char(cursor, ch);
+        let extern_msgs = self.emit_on_change_listeners();
+        Effects::with_external(extern_msgs).measure()
+    }
+
+    fn command_smart_replace_insert_char(
+        &mut self,
+        ch: char,
+    ) -> Effects<Msg, XMSG> {
+        let cursor = self.text_buffer.get_position();
+        let has_right_char = if let Some(ch) =
+            self.text_buffer.get_char(cursor.x + 1, cursor.y)
+        {
+            ch != ' '
+        } else {
+            false
+        };
+        if has_right_char {
+            self.command_insert_char(ch);
+        } else {
+            self.command_replace_char(ch);
+            self.command_move_right();
+        }
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
