@@ -335,7 +335,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 let is_ctrl = ke.ctrl_key();
                 let is_shift = ke.shift_key();
                 let key = ke.key();
-                self.process_keypresses(&ke);
                 if key.chars().count() == 1 {
                     log::trace!("inserting from window keydown event");
                     let c = key.chars().next().expect("must be only 1 chr");
@@ -359,8 +358,13 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                         }
                     }
                 } else {
+                    // process key presses other than single characters such as
+                    // backspace, enter, tag, arrows
+                    self.process_keypresses(&ke);
                     log::info!("key: {}", key);
-                    Effects::none()
+                    self.rehighlight();
+                    let extern_msgs = self.emit_on_change_listeners();
+                    Effects::with_external(extern_msgs)
                 }
             }
         }
