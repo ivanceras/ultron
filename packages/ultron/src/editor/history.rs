@@ -53,7 +53,6 @@ impl Recorded {
     }
 
     fn record(&mut self, act: Action) {
-        log::trace!("recording: {:?}", act);
         self.undone.clear(); // we are branching to a new sequence of events
         if !self.use_new {
             if let Some(a) = self.history.front_mut() {

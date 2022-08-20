@@ -520,7 +520,7 @@ impl<XMSG> Editor<XMSG> {
         let has_right_char = if let Some(ch) =
             self.text_buffer.get_char(cursor.x + 1, cursor.y)
         {
-            ch != ' '
+            !ch.is_whitespace()
         } else {
             false
         };

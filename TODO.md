@@ -49,6 +49,7 @@
     - [ ] Pressing enter should indent, instead of just moving down
 - [ ] Allow the editor to render different syntax highlighting scheme to a set of lines
     - Use would be markdown text with code fence in the content
+- [ ] Make the keypresses be translated into Commands, so we can use remap such as vi, kakune, etc.
 
 ## Maintenance
 - [ ] Put the css of each of the component to their own module
