@@ -350,7 +350,6 @@ impl TextBuffer {
             ".code": {
                 position: "relative",
                 font_size: px(14),
-                cursor: "text",
                 display: "block",
                 // to make the background color extend to the longest line, otherwise only the
                 // longest lines has a background-color leaving the shorter lines ugly

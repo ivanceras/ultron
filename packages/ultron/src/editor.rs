@@ -75,6 +75,31 @@ pub struct Editor<XMSG> {
     selection_end: Option<Point2<i32>>,
     is_processing_key: bool,
     context: Context,
+    mouse_cursor: MouseCursor,
+}
+
+pub enum MouseCursor {
+    Text,
+    Move,
+    Pointer,
+    CrossHair,
+}
+
+impl Default for MouseCursor {
+    fn default() -> Self {
+        Self::Text
+    }
+}
+
+impl MouseCursor {
+    fn to_str(&self) -> &str {
+        match self {
+            Self::Text => "text",
+            Self::Move => "move",
+            Self::Pointer => "default",
+            Self::CrossHair => "crosshair",
+        }
+    }
 }
 
 pub fn build_context() -> Context {
@@ -124,6 +149,7 @@ impl<XMSG> Editor<XMSG> {
             selection_end: None,
             is_processing_key: false,
             context,
+            mouse_cursor: MouseCursor::default(),
         }
     }
 
@@ -132,6 +158,10 @@ impl<XMSG> Editor<XMSG> {
         self.text_highlighter.reset();
         self.highlighted_lines =
             self.text_buffer.highlight_lines(&mut self.text_highlighter);
+    }
+
+    pub fn set_mouse_cursor(&mut self, mouse_cursor: MouseCursor) {
+        self.mouse_cursor = mouse_cursor;
     }
 }
 
@@ -380,6 +410,9 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 ),
                 on_scroll(Msg::Scrolled),
                 on_mount(|mount| Msg::EditorMounted(mount.target_node)),
+                style! {
+                    cursor: self.mouse_cursor.to_str(),
+                },
             ],
             [
                 //self.view_hidden_textarea(),
@@ -405,7 +438,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             ".": {
                 position: "relative",
                 font_size: px(14),
-                cursor: "text",
                 white_space: "normal",
                 user_select: "none",
                 "-webkit-user-select": "none",
