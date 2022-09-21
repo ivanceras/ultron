@@ -2,7 +2,7 @@
 
 use ultron::{
     sauron::{html::tags::style, prelude::*},
-    Context, Options, TextBuffer,
+    Options, TextBuffer,
 };
 
 pub fn render<MSG>(
@@ -20,7 +20,7 @@ pub fn render<MSG>(
         syntax_token: syntax_token.to_string(),
         ..Default::default()
     };
-    let buffer = TextBuffer::from_str(options, Context::default(), content);
+    let buffer = TextBuffer::from_str(options, content);
     page(buffer)
 }
 

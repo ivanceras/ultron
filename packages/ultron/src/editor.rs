@@ -1,6 +1,6 @@
 use crate::{
-    text_buffer::Context, util, Options, TextBuffer, TextHighlighter,
-    CH_HEIGHT, CH_WIDTH, COMPONENT_NAME,
+    util, Options, TextBuffer, TextHighlighter, CH_HEIGHT, CH_WIDTH,
+    COMPONENT_NAME,
 };
 use css_colors::rgba;
 use css_colors::Color;
@@ -74,7 +74,6 @@ pub struct Editor<XMSG> {
     selection_start: Option<Point2<i32>>,
     selection_end: Option<Point2<i32>>,
     is_processing_key: bool,
-    context: Context,
     mouse_cursor: MouseCursor,
 }
 
@@ -102,28 +101,15 @@ impl MouseCursor {
     }
 }
 
-pub fn build_context() -> Context {
-    let (window_width, window_height) = Window::get_size();
-    let (window_scroll_top, window_scroll_left) = (0.0, 0.0); //TODO: get actual window scroll
-    Context {
-        viewport_width: window_width as f32,
-        viewport_height: window_height as f32,
-        viewport_scroll_top: window_scroll_top,
-        viewport_scroll_left: window_scroll_left,
-    }
-}
-
 impl<XMSG> Editor<XMSG> {
     pub fn from_str(options: Options, content: &str) -> Self {
-        let context = build_context();
         let mut text_highlighter = TextHighlighter::default();
         if let Some(theme_name) = &options.theme_name {
             text_highlighter.select_theme(theme_name);
         }
         text_highlighter.set_syntax_token(&options.syntax_token);
 
-        let text_buffer =
-            TextBuffer::from_str(options.clone(), context, content);
+        let text_buffer = TextBuffer::from_str(options.clone(), content);
 
         let highlighted_lines =
             text_buffer.highlight_lines(&mut text_highlighter);
@@ -148,7 +134,6 @@ impl<XMSG> Editor<XMSG> {
             selection_start: None,
             selection_end: None,
             is_processing_key: false,
-            context,
             mouse_cursor: MouseCursor::default(),
         }
     }
@@ -179,17 +164,9 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::WindowScrolled((scroll_top, scroll_left)) => {
                 log::trace!("scrolling window..");
-                self.context.viewport_scroll_top = scroll_top as f32;
-                self.context.viewport_scroll_left = scroll_left as f32;
-                //self.text_buffer.update_context(self.context);
                 Effects::none()
             }
-            Msg::WindowResized { width, height } => {
-                self.context.viewport_width = width as f32;
-                self.context.viewport_height = height as f32;
-                //self.text_buffer.update_context(self.context);
-                Effects::none()
-            }
+            Msg::WindowResized { width, height } => Effects::none(),
             Msg::Scrolled((scroll_top, scroll_left)) => {
                 self.scroll_top = scroll_top as f32;
                 self.scroll_left = scroll_left as f32;
@@ -305,7 +282,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     self.set_hidden_textarea_with_selection();
                 }
 
-                if let Some(selected_text) = self.text_buffer.selected_text() {
+                if let Some(selected_text) = self.selected_text() {
                     log::trace!("selected text: \n{}", selected_text);
                 }
                 Effects::none().measure()
@@ -743,7 +720,7 @@ impl<XMSG> Editor<XMSG> {
     /// webkit2 doesn't seem to allow to fire the setting of textarea value, select and copy
     /// in the same animation frame.
     fn set_hidden_textarea_with_selection(&self) {
-        if let Some(selected_text) = self.text_buffer.selected_text() {
+        if let Some(selected_text) = self.selected_text() {
             if let Some(ref hidden_textarea) = self.hidden_textarea {
                 hidden_textarea.set_value(&selected_text);
                 hidden_textarea.select();
@@ -756,12 +733,20 @@ impl<XMSG> Editor<XMSG> {
         self.text_buffer.clear_selection();
     }
 
+    fn selected_text(&self) -> Option<String> {
+        None
+    }
+
+    fn cut_selected_text(&mut self) -> Option<String> {
+        None
+    }
+
     /// this is for newer browsers
     /// This doesn't work on webkit2
     #[cfg(web_sys_unstable_apis)]
     #[cfg(feature = "with-navigator-clipboard")]
     fn copy_to_clipboard(&self) -> bool {
-        if let Some(selected_text) = self.text_buffer.selected_text() {
+        if let Some(selected_text) = self.selected_text() {
             let navigator = sauron::window().navigator();
             if let Some(clipboard) = navigator.clipboard() {
                 let _ = clipboard.write_text(&selected_text);
@@ -781,7 +766,7 @@ impl<XMSG> Editor<XMSG> {
     #[cfg(web_sys_unstable_apis)]
     #[cfg(feature = "with-navigator-clipboard")]
     fn cut_to_clipboard(&mut self) -> bool {
-        if let Some(selected_text) = self.text_buffer.cut_selected_text() {
+        if let Some(selected_text) = self.cut_selected_text() {
             let navigator = sauron::window().navigator();
             if let Some(clipboard) = navigator.clipboard() {
                 let _ = clipboard.write_text(&selected_text);
@@ -803,7 +788,7 @@ impl<XMSG> Editor<XMSG> {
     fn textarea_exec_copy(&self) -> bool {
         use sauron::web_sys::HtmlDocument;
 
-        if let Some(selected_text) = self.text_buffer.selected_text() {
+        if let Some(selected_text) = self.selected_text() {
             if let Some(ref hidden_textarea) = self.hidden_textarea {
                 hidden_textarea.set_value(&selected_text);
                 hidden_textarea.select();
@@ -823,7 +808,7 @@ impl<XMSG> Editor<XMSG> {
     fn textarea_exec_cut(&mut self) -> bool {
         use sauron::web_sys::HtmlDocument;
 
-        if let Some(selected_text) = self.text_buffer.cut_selected_text() {
+        if let Some(selected_text) = self.cut_selected_text() {
             if let Some(ref hidden_textarea) = self.hidden_textarea {
                 log::trace!("setting the value to textarea: {}", selected_text);
                 hidden_textarea.set_value(&selected_text);
@@ -1083,14 +1068,6 @@ impl<XMSG> Editor<XMSG> {
         60
     }
 
-    /// calculate the maximumm number of lines that the viewport can show
-    /// at a time
-    fn viewport_lines_capacity(&self) -> i32 {
-        ((self.context.viewport_height - self.status_line_height() as f32)
-            / CH_HEIGHT as f32)
-            .ceil() as i32
-    }
-
     /// the number of page of the editor based on the number of lines
     fn pages(&self) -> i32 {
         let n_lines = self.text_buffer.total_lines() as i32;
@@ -1143,18 +1120,7 @@ impl<XMSG> Editor<XMSG> {
                     comment("")
                 },
                 text!("| version:{}", env!("CARGO_PKG_VERSION")),
-                text!(
-                    "| window_scroll_top: {}",
-                    self.context.viewport_scroll_top
-                ),
-                text!(
-                    "| window_size: {}x{}",
-                    self.context.viewport_width,
-                    self.context.viewport_height
-                ),
-                text!("| line max: {}", self.viewport_lines_capacity()),
                 text!("| pages: {}", self.pages()),
-                //text!("| focused: {:?}", self.text_buffer.focused_cell),
             ],
         )
     }

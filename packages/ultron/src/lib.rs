@@ -11,7 +11,6 @@ pub mod editor;
 #[cfg(feature = "with-dom")]
 pub use editor::Editor;
 pub use editor::MouseCursor;
-pub use text_buffer::Context;
 
 #[cfg(feature = "with-dom")]
 pub use editor::Msg;

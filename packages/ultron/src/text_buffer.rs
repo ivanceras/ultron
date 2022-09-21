@@ -36,25 +36,8 @@ impl Ch {
     }
 }
 
-#[derive(Copy, Clone, Default)]
-pub struct Context {
-    pub viewport_width: f32,
-    pub viewport_height: f32,
-    pub viewport_scroll_top: f32,
-    pub viewport_scroll_left: f32,
-}
-
-impl Context {
-    fn viewport_box(&self) -> AABB {
-        AABB::new(
-            Point2::new(0.0, 0.0),
-            Point2::new(self.viewport_width, self.viewport_height),
-        )
-    }
-}
-
 impl TextBuffer {
-    pub fn from_str(options: Options, context: Context, content: &str) -> Self {
+    pub fn from_str(options: Options, content: &str) -> Self {
         Self {
             options,
             chars: content
@@ -95,16 +78,12 @@ impl TextBuffer {
         start: Point2<usize>,
         end: Point2<usize>,
     ) -> String {
-        //let deleted_text = self.get_text(start, end);
-
-        // if the selection lies in one line only
         let is_one_line = start.y == end.y;
         if is_one_line {
             let selection: Vec<Ch> =
                 self.chars[start.y].drain(start.x..=end.x).collect();
             String::from_iter(selection.iter().map(|ch| ch.ch))
         } else {
-            // in the last line
             let end_text: Vec<Ch> =
                 self.chars[end.y].drain(0..=end.x).collect();
 
@@ -114,29 +93,21 @@ impl TextBuffer {
             } else {
                 None
             };
-            // in the first line
             let start_text: Vec<Ch> =
                 self.chars[start.y].drain(start.x..).collect();
-
-            dbg!(&mid_text);
 
             let start_text_str: String =
                 String::from_iter(start_text.iter().map(|ch| ch.ch));
 
-            dbg!(&start_text_str);
-
             let end_text_str: String =
                 String::from_iter(end_text.iter().map(|ch| ch.ch));
 
-            dbg!(&end_text_str);
             if let Some(mid_text) = mid_text {
                 let mid_text_str: String = mid_text
                     .iter()
                     .map(|line| String::from_iter(line.iter().map(|ch| ch.ch)))
                     .collect::<Vec<_>>()
                     .join("\n");
-
-                dbg!(&mid_text_str);
 
                 [start_text_str, mid_text_str, end_text_str].join("\n")
             } else {
@@ -150,13 +121,11 @@ impl TextBuffer {
         start: Point2<usize>,
         end: Point2<usize>,
     ) -> String {
-        // if the selection lies in one line only
         let is_one_line = start.y == end.y;
         if is_one_line {
             let selection: &[Ch] = &self.chars[start.y][start.x..=end.x];
             String::from_iter(selection.iter().map(|ch| ch.ch))
         } else {
-            // in the first line
             let start_text: &[Ch] = &self.chars[start.y][start.x..];
 
             let mid_text_range = start.y + 1..end.y;
@@ -166,28 +135,19 @@ impl TextBuffer {
                 None
             };
 
-            dbg!(&mid_text);
-
-            // in the last line
             let end_text: &[Ch] = &self.chars[end.y][0..=end.x];
-
             let start_text_str: String =
                 String::from_iter(start_text.iter().map(|ch| ch.ch));
-
-            dbg!(&start_text_str);
 
             let end_text_str: String =
                 String::from_iter(end_text.iter().map(|ch| ch.ch));
 
-            dbg!(&end_text_str);
             if let Some(mid_text) = mid_text {
                 let mid_text_str: String = mid_text
                     .iter()
                     .map(|line| String::from_iter(line.iter().map(|ch| ch.ch)))
                     .collect::<Vec<_>>()
                     .join("\n");
-
-                dbg!(&mid_text_str);
 
                 [start_text_str, mid_text_str, end_text_str].join("\n")
             } else {
@@ -196,12 +156,6 @@ impl TextBuffer {
         }
     }
 
-    pub(crate) fn selected_text(&self) -> Option<String> {
-        None
-    }
-    pub(crate) fn cut_selected_text(&mut self) -> Option<String> {
-        None
-    }
     pub fn set_options(&mut self, options: Options) {
         self.options = options;
     }
@@ -281,11 +235,6 @@ impl TextBuffer {
         let class_number_wide =
             format!("number_wide{}", self.numberline_wide());
 
-        /*
-        let theme_background =
-            self.theme_background().unwrap_or(rgba(0, 0, 255, 1.0));
-        */
-
         let code_attributes = [
             class_ns("code"),
             class_ns(&class_number_wide),
@@ -336,12 +285,6 @@ impl TextBuffer {
     }
 
     pub fn style(&self) -> String {
-        /*
-        let selection_bg = self
-            .selection_background()
-            .unwrap_or(rgba(100, 100, 100, 0.5));
-        */
-
         jss_ns! {COMPONENT_NAME,
             ".code_wrapper": {
                 margin: 0,
@@ -438,7 +381,6 @@ impl TextBuffer {
 
     /// break at line y and put the characters after x on the next line
     pub(crate) fn break_line(&mut self, x: usize, y: usize) {
-        println!("lines before breaking line: {:#?}", self.lines());
         self.ensure_before_cell_exist(x, y);
         let line = &self.chars[y];
         if let Some(break_point) = self.column_index(x, y) {
@@ -451,30 +393,18 @@ impl TextBuffer {
                 break1.into_iter().map(|(_, ch)| *ch).collect();
             let break2: Vec<Ch> =
                 break2.into_iter().map(|(_, ch)| *ch).collect();
-            dbg!(&break1);
-            dbg!(&break2);
-            println!("lines before removing: {:#?}", self.lines());
             self.chars.remove(y);
-            println!("lines after removing: {:#?}", self.lines());
             self.chars.insert(y, break2);
-            println!("lines after inserting break2: {:#?}", self.lines());
             self.chars.insert(y, break1);
-            println!("lines after inserting break1: {:#?}", self.lines());
         } else {
-            println!(
-                "no column index.. inserting a blank line to the next line"
-            );
             self.chars.insert(y + 1, vec![]);
         }
     }
 
     pub(crate) fn join_line(&mut self, x: usize, y: usize) {
-        log::info!("joining line: {}", y);
         let next_line_index = y.saturating_add(1);
         let mut next_line = self.chars.remove(next_line_index);
-        log::debug!("next_line: {:?}", next_line);
         self.chars[y].append(&mut next_line);
-        log::debug!("this line is now: {:?}", self.chars[y]);
     }
 
     fn assert_chars(&self, ch: char) {
@@ -490,17 +420,14 @@ impl TextBuffer {
 
     /// ensure line at index y exist
     pub fn ensure_line_exist(&mut self, y: usize) {
-        println!("ensuring line {} exist", y);
         let total_lines = self.total_lines();
         let diff = y.saturating_add(1).saturating_sub(total_lines);
-        println!("adding {} lines", diff);
         for _ in 0..diff {
             self.chars.push(vec![]);
         }
     }
 
     pub fn ensure_before_line_exist(&mut self, y: usize) {
-        println!("ensuring before line {} exist", y);
         if y > 0 {
             self.ensure_line_exist(y.saturating_sub(1));
         }
@@ -508,18 +435,15 @@ impl TextBuffer {
 
     /// ensure line in index y exist and the cell at index x
     pub fn ensure_cell_exist(&mut self, x: usize, y: usize) {
-        println!("ensuring {},{} exist", x, y);
         self.ensure_line_exist(y);
         let line_width = self.line_width(y);
         let diff = x.saturating_add(1).saturating_sub(line_width);
-        println!("adding {} columns to line {}", diff, y);
         for _ in 0..diff {
             self.chars[y].push(Ch::new(' '));
         }
     }
 
     pub fn ensure_before_cell_exist(&mut self, x: usize, y: usize) {
-        println!("ensuring before {},{} exist", x, y);
         self.ensure_line_exist(y);
         if x > 0 {
             self.ensure_cell_exist(x.saturating_sub(1), y);
@@ -537,10 +461,8 @@ impl TextBuffer {
                 }
                 width_sum += ch.width;
             }
-            println!("reach the end of the loop for column_index");
             None
         } else {
-            println!("no line for this column_index");
             None
         }
     }
@@ -571,7 +493,6 @@ impl TextBuffer {
     }
 
     pub(crate) fn insert_text(&mut self, x: usize, y: usize, text: &str) {
-        println!("before inserting text: {:#?}", self.lines());
         let mut start = x;
         for (i, line) in text.lines().enumerate() {
             if i > 0 {
@@ -580,7 +501,6 @@ impl TextBuffer {
             self.insert_line_text(start, y + i, line);
             start = 0;
         }
-        println!("after inserting text: {:#?}", self.lines());
     }
 
     /// replace the character at this location
@@ -624,10 +544,6 @@ impl TextBuffer {
     pub(crate) fn get_position(&self) -> Point2<usize> {
         self.cursor
     }
-
-    fn calculate_offset(&self, text: &str) -> (usize, usize) {
-        (0, 0)
-    }
 }
 
 /// Command implementation here
@@ -651,11 +567,7 @@ impl TextBuffer {
     }
 
     pub(crate) fn command_insert_text(&mut self, text: &str) {
-        use unicode_width::UnicodeWidthStr;
         self.insert_text(self.cursor.x, self.cursor.y, text);
-        let (x, y) = self.calculate_offset(text);
-        self.move_y(y);
-        self.move_x(x);
     }
     pub(crate) fn move_left(&mut self) {
         self.cursor.x = self.cursor.x.saturating_sub(1);

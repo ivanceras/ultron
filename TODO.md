@@ -41,6 +41,8 @@
     - undo/redo
     - cut/copy/paste
 - [ ] Add config to ignore mouse-clicks outside of the editor range
+- [ ] Move the core-functionality of ultron to ultron, which has no view, just text manipulation
+    - The ultron is the bare minimum library, which relies on sauron
 
 ## Features
 - [ ] Smart edit blockmode
