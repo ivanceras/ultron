@@ -316,8 +316,7 @@ impl TextBuffer {
     pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
         if let Some(line) = self.chars.get(y) {
             let column_index = self.column_index(x, y);
-            column_index
-                .and_then(|col| line.get(col).map(|ch| ch.ch))
+            column_index.and_then(|col| line.get(col).map(|ch| ch.ch))
         } else {
             None
         }

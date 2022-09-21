@@ -1,16 +1,8 @@
-
-use std::{
-    fs,
-    io,
-    path::Path,
-};
+use std::{fs, io, path::Path};
 use syntect::{
     dumps,
     highlighting::ThemeSet,
-    parsing::{
-        SyntaxSet,
-        SyntaxSetBuilder,
-    },
+    parsing::{SyntaxSet, SyntaxSetBuilder},
 };
 
 //NOTE: syntect is not always compatible with the latest
@@ -51,12 +43,11 @@ fn load_syntaxset(package_dir: &str) -> SyntaxSet {
         Ok(_) => (),
         Err(e) => println!("Loading error: {:?}", e),
     };
-    
+
     builder.build()
 }
 
 fn load_themeset(theme_dir: &str) -> ThemeSet {
-    
     ThemeSet::load_from_folder(theme_dir).expect("must load themeset")
 }
 

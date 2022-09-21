@@ -1,4 +1,3 @@
-
 use crate::TextBuffer;
 use nalgebra::Point2;
 
