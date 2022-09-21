@@ -544,18 +544,21 @@ impl<XMSG> Editor<XMSG> {
         Effects::with_external(extern_msgs).measure()
     }
 
+    pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
+        self.text_buffer.get_char(x, y)
+    }
+
     fn command_smart_replace_insert_char(
         &mut self,
         ch: char,
     ) -> Effects<Msg, XMSG> {
         let cursor = self.text_buffer.get_position();
-        let has_right_char = if let Some(ch) =
-            self.text_buffer.get_char(cursor.x + 1, cursor.y)
-        {
-            !ch.is_whitespace()
-        } else {
-            false
-        };
+        let has_right_char =
+            if let Some(ch) = self.get_char(cursor.x + 1, cursor.y) {
+                !ch.is_whitespace()
+            } else {
+                false
+            };
         if has_right_char {
             self.command_insert_char(ch);
         } else {
