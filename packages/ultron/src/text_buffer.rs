@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use crate::{util, Options, CH_HEIGHT, CH_WIDTH, COMPONENT_NAME};
+use crate::{util, CH_HEIGHT, CH_WIDTH, COMPONENT_NAME};
 use css_colors::{rgba, Color, RGBA};
 use nalgebra::Point2;
 use parry2d::bounding_volume::{BoundingVolume, AABB};
@@ -16,7 +16,6 @@ use unicode_width::UnicodeWidthChar;
 /// recompute the highlighting of a line
 #[derive(Clone)]
 pub struct TextBuffer {
-    options: Options,
     chars: Vec<Vec<Ch>>,
     cursor: Point2<usize>,
 }
@@ -37,9 +36,8 @@ impl Ch {
 }
 
 impl TextBuffer {
-    pub fn from_str(options: Options, content: &str) -> Self {
+    pub fn from_str(content: &str) -> Self {
         Self {
-            options,
             chars: content
                 .lines()
                 .map(|line| line.chars().map(|ch| Ch::new(ch)).collect())
@@ -146,26 +144,6 @@ impl TextBuffer {
         }
     }
 
-    pub fn set_options(&mut self, options: Options) {
-        self.options = options;
-    }
-    fn calculate_focused_cell(&mut self) {}
-    /// how wide the numberline based on the character lengths of the number
-    fn numberline_wide(&self) -> usize {
-        if self.options.show_line_numbers {
-            self.total_lines().to_string().len()
-        } else {
-            0
-        }
-    }
-    /// the padding of the number line width
-    pub(crate) fn numberline_padding_wide(&self) -> usize {
-        1
-    }
-    pub(crate) fn get_numberline_wide(&self) -> usize {
-        0
-    }
-
     pub fn highlight_lines(
         &self,
         text_highlighter: &mut TextHighlighter,
@@ -181,167 +159,6 @@ impl TextBuffer {
                     .collect()
             })
             .collect()
-    }
-
-    // plain view
-    pub fn plain_view<MSG>(&self) -> Node<MSG> {
-        let class_ns = |class_names| {
-            attributes::class_namespaced(COMPONENT_NAME, class_names)
-        };
-        let class_number_wide =
-            format!("number_wide{}", self.numberline_wide());
-
-        let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
-        let rendered_lines = self
-            .lines()
-            .into_iter()
-            .enumerate()
-            .map(|(number, line)| div([class_ns("line")], [text(line)]));
-
-        if self.options.use_for_ssg {
-            // using div works well when select-copying for both chrome and firefox
-            // this is ideal for statis site generation highlighting
-            div(code_attributes, rendered_lines)
-        } else {
-            // using <pre><code> works well when copying in chrome
-            // but in firefox, it creates a double line when select-copying the text
-            // whe need to use <pre><code> in order for typing whitespace works.
-            pre(
-                [class_ns("code_wrapper")],
-                [code(code_attributes, rendered_lines)],
-            )
-        }
-    }
-
-    // highlighted view
-    pub fn view_highlighted_lines<MSG>(
-        &self,
-        highlighted_lines: &[Vec<(Style, String)>],
-        theme_background: Option<RGBA>,
-    ) -> Node<MSG> {
-        let class_ns = |class_names| {
-            attributes::class_namespaced(COMPONENT_NAME, class_names)
-        };
-        let class_number_wide =
-            format!("number_wide{}", self.numberline_wide());
-
-        let code_attributes = [
-            class_ns("code"),
-            class_ns(&class_number_wide),
-            if let Some(theme_background) = theme_background {
-                style! {background: theme_background.to_css()}
-            } else {
-                empty_attr()
-            },
-        ];
-
-        let rendered_lines =
-            highlighted_lines
-                .into_iter()
-                .enumerate()
-                .map(|(number, line)| {
-                    div([class_ns("line")], {
-                        line.into_iter()
-                            .map(|(style, range)| {
-                                let background =
-                                    util::to_rgba(style.background).to_css();
-                                let foreground =
-                                    util::to_rgba(style.foreground).to_css();
-                                span(
-                                    [style! {
-                                        color: foreground,
-                                        background_color: background,
-                                    }],
-                                    [text(range)],
-                                )
-                            })
-                            .collect::<Vec<_>>()
-                    })
-                });
-
-        if self.options.use_for_ssg {
-            // using div works well when select-copying for both chrome and firefox
-            // this is ideal for statis site generation highlighting
-            div(code_attributes, rendered_lines)
-        } else {
-            // using <pre><code> works well when copying in chrome
-            // but in firefox, it creates a double line when select-copying the text
-            // whe need to use <pre><code> in order for typing whitespace works.
-            pre(
-                [class_ns("code_wrapper")],
-                [code(code_attributes, rendered_lines)],
-            )
-        }
-    }
-
-    pub fn style(&self) -> String {
-        jss_ns! {COMPONENT_NAME,
-            ".code_wrapper": {
-                margin: 0,
-            },
-
-            ".code": {
-                position: "relative",
-                font_size: px(14),
-                display: "block",
-                // to make the background color extend to the longest line, otherwise only the
-                // longest lines has a background-color leaving the shorter lines ugly
-                min_width: "max-content",
-                user_select: "none",
-                "-webkit-user-select": "none",
-            },
-
-            ".line_block": {
-                display: "block",
-                height: px(CH_HEIGHT),
-            },
-
-            // number and line
-            ".number__line": {
-                display: "flex",
-                height: px(CH_HEIGHT),
-            },
-
-            // numbers
-            ".number": {
-                flex: "none", // dont compress the numbers
-                text_align: "right",
-                background_color: "#002b36",
-                padding_right: px(CH_WIDTH * self.numberline_padding_wide() as u32),
-                height: px(CH_HEIGHT),
-                user_select: "none",
-                "-webkit-user-select": "none",
-            },
-            ".number_wide1 .number": {
-                width: px(1 * CH_WIDTH),
-            },
-            // when line number is in between: 10 - 99
-            ".number_wide2 .number": {
-                width: px(2 * CH_WIDTH),
-            },
-            // when total lines is in between 100 - 999
-            ".number_wide3 .number": {
-                width: px(3 * CH_WIDTH),
-            },
-            // when total lines is in between 1000 - 9000
-            ".number_wide4 .number": {
-                width: px(4 * CH_WIDTH),
-            },
-            // 10000 - 90000
-            ".number_wide5 .number": {
-                width: px(5 * CH_WIDTH),
-            },
-
-            // line content
-            ".line": {
-                flex: "none", // dont compress lines
-                height: px(CH_HEIGHT),
-                display: "block",
-                user_select: "none",
-                "-webkit-user-select": "none",
-            },
-
-        }
     }
 }
 
@@ -578,16 +395,13 @@ impl TextBuffer {
     }
     pub(crate) fn move_left(&mut self) {
         self.cursor.x = self.cursor.x.saturating_sub(1);
-        self.calculate_focused_cell();
     }
     pub(crate) fn move_left_start(&mut self) {
         self.cursor.x = 0;
-        self.calculate_focused_cell();
     }
 
     pub(crate) fn move_right(&mut self) {
         self.cursor.x = self.cursor.x.saturating_add(1);
-        self.calculate_focused_cell();
     }
     fn line_max_column(&self, line: usize) -> usize {
         self.chars.get(line).map(|line| line.len()).unwrap_or(0)
@@ -607,19 +421,15 @@ impl TextBuffer {
 
     pub(crate) fn move_x(&mut self, x: usize) {
         self.cursor.x = self.cursor.x.saturating_add(x);
-        self.calculate_focused_cell();
     }
     pub(crate) fn move_y(&mut self, y: usize) {
         self.cursor.y = self.cursor.y.saturating_add(y);
-        self.calculate_focused_cell();
     }
     pub(crate) fn move_up(&mut self) {
         self.cursor.y = self.cursor.y.saturating_sub(1);
-        self.calculate_focused_cell();
     }
     pub(crate) fn move_down(&mut self) {
         self.cursor.y = self.cursor.y.saturating_add(1);
-        self.calculate_focused_cell();
     }
     pub(crate) fn move_up_clamped(&mut self) {
         let target_line = self.cursor.y.saturating_sub(1);
@@ -644,7 +454,6 @@ impl TextBuffer {
     pub(crate) fn set_position(&mut self, x: usize, y: usize) {
         self.cursor.x = x;
         self.cursor.y = y;
-        self.calculate_focused_cell();
     }
 
     /// set the position to the max_column of the line if it is out of
@@ -683,8 +492,7 @@ impl TextBuffer {
         }
     }
     pub(crate) fn command_delete_forward(&mut self) -> Option<char> {
-        let c = self.delete_char(self.cursor.x, self.cursor.y);
-        c
+        self.delete_char(self.cursor.x, self.cursor.y)
     }
     pub(crate) fn move_to(&mut self, pos: Point2<usize>) {
         self.set_position(pos.x, pos.y);

@@ -42,7 +42,14 @@
     - cut/copy/paste
 - [ ] Add config to ignore mouse-clicks outside of the editor range
 - [ ] Move the core-functionality of ultron to ultron, which has no view, just text manipulation
+    - [ ] ultron-core will have the following modules
+        - [ ] TextBuffer
+        - [ ] TextView
+        - [ ] Editor
+        with no dependency on sauron, all types is abstracted
     - The ultron is the bare minimum library, which relies on sauron
+        - [ ] Wrap the editor with sauron for the web
+        - [ ] ultron-tui abstract terminal events into ultron events
 
 ## Features
 - [ ] Smart edit blockmode

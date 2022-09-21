@@ -60,8 +60,7 @@ pub struct Editor<XMSG> {
     recorded: Recorded,
     measurements: Option<Measurements>,
     average_update_time: Option<f64>,
-    scroll_top: f32,
-    scroll_left: f32,
+    scroll_position: ScrollPosition,
     /// Other components can listen to the an event.
     /// When the content of the text editor changes, the change listener will be emitted
     change_listeners: Vec<Callback<String, XMSG>>,
@@ -74,6 +73,12 @@ pub struct Editor<XMSG> {
     selection: Selection,
     is_processing_key: bool,
     mouse_cursor: MouseCursor,
+}
+
+#[derive(Default)]
+struct ScrollPosition {
+    top: f32,
+    left: f32,
 }
 
 #[derive(Default)]
@@ -114,7 +119,7 @@ impl<XMSG> Editor<XMSG> {
         }
         text_highlighter.set_syntax_token(&options.syntax_token);
 
-        let text_buffer = TextBuffer::from_str(options.clone(), content);
+        let text_buffer = TextBuffer::from_str(content);
 
         let highlighted_lines =
             text_buffer.highlight_lines(&mut text_highlighter);
@@ -127,8 +132,7 @@ impl<XMSG> Editor<XMSG> {
             recorded: Recorded::new(),
             measurements: None,
             average_update_time: None,
-            scroll_top: 0.0,
-            scroll_left: 0.0,
+            scroll_position: ScrollPosition::default(),
             change_listeners: vec![],
             change_notify_listeners: vec![],
             hidden_textarea: None,
@@ -177,8 +181,8 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::WindowResized { width, height } => Effects::none(),
             Msg::Scrolled((scroll_top, scroll_left)) => {
-                self.scroll_top = scroll_top as f32;
-                self.scroll_left = scroll_left as f32;
+                self.scroll_position.top = scroll_top as f32;
+                self.scroll_position.left = scroll_left as f32;
                 Effects::none()
             }
             Msg::TextareaInput(input) => {
@@ -403,12 +407,12 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             [
                 //self.view_hidden_textarea(),
                 if self.options.use_syntax_highlighter {
-                    self.text_buffer.view_highlighted_lines(
+                    self.view_highlighted_lines(
                         &self.highlighted_lines,
                         self.theme_background(),
                     )
                 } else {
-                    self.text_buffer.plain_view()
+                    self.plain_view()
                 },
                 view_if(self.options.show_status_line, self.view_status_line()),
                 view_if(self.options.show_cursor, self.view_virtual_cursor()),
@@ -420,7 +424,8 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
         let cursor_color = self.cursor_color().unwrap_or(rgba(0, 0, 0, 1.0));
         let border_color = rgba(0, 0, 0, 1.0);
         let border_width = 1;
-        let css = jss_ns! {COMPONENT_NAME,
+
+        jss_ns! {COMPONENT_NAME,
             ".": {
                 position: "relative",
                 font_size: px(14),
@@ -463,6 +468,72 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 width: px(300),
                 height: px(0),
             },
+
+            ".code_wrapper": {
+                margin: 0,
+            },
+
+            ".code": {
+                position: "relative",
+                font_size: px(14),
+                display: "block",
+                // to make the background color extend to the longest line, otherwise only the
+                // longest lines has a background-color leaving the shorter lines ugly
+                min_width: "max-content",
+                user_select: "none",
+                "-webkit-user-select": "none",
+            },
+
+            ".line_block": {
+                display: "block",
+                height: px(CH_HEIGHT),
+            },
+
+            // number and line
+            ".number__line": {
+                display: "flex",
+                height: px(CH_HEIGHT),
+            },
+
+            // numbers
+            ".number": {
+                flex: "none", // dont compress the numbers
+                text_align: "right",
+                background_color: "#002b36",
+                padding_right: px(CH_WIDTH * self.numberline_padding_wide() as u32),
+                height: px(CH_HEIGHT),
+                user_select: "none",
+                "-webkit-user-select": "none",
+            },
+            ".number_wide1 .number": {
+                width: px(1 * CH_WIDTH),
+            },
+            // when line number is in between: 10 - 99
+            ".number_wide2 .number": {
+                width: px(2 * CH_WIDTH),
+            },
+            // when total lines is in between 100 - 999
+            ".number_wide3 .number": {
+                width: px(3 * CH_WIDTH),
+            },
+            // when total lines is in between 1000 - 9000
+            ".number_wide4 .number": {
+                width: px(4 * CH_WIDTH),
+            },
+            // 10000 - 90000
+            ".number_wide5 .number": {
+                width: px(5 * CH_WIDTH),
+            },
+
+            // line content
+            ".line": {
+                flex: "none", // dont compress lines
+                height: px(CH_HEIGHT),
+                display: "block",
+                user_select: "none",
+                "-webkit-user-select": "none",
+            },
+
 
             ".status": {
                 position: "sticky",
@@ -508,16 +579,13 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
               },
             },
 
-        };
-
-        [css, self.text_buffer.style()].join("\n")
+        }
     }
 }
 
 impl<XMSG> Editor<XMSG> {
     pub fn with_options(mut self, options: Options) -> Self {
         self.options = options.clone();
-        self.text_buffer.set_options(options);
         self
     }
 
@@ -987,7 +1055,7 @@ impl<XMSG> Editor<XMSG> {
         client_x: i32,
         client_y: i32,
     ) -> Point2<i32> {
-        let numberline_wide = self.text_buffer.get_numberline_wide() as f32;
+        let numberline_wide = self.numberline_wide() as f32 * CH_WIDTH as f32;
         let editor = self.editor_offset().expect("must have an editor offset");
         let col =
             (client_x as f32 - editor.x) / CH_WIDTH as f32 - numberline_wide;
@@ -1148,7 +1216,118 @@ impl<XMSG> Editor<XMSG> {
         )
     }
 
+    /// how wide the numberline based on the character lengths of the number
+    fn numberline_wide(&self) -> usize {
+        if self.options.show_line_numbers {
+            self.text_buffer.total_lines().to_string().len()
+        } else {
+            0
+        }
+    }
+
+    /// the padding of the number line width
+    pub(crate) fn numberline_padding_wide(&self) -> usize {
+        1
+    }
+
+    // highlighted view
+    pub fn view_highlighted_lines<MSG>(
+        &self,
+        highlighted_lines: &[Vec<(Style, String)>],
+        theme_background: Option<RGBA>,
+    ) -> Node<MSG> {
+        let class_ns = |class_names| {
+            attributes::class_namespaced(COMPONENT_NAME, class_names)
+        };
+        let class_number_wide =
+            format!("number_wide{}", self.numberline_wide());
+
+        let code_attributes = [
+            class_ns("code"),
+            class_ns(&class_number_wide),
+            if let Some(theme_background) = theme_background {
+                style! {background: theme_background.to_css()}
+            } else {
+                empty_attr()
+            },
+        ];
+
+        let rendered_lines =
+            highlighted_lines
+                .into_iter()
+                .enumerate()
+                .map(|(number, line)| {
+                    div([class_ns("line")], {
+                        line.into_iter()
+                            .map(|(style, range)| {
+                                let background =
+                                    util::to_rgba(style.background).to_css();
+                                let foreground =
+                                    util::to_rgba(style.foreground).to_css();
+                                span(
+                                    [style! {
+                                        color: foreground,
+                                        background_color: background,
+                                    }],
+                                    [text(range)],
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                });
+
+        if self.options.use_for_ssg {
+            // using div works well when select-copying for both chrome and firefox
+            // this is ideal for statis site generation highlighting
+            div(code_attributes, rendered_lines)
+        } else {
+            // using <pre><code> works well when copying in chrome
+            // but in firefox, it creates a double line when select-copying the text
+            // whe need to use <pre><code> in order for typing whitespace works.
+            pre(
+                [class_ns("code_wrapper")],
+                [code(code_attributes, rendered_lines)],
+            )
+        }
+    }
+
+    pub fn plain_view<MSG>(&self) -> Node<MSG> {
+        text_buffer_view(&self.text_buffer, &self.options)
+    }
+
     pub fn get_content(&self) -> String {
         self.text_buffer.to_string()
+    }
+}
+
+pub fn text_buffer_view<MSG>(
+    text_buffer: &TextBuffer,
+    options: &Options,
+) -> Node<MSG> {
+    let class_ns =
+        |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+
+    let numberline_wide = text_buffer.total_lines().to_string().len();
+    let class_number_wide = format!("number_wide{}", numberline_wide);
+
+    let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
+    let rendered_lines = text_buffer
+        .lines()
+        .into_iter()
+        .enumerate()
+        .map(|(number, line)| div([class_ns("line")], [text(line)]));
+
+    if options.use_for_ssg {
+        // using div works well when select-copying for both chrome and firefox
+        // this is ideal for static site generation highlighting
+        div(code_attributes, rendered_lines)
+    } else {
+        // using <pre><code> works well when copying in chrome
+        // but in firefox, it creates a double line when select-copying the text
+        // whe need to use <pre><code> in order for typing whitespace works.
+        pre(
+            [class_ns("code_wrapper")],
+            [code(code_attributes, rendered_lines)],
+        )
     }
 }

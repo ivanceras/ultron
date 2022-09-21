@@ -2,7 +2,7 @@
 
 use ultron::{
     sauron::{html::tags::style, prelude::*},
-    Options, TextBuffer,
+    Editor, Options,
 };
 
 pub fn render<MSG>(
@@ -20,8 +20,8 @@ pub fn render<MSG>(
         syntax_token: syntax_token.to_string(),
         ..Default::default()
     };
-    let buffer = TextBuffer::from_str(options, content);
-    page(buffer)
+    let editor = Editor::from_str(options, content);
+    page(editor)
 }
 
 pub fn render_to_string(
@@ -33,12 +33,12 @@ pub fn render_to_string(
     node.render_to_string()
 }
 
-fn page<MSG>(buffer: TextBuffer) -> Node<MSG> {
+fn page<MSG>(editor: Editor<MSG>) -> Node<MSG> {
     main(
         [],
         [
-            header([], [style([r#type("text/css")], [text(buffer.style())])]),
-            article([], [buffer.plain_view()]),
+            header([], [style([r#type("text/css")], [text(editor.style())])]),
+            article([], [editor.plain_view()]),
         ],
     )
 }
