@@ -71,10 +71,15 @@ pub struct Editor<XMSG> {
     composed_key: Option<char>,
     last_char_count: Option<usize>,
     is_selecting: bool,
-    selection_start: Option<Point2<i32>>,
-    selection_end: Option<Point2<i32>>,
+    selection: Selection,
     is_processing_key: bool,
     mouse_cursor: MouseCursor,
+}
+
+#[derive(Default)]
+struct Selection {
+    start: Option<Point2<i32>>,
+    end: Option<Point2<i32>>,
 }
 
 pub enum MouseCursor {
@@ -131,8 +136,7 @@ impl<XMSG> Editor<XMSG> {
             composed_key: None,
             last_char_count: None,
             is_selecting: false,
-            selection_start: None,
-            selection_end: None,
+            selection: Selection::default(),
             is_processing_key: false,
             mouse_cursor: MouseCursor::default(),
         }
@@ -150,8 +154,8 @@ impl<XMSG> Editor<XMSG> {
     }
 
     pub fn set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
-        self.selection_start = Some(start);
-        self.selection_end = Some(end);
+        self.selection.start = Some(start);
+        self.selection.end = Some(end);
     }
 }
 
@@ -277,9 +281,9 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 self.focus();
                 let cursor = self.client_to_cursor(client_x, client_y);
                 self.command_set_position(cursor.x, cursor.y);
-                self.selection_end = Some(cursor);
+                self.selection.end = Some(cursor);
                 if let (Some(start), Some(end)) =
-                    (self.selection_start, self.selection_end)
+                    (self.selection.start, self.selection.end)
                 {
                     self.is_selecting = false;
                     self.command_set_selection(start, end);
@@ -296,7 +300,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 if self.in_bounds(client_x as f32, client_y as f32) {
                     let cursor = self.client_to_cursor(client_x, client_y);
                     self.is_selecting = true;
-                    self.selection_start = Some(cursor);
+                    self.selection.start = Some(cursor);
                     self.command_set_position(cursor.x, cursor.y);
                 }
                 Effects::none().measure()
@@ -306,9 +310,9 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     && self.in_bounds(client_x as f32, client_y as f32)
                 {
                     let cursor = self.client_to_cursor(client_x, client_y);
-                    self.selection_end = Some(cursor);
+                    self.selection.end = Some(cursor);
 
-                    if let Some(start) = self.selection_start {
+                    if let Some(start) = self.selection.start {
                         self.command_set_selection(start, cursor);
                     }
                     Effects::none().measure()
@@ -736,12 +740,12 @@ impl<XMSG> Editor<XMSG> {
 
     /// clear the text selection
     pub fn clear_selection(&mut self) {
-        self.selection_start = None;
-        self.selection_end = None;
+        self.selection.start = None;
+        self.selection.end = None;
     }
 
     pub fn selected_text(&self) -> Option<String> {
-        match (self.selection_start, self.selection_end) {
+        match (self.selection.start, self.selection.end) {
             (Some(start), Some(end)) => Some(
                 self.text_buffer
                     .get_text(util::cast_point(start), util::cast_point(end)),
@@ -751,7 +755,7 @@ impl<XMSG> Editor<XMSG> {
     }
 
     pub fn cut_selected_text(&mut self) -> Option<String> {
-        match (self.selection_start, self.selection_end) {
+        match (self.selection.start, self.selection.end) {
             (Some(start), Some(end)) => Some(
                 self.text_buffer
                     .cut_text(util::cast_point(start), util::cast_point(end)),
