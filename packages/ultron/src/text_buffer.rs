@@ -369,6 +369,23 @@ impl TextBuffer {
             .unwrap_or(0)
     }
 
+    /// get the length of the widest line
+    pub(crate) fn max_column_width(&self) -> usize {
+        self.chars
+            .iter()
+            .map(|line| line.iter().map(|ch| ch.width).sum())
+            .max()
+            .unwrap_or(0)
+    }
+
+    /// return rectangular position starting from 0,0 to contain all
+    /// the text
+    pub fn max_position(&self) -> Point2<usize> {
+        let last_line = self.total_lines().saturating_sub(1);
+        let max_column = self.max_column_width();
+        Point2::new(max_column, last_line)
+    }
+
     /// break at line y and put the characters after x on the next line
     pub(crate) fn break_line(&mut self, x: usize, y: usize) {
         self.ensure_before_cell_exist(x, y);

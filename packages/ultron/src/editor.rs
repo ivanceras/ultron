@@ -662,11 +662,14 @@ impl<XMSG> Editor<XMSG> {
     }
 
     fn command_set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
-        todo!();
+        self.set_selection(start, end)
     }
 
     fn command_select_all(&mut self) {
-        todo!();
+        let start = Point2::new(0, 0);
+        let max = self.text_buffer.max_position();
+        let end = Point2::new(max.x as i32, max.y as i32);
+        self.set_selection(start, end);
     }
 
     /// calls on 2 ways to copy
