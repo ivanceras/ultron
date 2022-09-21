@@ -1,5 +1,5 @@
 use crate::{
-    util, Options, TextEdit, TextHighlighter, CH_HEIGHT, CH_WIDTH,
+    util, Options, TextBuffer, TextEdit, TextHighlighter, CH_HEIGHT, CH_WIDTH,
     COMPONENT_NAME,
 };
 use css_colors::rgba;
@@ -1261,7 +1261,7 @@ impl<XMSG> Editor<XMSG> {
     }
 
     pub fn plain_view<MSG>(&self) -> Node<MSG> {
-        text_buffer_view(&self.text_edit, &self.options)
+        text_buffer_view(self.text_edit.text_buffer(), &self.options)
     }
 
     pub fn get_content(&self) -> String {
@@ -1288,17 +1288,17 @@ pub fn highlight_lines(
 }
 
 pub fn text_buffer_view<MSG>(
-    text_edit: &TextEdit,
+    text_buffer: &TextBuffer,
     options: &Options,
 ) -> Node<MSG> {
     let class_ns =
         |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
 
-    let numberline_wide = text_edit.total_lines().to_string().len();
+    let numberline_wide = text_buffer.total_lines().to_string().len();
     let class_number_wide = format!("number_wide{}", numberline_wide);
 
     let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
-    let rendered_lines = text_edit
+    let rendered_lines = text_buffer
         .lines()
         .into_iter()
         .map(|line| div([class_ns("line")], [text(line)]));

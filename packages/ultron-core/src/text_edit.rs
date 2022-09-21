@@ -31,6 +31,10 @@ impl TextEdit {
         }
     }
 
+    pub fn text_buffer(&self) -> &TextBuffer {
+        &self.text_buffer
+    }
+
     pub fn set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
         self.selection.start = Some(start);
         self.selection.end = Some(end);
