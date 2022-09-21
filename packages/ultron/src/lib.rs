@@ -1,5 +1,5 @@
 #![deny(warnings)]
-pub use text_buffer::TextBuffer;
+pub use ultron_core::TextBuffer;
 pub use ultron_syntaxes_themes::TextHighlighter;
 
 pub use nalgebra;
@@ -14,7 +14,6 @@ pub use editor::MouseCursor;
 #[cfg(feature = "with-dom")]
 pub use editor::Msg;
 
-mod text_buffer;
 mod util;
 
 pub const COMPONENT_NAME: &str = "ultron";
@@ -76,6 +75,3 @@ impl Default for Options {
         }
     }
 }
-
-#[cfg(test)]
-mod unit_tests;

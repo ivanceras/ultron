@@ -1,5 +1,5 @@
-use crate::TextBuffer;
 use nalgebra::Point2;
+use ultron_core::TextBuffer;
 
 #[test]
 fn line_length() {

@@ -1,6 +1,5 @@
 use nalgebra::Point2;
 use std::iter::FromIterator;
-use ultron_syntaxes_themes::{Style, TextHighlighter};
 use unicode_width::UnicodeWidthChar;
 
 /// A text buffer where every insertion of character it will
@@ -46,7 +45,7 @@ impl TextBuffer {
     }
 
     /// Remove the text within the start and end position then return the deleted text
-    pub(crate) fn cut_text(
+    pub fn cut_text(
         &mut self,
         start: Point2<usize>,
         end: Point2<usize>,
@@ -89,11 +88,7 @@ impl TextBuffer {
         }
     }
 
-    pub(crate) fn get_text(
-        &self,
-        start: Point2<usize>,
-        end: Point2<usize>,
-    ) -> String {
+    pub fn get_text(&self, start: Point2<usize>, end: Point2<usize>) -> String {
         let is_one_line = start.y == end.y;
         if is_one_line {
             let selection: &[Ch] = &self.chars[start.y][start.x..=end.x];
@@ -128,23 +123,6 @@ impl TextBuffer {
             }
         }
     }
-
-    pub fn highlight_lines(
-        &self,
-        text_highlighter: &mut TextHighlighter,
-    ) -> Vec<Vec<(Style, String)>> {
-        self.lines()
-            .iter()
-            .map(|line| {
-                text_highlighter
-                    .highlight_line(line)
-                    .expect("must highlight")
-                    .into_iter()
-                    .map(|(style, line)| (style, line.to_owned()))
-                    .collect()
-            })
-            .collect()
-    }
 }
 
 /// text manipulation
@@ -152,7 +130,7 @@ impl TextBuffer {
 /// The cursor shouldn't be move here, since it is done by the commands functions
 impl TextBuffer {
     /// the total number of lines of this text canvas
-    pub(crate) fn total_lines(&self) -> usize {
+    pub fn total_lines(&self) -> usize {
         self.chars.len()
     }
 
@@ -164,7 +142,7 @@ impl TextBuffer {
     }
 
     /// the width of the line at line `n`
-    pub(crate) fn line_width(&self, n: usize) -> usize {
+    pub fn line_width(&self, n: usize) -> usize {
         self.chars
             .get(n)
             .map(|line| line.iter().map(|ch| ch.width).sum())
@@ -172,7 +150,7 @@ impl TextBuffer {
     }
 
     /// get the length of the widest line
-    pub(crate) fn max_column_width(&self) -> usize {
+    pub fn max_column_width(&self) -> usize {
         self.chars
             .iter()
             .map(|line| line.iter().map(|ch| ch.width).sum())
@@ -189,7 +167,7 @@ impl TextBuffer {
     }
 
     /// break at line y and put the characters after x on the next line
-    pub(crate) fn break_line(&mut self, x: usize, y: usize) {
+    pub fn break_line(&mut self, x: usize, y: usize) {
         self.ensure_before_cell_exist(x, y);
         let line = &self.chars[y];
         if let Some(break_point) = self.column_index(x, y) {
@@ -210,7 +188,7 @@ impl TextBuffer {
         }
     }
 
-    pub(crate) fn join_line(&mut self, _x: usize, y: usize) {
+    pub fn join_line(&mut self, _x: usize, y: usize) {
         let next_line_index = y.saturating_add(1);
         let mut next_line = self.chars.remove(next_line_index);
         self.chars[y].append(&mut next_line);
@@ -287,7 +265,7 @@ impl TextBuffer {
         }
     }
 
-    pub(crate) fn insert_text(&mut self, x: usize, y: usize, text: &str) {
+    pub fn insert_text(&mut self, x: usize, y: usize, text: &str) {
         let mut start = x;
         for (i, line) in text.lines().enumerate() {
             if i > 0 {
@@ -323,7 +301,7 @@ impl TextBuffer {
     }
 
     /// delete character at this position
-    pub(crate) fn delete_char(&mut self, x: usize, y: usize) -> Option<char> {
+    pub fn delete_char(&mut self, x: usize, y: usize) -> Option<char> {
         if let Some(column_index) = self.column_index(x, y) {
             let ex_ch = self.chars[y].remove(column_index);
             Some(ex_ch.ch)
@@ -333,7 +311,7 @@ impl TextBuffer {
     }
 
     /// return the position of the cursor
-    pub(crate) fn get_position(&self) -> Point2<usize> {
+    pub fn get_position(&self) -> Point2<usize> {
         self.cursor
     }
 }
@@ -343,27 +321,27 @@ impl TextBuffer {
 /// functions that are preceeded with command also moves the
 /// cursor and highlight the texts
 impl TextBuffer {
-    pub(crate) fn command_insert_char(&mut self, ch: char) {
+    pub fn command_insert_char(&mut self, ch: char) {
         self.insert_char(self.cursor.x, self.cursor.y, ch);
         let width = ch.width().expect("must have a unicode width");
         self.move_x(width);
     }
 
-    pub(crate) fn command_replace_char(&mut self, ch: char) -> Option<char> {
+    pub fn command_replace_char(&mut self, ch: char) -> Option<char> {
         self.replace_char(self.cursor.x, self.cursor.y, ch)
     }
 
-    pub(crate) fn command_insert_text(&mut self, text: &str) {
+    pub fn command_insert_text(&mut self, text: &str) {
         self.insert_text(self.cursor.x, self.cursor.y, text);
     }
-    pub(crate) fn move_left(&mut self) {
+    pub fn move_left(&mut self) {
         self.cursor.x = self.cursor.x.saturating_sub(1);
     }
-    pub(crate) fn move_left_start(&mut self) {
+    pub fn move_left_start(&mut self) {
         self.cursor.x = 0;
     }
 
-    pub(crate) fn move_right(&mut self) {
+    pub fn move_right(&mut self) {
         self.cursor.x = self.cursor.x.saturating_add(1);
     }
     fn line_max_column(&self, line: usize) -> usize {
@@ -372,7 +350,7 @@ impl TextBuffer {
     fn current_line_max_column(&self) -> usize {
         self.line_max_column(self.cursor.y)
     }
-    pub(crate) fn move_right_clamped(&mut self) {
+    pub fn move_right_clamped(&mut self) {
         if self.cursor.x < self.current_line_max_column() {
             self.move_right();
         }
@@ -388,13 +366,13 @@ impl TextBuffer {
     pub fn move_y(&mut self, y: usize) {
         self.cursor.y = self.cursor.y.saturating_add(y);
     }
-    pub(crate) fn move_up(&mut self) {
+    pub fn move_up(&mut self) {
         self.cursor.y = self.cursor.y.saturating_sub(1);
     }
-    pub(crate) fn move_down(&mut self) {
+    pub fn move_down(&mut self) {
         self.cursor.y = self.cursor.y.saturating_add(1);
     }
-    pub(crate) fn move_up_clamped(&mut self) {
+    pub fn move_up_clamped(&mut self) {
         let target_line = self.cursor.y.saturating_sub(1);
         let target_line_max_column = self.line_max_column(target_line);
         if target_line < self.total_lines() {
@@ -404,7 +382,7 @@ impl TextBuffer {
             self.move_up()
         }
     }
-    pub(crate) fn move_down_clamped(&mut self) {
+    pub fn move_down_clamped(&mut self) {
         let target_line = self.cursor.y.saturating_add(1);
         let target_line_max_column = self.line_max_column(target_line);
         if target_line < self.total_lines() {
@@ -414,14 +392,14 @@ impl TextBuffer {
             self.move_down()
         }
     }
-    pub(crate) fn set_position(&mut self, x: usize, y: usize) {
+    pub fn set_position(&mut self, x: usize, y: usize) {
         self.cursor.x = x;
         self.cursor.y = y;
     }
 
     /// set the position to the max_column of the line if it is out of
     /// bounds
-    pub(crate) fn set_position_clamped(&mut self, mut x: usize, mut y: usize) {
+    pub fn set_position_clamped(&mut self, mut x: usize, mut y: usize) {
         let total_lines = self.total_lines();
         if y > total_lines {
             y = total_lines.saturating_sub(1);
@@ -433,18 +411,18 @@ impl TextBuffer {
         self.set_position(x, y)
     }
 
-    pub(crate) fn command_break_line(&mut self, x: usize, y: usize) {
+    pub fn command_break_line(&mut self, x: usize, y: usize) {
         self.break_line(x, y);
         self.move_left_start();
         self.move_down();
     }
 
-    pub(crate) fn command_join_line(&mut self, x: usize, y: usize) {
+    pub fn command_join_line(&mut self, x: usize, y: usize) {
         self.join_line(x, y);
         self.set_position(x, y);
     }
 
-    pub(crate) fn command_delete_back(&mut self) -> Option<char> {
+    pub fn command_delete_back(&mut self) -> Option<char> {
         if self.cursor.x > 0 {
             let c = self
                 .delete_char(self.cursor.x.saturating_sub(1), self.cursor.y);
@@ -454,7 +432,7 @@ impl TextBuffer {
             None
         }
     }
-    pub(crate) fn command_delete_forward(&mut self) -> Option<char> {
+    pub fn command_delete_forward(&mut self) -> Option<char> {
         self.delete_char(self.cursor.x, self.cursor.y)
     }
     pub fn move_to(&mut self, pos: Point2<usize>) {

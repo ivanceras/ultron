@@ -1,5 +1,5 @@
-use crate::nalgebra::Point2;
-use crate::{Editor, Options};
+use nalgebra::Point2;
+use ultron::{Editor, Options};
 #[test]
 fn test_text_selection() {
     let raw = "Hello world";

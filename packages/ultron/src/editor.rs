@@ -120,7 +120,7 @@ impl<XMSG> Editor<XMSG> {
         let text_buffer = TextBuffer::from_str(content);
 
         let highlighted_lines =
-            text_buffer.highlight_lines(&mut text_highlighter);
+            highlight_lines(&text_buffer, &mut text_highlighter);
 
         Editor {
             options,
@@ -148,7 +148,7 @@ impl<XMSG> Editor<XMSG> {
     pub fn rehighlight(&mut self) {
         self.text_highlighter.reset();
         self.highlighted_lines =
-            self.text_buffer.highlight_lines(&mut self.text_highlighter);
+            highlight_lines(&self.text_buffer, &mut self.text_highlighter);
     }
 
     pub fn set_mouse_cursor(&mut self, mouse_cursor: MouseCursor) {
@@ -1300,6 +1300,24 @@ impl<XMSG> Editor<XMSG> {
     pub fn get_content(&self) -> String {
         self.text_buffer.to_string()
     }
+}
+
+pub fn highlight_lines(
+    text_buffer: &TextBuffer,
+    text_highlighter: &mut TextHighlighter,
+) -> Vec<Vec<(Style, String)>> {
+    text_buffer
+        .lines()
+        .iter()
+        .map(|line| {
+            text_highlighter
+                .highlight_line(line)
+                .expect("must highlight")
+                .into_iter()
+                .map(|(style, line)| (style, line.to_owned()))
+                .collect()
+        })
+        .collect()
 }
 
 pub fn text_buffer_view<MSG>(

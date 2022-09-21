@@ -14,6 +14,7 @@ keywords = ["web", "editor", "monospace"]
 #sauron = { version = "0.50", default-features = false, features = ["with-measure"] }
 #sauron = { path = "../../../sauron", default-features = false, features = ["with-measure"] }
 sauron = { path = "../../../sauron", default-features = false, features = [] }
+ultron-core = { path = "../ultron-core" }
 ultron-syntaxes-themes = { version = "0.2.6", path = "../syntaxes-themes" }
 log = "0.4"
 unicode-width = "0.1"
