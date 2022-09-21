@@ -14,8 +14,6 @@ use sauron::{
     wasm_bindgen::JsCast,
     Measurements,
 };
-use std::cell::RefCell;
-use std::rc::Rc;
 use ultron_syntaxes_themes::Style;
 
 pub(crate) mod action;
@@ -175,11 +173,14 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 self.hidden_textarea = Some(target_node.unchecked_into());
                 Effects::none()
             }
-            Msg::WindowScrolled((scroll_top, scroll_left)) => {
+            Msg::WindowScrolled((_scroll_top, _scroll_left)) => {
                 log::trace!("scrolling window..");
                 Effects::none()
             }
-            Msg::WindowResized { width, height } => Effects::none(),
+            Msg::WindowResized {
+                width: _,
+                height: _,
+            } => Effects::none(),
             Msg::Scrolled((scroll_top, scroll_left)) => {
                 self.scroll_position.top = scroll_top as f32;
                 self.scroll_position.left = scroll_left as f32;
@@ -423,7 +424,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
     fn style(&self) -> String {
         let cursor_color = self.cursor_color().unwrap_or(rgba(0, 0, 0, 1.0));
         let border_color = rgba(0, 0, 0, 1.0);
-        let border_width = 1;
 
         jss_ns! {COMPONENT_NAME,
             ".": {
@@ -1067,9 +1067,15 @@ impl<XMSG> Editor<XMSG> {
 
     /// convert current cursor position to client coordinate relative to the editor div
     pub fn cursor_to_client(&self) -> Point2<f32> {
-        self.text_buffer.calculate_cursor_location()
+        let cursor = self.text_buffer.get_position();
+        Point2::new(
+            cursor.x as f32 * CH_WIDTH as f32,
+            cursor.y as f32 * CH_HEIGHT as f32,
+        )
     }
 
+    // will be used in ultron-web
+    #[allow(unused)]
     fn view_hidden_textarea(&self) -> Node<Msg> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
@@ -1252,29 +1258,25 @@ impl<XMSG> Editor<XMSG> {
             },
         ];
 
-        let rendered_lines =
-            highlighted_lines
-                .into_iter()
-                .enumerate()
-                .map(|(number, line)| {
-                    div([class_ns("line")], {
-                        line.into_iter()
-                            .map(|(style, range)| {
-                                let background =
-                                    util::to_rgba(style.background).to_css();
-                                let foreground =
-                                    util::to_rgba(style.foreground).to_css();
-                                span(
-                                    [style! {
-                                        color: foreground,
-                                        background_color: background,
-                                    }],
-                                    [text(range)],
-                                )
-                            })
-                            .collect::<Vec<_>>()
+        let rendered_lines = highlighted_lines.into_iter().map(|line| {
+            div([class_ns("line")], {
+                line.into_iter()
+                    .map(|(style, range)| {
+                        let background =
+                            util::to_rgba(style.background).to_css();
+                        let foreground =
+                            util::to_rgba(style.foreground).to_css();
+                        span(
+                            [style! {
+                                color: foreground,
+                                background_color: background,
+                            }],
+                            [text(range)],
+                        )
                     })
-                });
+                    .collect::<Vec<_>>()
+            })
+        });
 
         if self.options.use_for_ssg {
             // using div works well when select-copying for both chrome and firefox
@@ -1314,8 +1316,7 @@ pub fn text_buffer_view<MSG>(
     let rendered_lines = text_buffer
         .lines()
         .into_iter()
-        .enumerate()
-        .map(|(number, line)| div([class_ns("line")], [text(line)]));
+        .map(|line| div([class_ns("line")], [text(line)]));
 
     if options.use_for_ssg {
         // using div works well when select-copying for both chrome and firefox

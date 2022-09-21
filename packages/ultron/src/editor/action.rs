@@ -1,4 +1,3 @@
-#![allow(unused)]
 use super::TextBuffer;
 use nalgebra::Point2;
 
@@ -8,7 +7,6 @@ pub enum Action {
     Delete(Point2<usize>, char),
     /// replace character at (cursor, old_char, new_char)
     Replace(Point2<usize>, char, char),
-    Move(Point2<usize>),
     BreakLine(Point2<usize>),
     JoinLine(Point2<usize>),
 }
@@ -20,7 +18,6 @@ impl Action {
             Action::Insert(cursor, _ch) => *cursor,
             Action::Delete(cursor, _ch) => *cursor,
             Action::Replace(cursor, _old_ch, _new_ch) => *cursor,
-            Action::Move(cursor) => *cursor,
             Action::BreakLine(cursor) => *cursor,
             Action::JoinLine(cursor) => *cursor,
         }
@@ -36,9 +33,6 @@ impl Action {
             }
             Action::Replace(cursor, _old_ch, ch) => {
                 content.replace_char(cursor.x, cursor.y, ch);
-            }
-            Action::Move(cursor) => {
-                content.set_position(cursor.x, cursor.y);
             }
             Action::BreakLine(loc) => {
                 content.break_line(loc.x, loc.y);
@@ -56,7 +50,6 @@ impl Action {
             Action::Replace(cursor, old_ch, ch) => {
                 Action::Replace(cursor, ch, old_ch)
             }
-            Action::Move(cursor) => Action::Move(cursor),
             Action::BreakLine(loc) => Action::JoinLine(loc),
             Action::JoinLine(loc) => Action::BreakLine(loc),
         }

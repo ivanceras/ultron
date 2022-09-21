@@ -1,17 +1,8 @@
-#![allow(unused)]
-
-use crate::{util, CH_HEIGHT, CH_WIDTH, COMPONENT_NAME};
-use css_colors::{rgba, Color, RGBA};
 use nalgebra::Point2;
-use parry2d::bounding_volume::{BoundingVolume, AABB};
-use sauron::{html::attributes, jss_ns, prelude::*, Node};
-use std::{collections::HashMap, iter::FromIterator};
-use ultron_syntaxes_themes::{Style, TextHighlighter, Theme};
+use std::iter::FromIterator;
+use ultron_syntaxes_themes::{Style, TextHighlighter};
 use unicode_width::UnicodeWidthChar;
 
-/// TODO: Make a TextView which wraps TextBuffer, with options, render view, while TextBuffer is
-/// purely just string manipulation
-///
 /// A text buffer where every insertion of character it will
 /// recompute the highlighting of a line
 #[derive(Clone)]
@@ -54,12 +45,6 @@ impl TextBuffer {
         &self.chars
     }
 
-    pub(crate) fn calculate_cursor_location(&self) -> Point2<f32> {
-        Point2::new(
-            self.cursor.x as f32 * CH_WIDTH as f32,
-            self.cursor.y as f32 * CH_HEIGHT as f32,
-        )
-    }
     /// Remove the text within the start and end position then return the deleted text
     pub(crate) fn cut_text(
         &mut self,
@@ -211,7 +196,7 @@ impl TextBuffer {
             let (break1, break2): (Vec<_>, Vec<_>) = line
                 .iter()
                 .enumerate()
-                .partition(|(i, ch)| *i < break_point);
+                .partition(|(i, _ch)| *i < break_point);
 
             let break1: Vec<Ch> =
                 break1.into_iter().map(|(_, ch)| *ch).collect();
@@ -225,21 +210,10 @@ impl TextBuffer {
         }
     }
 
-    pub(crate) fn join_line(&mut self, x: usize, y: usize) {
+    pub(crate) fn join_line(&mut self, _x: usize, y: usize) {
         let next_line_index = y.saturating_add(1);
         let mut next_line = self.chars.remove(next_line_index);
         self.chars[y].append(&mut next_line);
-    }
-
-    fn assert_chars(&self, ch: char) {
-        assert!(
-            ch != '\n',
-            "line breaks should have been pre-processed before this point"
-        );
-        assert!(
-            ch != '\t',
-            "tabs should have been pre-processed before this point"
-        );
     }
 
     /// ensure line at index y exist
@@ -295,10 +269,7 @@ impl TextBuffer {
     pub fn insert_char(&mut self, x: usize, y: usize, ch: char) {
         self.ensure_before_cell_exist(x, y);
         let new_ch = Ch::new(ch);
-        let line_width = self.line_width(y);
         if let Some(column_index) = self.column_index(x, y) {
-            let diff =
-                x.saturating_sub(column_index).saturating_sub(new_ch.width);
             let insert_index = column_index;
             self.chars[y].insert(insert_index, new_ch);
         } else {
@@ -335,7 +306,6 @@ impl TextBuffer {
         ch: char,
     ) -> Option<char> {
         self.ensure_cell_exist(x, y);
-        let new_ch = Ch::new(ch);
         let column_index =
             self.column_index(x, y).expect("must have a column index");
         let ex_ch = self.chars[y].remove(column_index);
@@ -381,11 +351,6 @@ impl TextBuffer {
         self.move_x(width);
     }
 
-    /// insert the character but don't move to the right
-    pub(crate) fn command_insert_forward_char(&mut self, ch: char) {
-        self.insert_char(self.cursor.x, self.cursor.y, ch);
-    }
-
     pub(crate) fn command_replace_char(&mut self, ch: char) -> Option<char> {
         self.replace_char(self.cursor.x, self.cursor.y, ch)
     }
@@ -415,14 +380,14 @@ impl TextBuffer {
         }
     }
 
-    pub(crate) fn move_right_end(&mut self) {
+    pub fn move_right_end(&mut self) {
         self.cursor.x = self.current_line_max_column();
     }
 
-    pub(crate) fn move_x(&mut self, x: usize) {
+    pub fn move_x(&mut self, x: usize) {
         self.cursor.x = self.cursor.x.saturating_add(x);
     }
-    pub(crate) fn move_y(&mut self, y: usize) {
+    pub fn move_y(&mut self, y: usize) {
         self.cursor.y = self.cursor.y.saturating_add(y);
     }
     pub(crate) fn move_up(&mut self) {
@@ -494,7 +459,7 @@ impl TextBuffer {
     pub(crate) fn command_delete_forward(&mut self) -> Option<char> {
         self.delete_char(self.cursor.x, self.cursor.y)
     }
-    pub(crate) fn move_to(&mut self, pos: Point2<usize>) {
+    pub fn move_to(&mut self, pos: Point2<usize>) {
         self.set_position(pos.x, pos.y);
     }
 

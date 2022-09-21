@@ -1,4 +1,3 @@
-#![allow(unused)]
 use super::action::Action;
 use super::TextBuffer;
 use nalgebra::Point2;
@@ -108,7 +107,7 @@ impl Recorded {
         };
         to_redo.actions.iter().for_each(|tr| {
             tr.apply(text_buffer);
-            let last_location = tr.location();
+            last_location = Some(tr.location());
         });
         self.history.push_front(to_redo);
         last_location
@@ -117,10 +116,6 @@ impl Recorded {
     #[allow(unused)]
     fn history_len(&self) -> usize {
         self.history.len()
-    }
-
-    pub(crate) fn move_cursor(&mut self, cursor: Point2<usize>) {
-        self.record(Action::Move(cursor));
     }
 
     pub(crate) fn insert_char(&mut self, cursor: Point2<usize>, ch: char) {
