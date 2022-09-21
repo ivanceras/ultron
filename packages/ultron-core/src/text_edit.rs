@@ -16,9 +16,9 @@ pub struct TextEdit {
 }
 
 #[derive(Default)]
-struct Selection {
-    start: Option<Point2<i32>>,
-    end: Option<Point2<i32>>,
+pub struct Selection {
+    pub start: Option<Point2<i32>>,
+    pub end: Option<Point2<i32>>,
 }
 
 impl TextEdit {
@@ -35,9 +35,19 @@ impl TextEdit {
         self.selection.start = Some(start);
         self.selection.end = Some(end);
     }
-}
 
-impl TextEdit {
+    pub fn set_selection_start(&mut self, start: Point2<i32>) {
+        self.selection.start = Some(start);
+    }
+
+    pub fn set_selection_end(&mut self, end: Point2<i32>) {
+        self.selection.end = Some(end);
+    }
+
+    pub fn selection(&self) -> &Selection {
+        &self.selection
+    }
+
     pub fn command_insert_char(&mut self, ch: char) {
         let cursor = self.text_buffer.get_position();
         log::trace!("inserting char: {}, at cursor: {}", ch, cursor);
@@ -86,8 +96,16 @@ impl TextEdit {
         self.text_buffer.move_up();
     }
 
+    pub fn command_move_up_clamped(&mut self) {
+        self.text_buffer.move_up_clamped();
+    }
+
     pub fn command_move_down(&mut self) {
         self.text_buffer.move_down();
+    }
+
+    pub fn command_move_down_clamped(&mut self) {
+        self.text_buffer.move_down_clamped();
     }
 
     pub fn command_move_left(&mut self) {
@@ -96,6 +114,10 @@ impl TextEdit {
 
     pub fn command_move_right(&mut self) {
         self.text_buffer.move_right();
+    }
+
+    pub fn command_move_right_clamped(&mut self) {
+        self.text_buffer.move_right_clamped();
     }
 
     pub fn command_break_line(&mut self) {
@@ -114,9 +136,18 @@ impl TextEdit {
         self.text_buffer.command_insert_text(text);
     }
 
-    pub fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
-        self.text_buffer
-            .set_position(cursor_x as usize, cursor_y as usize);
+    //TODO: use Point2<usize>
+    pub fn command_set_position(&mut self, cursor_x: usize, cursor_y: usize) {
+        self.text_buffer.set_position(cursor_x, cursor_y);
+    }
+
+    //TODO: use Point2<usize>
+    pub fn command_set_position_clamped(
+        &mut self,
+        cursor_x: usize,
+        cursor_y: usize,
+    ) {
+        self.text_buffer.set_position_clamped(cursor_x, cursor_y);
     }
 
     pub fn command_set_selection(
@@ -178,7 +209,23 @@ impl TextEdit {
         }
     }
 
+    pub fn get_position(&self) -> Point2<usize> {
+        self.text_buffer.get_position()
+    }
+
+    pub fn max_position(&self) -> Point2<usize> {
+        self.text_buffer.max_position()
+    }
+
     pub fn get_content(&self) -> String {
         self.text_buffer.to_string()
+    }
+
+    pub fn total_lines(&self) -> usize {
+        self.text_buffer.total_lines()
+    }
+
+    pub fn lines(&self) -> Vec<String> {
+        self.text_buffer.lines()
     }
 }

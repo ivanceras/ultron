@@ -1,11 +1,10 @@
 use crate::{
-    util, Options, TextBuffer, TextHighlighter, CH_HEIGHT, CH_WIDTH,
+    util, Options, TextEdit, TextHighlighter, CH_HEIGHT, CH_WIDTH,
     COMPONENT_NAME,
 };
 use css_colors::rgba;
 use css_colors::Color;
 use css_colors::RGBA;
-use history::Recorded;
 use nalgebra::Point2;
 use sauron::{
     html::{attributes, units},
@@ -15,9 +14,6 @@ use sauron::{
     Measurements,
 };
 use ultron_syntaxes_themes::Style;
-
-pub(crate) mod action;
-mod history;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Msg {
@@ -50,12 +46,10 @@ pub enum Msg {
 
 pub struct Editor<XMSG> {
     options: Options,
-    text_buffer: TextBuffer,
+    text_edit: TextEdit,
     text_highlighter: TextHighlighter,
     /// lines of highlighted ranges
     highlighted_lines: Vec<Vec<(Style, String)>>,
-    /// for undo and redo
-    recorded: Recorded,
     measurements: Option<Measurements>,
     average_update_time: Option<f64>,
     scroll_position: ScrollPosition,
@@ -68,7 +62,6 @@ pub struct Editor<XMSG> {
     composed_key: Option<char>,
     last_char_count: Option<usize>,
     is_selecting: bool,
-    selection: Selection,
     is_processing_key: bool,
     mouse_cursor: MouseCursor,
 }
@@ -77,12 +70,6 @@ pub struct Editor<XMSG> {
 struct ScrollPosition {
     top: f32,
     left: f32,
-}
-
-#[derive(Default)]
-struct Selection {
-    start: Option<Point2<i32>>,
-    end: Option<Point2<i32>>,
 }
 
 pub enum MouseCursor {
@@ -117,17 +104,16 @@ impl<XMSG> Editor<XMSG> {
         }
         text_highlighter.set_syntax_token(&options.syntax_token);
 
-        let text_buffer = TextBuffer::from_str(content);
+        let text_edit = TextEdit::from_str(content);
 
         let highlighted_lines =
-            highlight_lines(&text_buffer, &mut text_highlighter);
+            highlight_lines(&text_edit, &mut text_highlighter);
 
         Editor {
             options,
-            text_buffer,
+            text_edit,
             text_highlighter,
             highlighted_lines,
-            recorded: Recorded::new(),
             measurements: None,
             average_update_time: None,
             scroll_position: ScrollPosition::default(),
@@ -138,7 +124,6 @@ impl<XMSG> Editor<XMSG> {
             composed_key: None,
             last_char_count: None,
             is_selecting: false,
-            selection: Selection::default(),
             is_processing_key: false,
             mouse_cursor: MouseCursor::default(),
         }
@@ -148,7 +133,7 @@ impl<XMSG> Editor<XMSG> {
     pub fn rehighlight(&mut self) {
         self.text_highlighter.reset();
         self.highlighted_lines =
-            highlight_lines(&self.text_buffer, &mut self.text_highlighter);
+            highlight_lines(&self.text_edit, &mut self.text_highlighter);
     }
 
     pub fn set_mouse_cursor(&mut self, mouse_cursor: MouseCursor) {
@@ -156,8 +141,15 @@ impl<XMSG> Editor<XMSG> {
     }
 
     pub fn set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
-        self.selection.start = Some(start);
-        self.selection.end = Some(end);
+        self.text_edit.set_selection(start, end);
+    }
+
+    pub fn set_selection_start(&mut self, start: Point2<i32>) {
+        self.text_edit.set_selection_start(start);
+    }
+
+    pub fn set_selection_end(&mut self, end: Point2<i32>) {
+        self.text_edit.set_selection_end(end);
     }
 }
 
@@ -286,9 +278,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 self.focus();
                 let cursor = self.client_to_cursor(client_x, client_y);
                 self.command_set_position(cursor.x, cursor.y);
-                self.selection.end = Some(cursor);
+                self.text_edit.set_selection_end(cursor);
+                let selection = self.text_edit.selection();
                 if let (Some(start), Some(end)) =
-                    (self.selection.start, self.selection.end)
+                    (selection.start, selection.end)
                 {
                     self.is_selecting = false;
                     self.command_set_selection(start, end);
@@ -305,7 +298,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 if self.in_bounds(client_x as f32, client_y as f32) {
                     let cursor = self.client_to_cursor(client_x, client_y);
                     self.is_selecting = true;
-                    self.selection.start = Some(cursor);
+                    self.text_edit.set_selection_start(cursor);
                     self.command_set_position(cursor.x, cursor.y);
                 }
                 Effects::none().measure()
@@ -315,9 +308,10 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     && self.in_bounds(client_x as f32, client_y as f32)
                 {
                     let cursor = self.client_to_cursor(client_x, client_y);
-                    self.selection.end = Some(cursor);
+                    self.text_edit.set_selection_end(cursor);
 
-                    if let Some(start) = self.selection.start {
+                    let selection = self.text_edit.selection();
+                    if let Some(start) = selection.start {
                         self.command_set_selection(start, cursor);
                     }
                     Effects::none().measure()
@@ -590,23 +584,20 @@ impl<XMSG> Editor<XMSG> {
     }
 
     fn command_insert_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
-        let cursor = self.text_buffer.get_position();
-        log::trace!("inserting char: {}, at cursor: {}", ch, cursor);
-        self.text_buffer.command_insert_char(ch);
-        self.recorded.insert_char(cursor, ch);
+        self.text_edit.command_insert_char(ch);
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
-        self.text_buffer.get_char(x, y)
+        self.text_edit.get_char(x, y)
     }
 
     fn command_smart_replace_insert_char(
         &mut self,
         ch: char,
     ) -> Effects<Msg, XMSG> {
-        let cursor = self.text_buffer.get_position();
+        let cursor = self.text_edit.get_position();
         let has_right_char =
             if let Some(ch) = self.get_char(cursor.x + 1, cursor.y) {
                 !ch.is_whitespace()
@@ -650,86 +641,79 @@ impl<XMSG> Editor<XMSG> {
             .map(util::to_rgba)
     }
     pub fn command_replace_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
-        let cursor = self.text_buffer.get_position();
-        if let Some(old_ch) = self.text_buffer.command_replace_char(ch) {
-            self.recorded.replace_char(cursor, old_ch, ch);
-        }
+        self.text_edit.command_replace_char(ch);
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     fn command_delete_back(&mut self) -> Effects<Msg, XMSG> {
-        let ch = self.text_buffer.command_delete_back();
-        let cursor = self.text_buffer.get_position();
-        self.recorded.delete(cursor, ch);
+        self.text_edit.command_delete_back();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     fn command_delete_forward(&mut self) -> Effects<Msg, XMSG> {
-        let _ch = self.text_buffer.command_delete_forward();
+        let _ch = self.text_edit.command_delete_forward();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     fn command_move_up(&mut self) {
         if self.options.use_virtual_edit {
-            self.text_buffer.move_up();
+            self.text_edit.command_move_up();
         } else {
-            self.text_buffer.move_up_clamped();
+            self.text_edit.command_move_up_clamped();
         }
     }
 
     fn command_move_down(&mut self) {
         if self.options.use_virtual_edit {
-            self.text_buffer.move_down();
+            self.text_edit.command_move_down();
         } else {
-            self.text_buffer.move_down_clamped();
+            self.text_edit.command_move_down_clamped();
         }
     }
 
     fn command_move_left(&mut self) {
-        self.text_buffer.move_left();
+        self.text_edit.command_move_left();
     }
 
     fn command_move_right(&mut self) {
         if self.options.use_virtual_edit {
-            self.text_buffer.move_right();
+            self.text_edit.command_move_right();
         } else {
-            self.text_buffer.move_right_clamped();
+            self.text_edit.command_move_right_clamped();
         }
     }
 
     fn command_break_line(&mut self) -> Effects<Msg, XMSG> {
-        let pos = self.text_buffer.get_position();
-        self.text_buffer.command_break_line(pos.x, pos.y);
-        self.recorded.break_line(pos);
+        self.text_edit.command_break_line();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     #[allow(unused)]
     fn command_join_line(&mut self) -> Effects<Msg, XMSG> {
-        let pos = self.text_buffer.get_position();
-        self.text_buffer.command_join_line(pos.x, pos.y);
-        self.recorded.join_line(pos);
+        self.text_edit.command_join_line();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     fn command_insert_text(&mut self, text: &str) -> Effects<Msg, XMSG> {
-        self.text_buffer.command_insert_text(text);
+        self.text_edit.command_insert_text(text);
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     pub fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
         if self.options.use_virtual_edit {
-            self.text_buffer
-                .set_position(cursor_x as usize, cursor_y as usize);
+            self.text_edit
+                .command_set_position(cursor_x as usize, cursor_y as usize);
         } else {
-            self.text_buffer
-                .set_position_clamped(cursor_x as usize, cursor_y as usize);
+            self.text_edit.command_set_position_clamped(
+                cursor_x as usize,
+                cursor_y as usize,
+            );
         }
     }
 
@@ -739,7 +723,7 @@ impl<XMSG> Editor<XMSG> {
 
     fn command_select_all(&mut self) {
         let start = Point2::new(0, 0);
-        let max = self.text_buffer.max_position();
+        let max = self.text_edit.max_position();
         let end = Point2::new(max.x as i32, max.y as i32);
         self.set_selection(start, end);
     }
@@ -771,22 +755,18 @@ impl<XMSG> Editor<XMSG> {
     /// Make a history separator for the undo/redo
     /// This is used for breaking undo action list
     pub fn bump_history(&mut self) {
-        self.recorded.bump_history();
+        self.text_edit.bump_history();
     }
 
     pub fn undo(&mut self) -> Effects<Msg, XMSG> {
-        if let Some(location) = self.recorded.undo(&mut self.text_buffer) {
-            self.text_buffer.set_position(location.x, location.y);
-        }
+        self.text_edit.undo();
         self.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
     }
 
     pub fn redo(&mut self) -> Effects<Msg, XMSG> {
-        if let Some(location) = self.recorded.redo(&mut self.text_buffer) {
-            self.text_buffer.set_position(location.x, location.y);
-        }
+        self.text_edit.redo();
         self.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
         Effects::with_external(extern_msgs).measure()
@@ -808,28 +788,15 @@ impl<XMSG> Editor<XMSG> {
 
     /// clear the text selection
     pub fn clear_selection(&mut self) {
-        self.selection.start = None;
-        self.selection.end = None;
+        self.text_edit.clear_selection()
     }
 
     pub fn selected_text(&self) -> Option<String> {
-        match (self.selection.start, self.selection.end) {
-            (Some(start), Some(end)) => Some(
-                self.text_buffer
-                    .get_text(util::cast_point(start), util::cast_point(end)),
-            ),
-            _ => None,
-        }
+        self.text_edit.selected_text()
     }
 
     pub fn cut_selected_text(&mut self) -> Option<String> {
-        match (self.selection.start, self.selection.end) {
-            (Some(start), Some(end)) => Some(
-                self.text_buffer
-                    .cut_text(util::cast_point(start), util::cast_point(end)),
-            ),
-            _ => None,
-        }
+        self.text_edit.cut_selected_text()
     }
 
     /// this is for newer browsers
@@ -987,7 +954,7 @@ impl<XMSG> Editor<XMSG> {
 
     fn emit_on_change_listeners(&self) -> Vec<XMSG> {
         let mut extern_msgs: Vec<XMSG> = if !self.change_listeners.is_empty() {
-            let content = self.text_buffer.to_string();
+            let content = self.text_edit.get_content();
             self.change_listeners
                 .iter()
                 .map(|listener| listener.emit(content.clone()))
@@ -1067,7 +1034,7 @@ impl<XMSG> Editor<XMSG> {
 
     /// convert current cursor position to client coordinate relative to the editor div
     pub fn cursor_to_client(&self) -> Point2<f32> {
-        let cursor = self.text_buffer.get_position();
+        let cursor = self.text_edit.get_position();
         Point2::new(
             cursor.x as f32 * CH_WIDTH as f32,
             cursor.y as f32 * CH_HEIGHT as f32,
@@ -1167,7 +1134,7 @@ impl<XMSG> Editor<XMSG> {
 
     /// the number of page of the editor based on the number of lines
     fn pages(&self) -> i32 {
-        let n_lines = self.text_buffer.total_lines() as i32;
+        let n_lines = self.text_edit.total_lines() as i32;
         (n_lines - 1) / self.options.page_size as i32 + 1
     }
 
@@ -1176,7 +1143,7 @@ impl<XMSG> Editor<XMSG> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
-        let cursor = self.text_buffer.get_position();
+        let cursor = self.text_edit.get_position();
         div(
             [
                 class_ns("status"),
@@ -1225,7 +1192,7 @@ impl<XMSG> Editor<XMSG> {
     /// how wide the numberline based on the character lengths of the number
     fn numberline_wide(&self) -> usize {
         if self.options.show_line_numbers {
-            self.text_buffer.total_lines().to_string().len()
+            self.text_edit.total_lines().to_string().len()
         } else {
             0
         }
@@ -1294,19 +1261,19 @@ impl<XMSG> Editor<XMSG> {
     }
 
     pub fn plain_view<MSG>(&self) -> Node<MSG> {
-        text_buffer_view(&self.text_buffer, &self.options)
+        text_buffer_view(&self.text_edit, &self.options)
     }
 
     pub fn get_content(&self) -> String {
-        self.text_buffer.to_string()
+        self.text_edit.get_content()
     }
 }
 
 pub fn highlight_lines(
-    text_buffer: &TextBuffer,
+    text_edit: &TextEdit,
     text_highlighter: &mut TextHighlighter,
 ) -> Vec<Vec<(Style, String)>> {
-    text_buffer
+    text_edit
         .lines()
         .iter()
         .map(|line| {
@@ -1321,17 +1288,17 @@ pub fn highlight_lines(
 }
 
 pub fn text_buffer_view<MSG>(
-    text_buffer: &TextBuffer,
+    text_edit: &TextEdit,
     options: &Options,
 ) -> Node<MSG> {
     let class_ns =
         |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
 
-    let numberline_wide = text_buffer.total_lines().to_string().len();
+    let numberline_wide = text_edit.total_lines().to_string().len();
     let class_number_wide = format!("number_wide{}", numberline_wide);
 
     let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
-    let rendered_lines = text_buffer
+    let rendered_lines = text_edit
         .lines()
         .into_iter()
         .map(|line| div([class_ns("line")], [text(line)]));

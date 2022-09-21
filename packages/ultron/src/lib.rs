@@ -1,5 +1,5 @@
 #![deny(warnings)]
-pub use ultron_core::TextBuffer;
+pub use ultron_core::TextEdit;
 pub use ultron_syntaxes_themes::TextHighlighter;
 
 pub use nalgebra;
