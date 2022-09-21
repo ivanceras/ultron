@@ -733,7 +733,8 @@ impl<XMSG> Editor<XMSG> {
 
     /// clear the text selection
     pub fn clear_selection(&mut self) {
-        todo!();
+        self.selection_start = None;
+        self.selection_end = None;
     }
 
     pub fn selected_text(&self) -> Option<String> {
