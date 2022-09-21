@@ -106,18 +106,8 @@ impl Application<Msg> for App {
 
     fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
         match msg {
-            Msg::WindowScrolled((scroll_top, scroll_left)) => {
-                log::trace!("scrolled: {},{}", scroll_top, scroll_left);
-                let effects = self.editor.update(editor::Msg::WindowScrolled(
-                    (scroll_top, scroll_left),
-                ));
-                Cmd::from(effects.localize(Msg::EditorMsg)).measure()
-            }
-            Msg::WindowResized(width, height) => {
-                self.editor
-                    .update(editor::Msg::WindowResized { width, height });
-                Cmd::none()
-            }
+            Msg::WindowScrolled((_scroll_top, _scroll_left)) => Cmd::none(),
+            Msg::WindowResized(_width, _height) => Cmd::none(),
             Msg::EditorMsg(emsg) => {
                 let effects = self.editor.update(emsg);
                 Cmd::from(effects.localize(Msg::EditorMsg))
@@ -141,9 +131,31 @@ impl Application<Msg> for App {
                 Cmd::from(effects.localize(Msg::EditorMsg))
             }
             Msg::Keydown(ke) => {
-                let effects =
-                    self.editor.update(editor::Msg::WindowKeydown(ke));
-                Cmd::from(effects.localize(Msg::EditorMsg)).measure()
+                let is_ctrl = ke.ctrl_key();
+                let is_shift = ke.shift_key();
+                let key = ke.key();
+                if key.chars().count() == 1 {
+                    log::trace!("inserting from window keydown event");
+                    let c = key.chars().next().expect("must be only 1 chr");
+                    match c {
+                        'z' | 'Z' if is_ctrl => {
+                            if is_shift {
+                                self.editor.process_command(Command::Redo);
+                            } else {
+                                self.editor.process_command(Command::Undo);
+                            }
+                            Cmd::none()
+                        }
+                        _ => {
+                            self.editor.process_command(Command::InsertChar(c));
+                            Cmd::none()
+                        }
+                    }
+                } else {
+                    // process key presses other than single characters such as
+                    // backspace, enter, tag, arrows
+                    self.process_keypresses(&ke)
+                }
             }
             Msg::TextareaMounted(target_node) => {
                 self.hidden_textarea = Some(target_node.unchecked_into());
@@ -301,6 +313,30 @@ impl App {
                 [],
             )],
         )
+    }
+
+    fn process_keypresses(
+        &mut self,
+        ke: &web_sys::KeyboardEvent,
+    ) -> Cmd<Self, Msg> {
+        let key = ke.key();
+        let command = match &*key {
+            "Tab" => Some(Command::Tab),
+            "Enter" => Some(Command::BreakLine),
+            "Backspace" => Some(Command::DeleteBack),
+            "Delete" => Some(Command::DeleteForward),
+            "ArrowUp" => Some(Command::MoveUp),
+            "ArrowDown" => Some(Command::MoveDown),
+            "ArrowLeft" => Some(Command::MoveLeft),
+            "ArrowRight" => Some(Command::MoveRight),
+            _ => None,
+        };
+        if let Some(command) = command {
+            let effects = self.editor.process_command(command);
+            Cmd::from(effects.localize(Msg::EditorMsg))
+        } else {
+            Cmd::none()
+        }
     }
 
     fn clear_hidden_textarea(&self) {

@@ -30,16 +30,6 @@ pub enum Command {
 #[derive(Clone, PartialEq, Debug)]
 pub enum Msg {
     EditorMounted(web_sys::Node),
-    /// keydown from window events
-    WindowKeydown(web_sys::KeyboardEvent),
-    /// Keydown from the hidden text area
-    MoveCursor(usize, usize),
-    MoveCursorToLine(usize),
-    StartSelection(usize, usize),
-    EndSelection(usize, usize),
-    StopSelection,
-    ToSelection(usize, usize),
-    CopiedSelected,
     Mouseup(i32, i32),
     Mousedown(i32, i32),
     Mousemove(i32, i32),
@@ -57,6 +47,8 @@ pub struct Editor<XMSG> {
     /// Other components can listen to the an event.
     /// When the content of the text editor changes, the change listener will be emitted
     change_listeners: Vec<Callback<String, XMSG>>,
+    /// a cheaper listener which doesn't need to assemble the text content
+    /// of the text editor everytime
     change_notify_listeners: Vec<Callback<(), XMSG>>,
     editor_element: Option<web_sys::Element>,
     mouse_cursor: MouseCursor,
@@ -179,13 +171,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     Effects::none().no_render()
                 }
             }
-            Msg::CopiedSelected => Effects::none(),
-            Msg::MoveCursor(_line, _col) => Effects::none(),
-            Msg::MoveCursorToLine(_line) => Effects::none(),
-            Msg::StartSelection(_line, _col) => Effects::none(),
-            Msg::ToSelection(_line, _col) => Effects::none(),
-            Msg::EndSelection(_line, _col) => Effects::none(),
-            Msg::StopSelection => Effects::none(),
             Msg::SetMeasurement(measurements) => {
                 match self.average_update_time {
                     Some(average_update_time) => {
@@ -200,35 +185,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 }
                 self.measurements = Some(measurements);
                 Effects::none().no_render()
-            }
-            Msg::WindowKeydown(ke) => {
-                let is_ctrl = ke.ctrl_key();
-                let is_shift = ke.shift_key();
-                let key = ke.key();
-                if key.chars().count() == 1 {
-                    log::trace!("inserting from window keydown event");
-                    let c = key.chars().next().expect("must be only 1 chr");
-                    match c {
-                        'z' | 'Z' if is_ctrl => {
-                            if is_shift {
-                                self.redo()
-                            } else {
-                                self.undo()
-                            }
-                        }
-                        _ => {
-                            if self.options.use_smart_replace_insert {
-                                self.command_smart_replace_insert_char(c)
-                            } else {
-                                self.command_insert_char(c)
-                            }
-                        }
-                    }
-                } else {
-                    // process key presses other than single characters such as
-                    // backspace, enter, tag, arrows
-                    self.process_keypresses(&ke)
-                }
             }
         }
     }
@@ -247,7 +203,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 },
             ],
             [
-                //self.view_hidden_textarea(),
                 if self.options.use_syntax_highlighter {
                     self.view_highlighted_lines(
                         &self.highlighted_lines,
@@ -410,9 +365,41 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 }
 
 impl<XMSG> Editor<XMSG> {
-    pub fn with_options(mut self, options: Options) -> Self {
-        self.options = options;
-        self
+    pub fn process_command(&mut self, command: Command) -> Effects<Msg, XMSG> {
+        match command {
+            Command::Tab => {
+                log::trace!("tab key is pressed");
+                let tab = "    ";
+                self.command_insert_text(tab)
+            }
+            Command::BreakLine => self.command_break_line(),
+            Command::DeleteBack => self.command_delete_back(),
+            Command::DeleteForward => self.command_delete_forward(),
+            Command::MoveUp => {
+                self.command_move_up();
+                Effects::none()
+            }
+            Command::MoveDown => {
+                self.command_move_down();
+                Effects::none()
+            }
+            Command::MoveLeft => {
+                self.command_move_left();
+                Effects::none()
+            }
+            Command::MoveRight => {
+                self.command_move_right();
+                Effects::none()
+            }
+            Command::InsertChar(c) => self.command_insert_char(c),
+            Command::InsertText(text) => self.command_insert_text(&text),
+            Command::Undo => self.undo(),
+            Command::Redo => self.redo(),
+            Command::SelectAll => {
+                self.command_select_all();
+                Effects::none()
+            }
+        }
     }
 
     fn command_insert_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
@@ -424,7 +411,7 @@ impl<XMSG> Editor<XMSG> {
         self.text_edit.get_char(x, y)
     }
 
-    fn command_smart_replace_insert_char(
+    pub fn command_smart_replace_insert_char(
         &mut self,
         ch: char,
     ) -> Effects<Msg, XMSG> {
@@ -589,66 +576,6 @@ impl<XMSG> Editor<XMSG> {
 
     pub fn cut_selected_text(&mut self) -> Option<String> {
         self.text_edit.cut_selected_text()
-    }
-
-    fn process_keypresses(
-        &mut self,
-        ke: &web_sys::KeyboardEvent,
-    ) -> Effects<Msg, XMSG> {
-        let key = ke.key();
-        let command = match &*key {
-            "Tab" => Some(Command::Tab),
-            "Enter" => Some(Command::BreakLine),
-            "Backspace" => Some(Command::DeleteBack),
-            "Delete" => Some(Command::DeleteForward),
-            "ArrowUp" => Some(Command::MoveUp),
-            "ArrowDown" => Some(Command::MoveDown),
-            "ArrowLeft" => Some(Command::MoveLeft),
-            "ArrowRight" => Some(Command::MoveRight),
-            _ => None,
-        };
-        if let Some(command) = command {
-            self.process_command(command)
-        } else {
-            Effects::none()
-        }
-    }
-
-    pub fn process_command(&mut self, command: Command) -> Effects<Msg, XMSG> {
-        match command {
-            Command::Tab => {
-                log::trace!("tab key is pressed");
-                let tab = "    ";
-                self.command_insert_text(tab)
-            }
-            Command::BreakLine => self.command_break_line(),
-            Command::DeleteBack => self.command_delete_back(),
-            Command::DeleteForward => self.command_delete_forward(),
-            Command::MoveUp => {
-                self.command_move_up();
-                Effects::none()
-            }
-            Command::MoveDown => {
-                self.command_move_down();
-                Effects::none()
-            }
-            Command::MoveLeft => {
-                self.command_move_left();
-                Effects::none()
-            }
-            Command::MoveRight => {
-                self.command_move_right();
-                Effects::none()
-            }
-            Command::InsertChar(c) => self.command_insert_char(c),
-            Command::InsertText(text) => self.command_insert_text(&text),
-            Command::Undo => self.undo(),
-            Command::Redo => self.redo(),
-            Command::SelectAll => {
-                self.command_select_all();
-                Effects::none()
-            }
-        }
     }
 
     /// Attach a callback to this editor where it is invoked when the content is changed.
