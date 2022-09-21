@@ -62,16 +62,6 @@ impl TextBuffer {
             self.cursor.y as f32 * CH_HEIGHT as f32,
         )
     }
-    pub fn set_selection(&mut self, start: Point2<usize>, end: Point2<usize>) {}
-    /// clear the text selection
-    pub fn clear_selection(&mut self) {}
-    pub fn select_all(&mut self) {}
-    /// return the min and max selection bound
-    pub fn normalize_selection(
-        &self,
-    ) -> Option<(Point2<usize>, Point2<usize>)> {
-        None
-    }
     /// Remove the text within the start and end position then return the deleted text
     pub(crate) fn cut_text(
         &mut self,
@@ -678,15 +668,6 @@ impl TextBuffer {
     pub(crate) fn command_delete_forward(&mut self) -> Option<char> {
         let c = self.delete_char(self.cursor.x, self.cursor.y);
         c
-    }
-    pub(crate) fn command_delete_selected_forward(&mut self) -> Option<String> {
-        if let Some((start, end)) = self.normalize_selection() {
-            let deleted_text = self.cut_text(start, end);
-            self.move_to(start);
-            Some(deleted_text)
-        } else {
-            None
-        }
     }
     pub(crate) fn move_to(&mut self, pos: Point2<usize>) {
         self.set_position(pos.x, pos.y);

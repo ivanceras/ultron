@@ -148,6 +148,11 @@ impl<XMSG> Editor<XMSG> {
     pub fn set_mouse_cursor(&mut self, mouse_cursor: MouseCursor) {
         self.mouse_cursor = mouse_cursor;
     }
+
+    pub fn set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
+        self.selection_start = Some(start);
+        self.selection_end = Some(end);
+    }
 }
 
 impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
@@ -657,13 +662,11 @@ impl<XMSG> Editor<XMSG> {
     }
 
     fn command_set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
-        let start = Point2::new(start.x as usize, start.y as usize);
-        let end = Point2::new(end.x as usize, end.y as usize);
-        self.text_buffer.set_selection(start, end);
+        todo!();
     }
 
     fn command_select_all(&mut self) {
-        self.text_buffer.select_all();
+        todo!();
     }
 
     /// calls on 2 ways to copy
@@ -730,15 +733,27 @@ impl<XMSG> Editor<XMSG> {
 
     /// clear the text selection
     pub fn clear_selection(&mut self) {
-        self.text_buffer.clear_selection();
+        todo!();
     }
 
-    fn selected_text(&self) -> Option<String> {
-        None
+    pub fn selected_text(&self) -> Option<String> {
+        match (self.selection_start, self.selection_end) {
+            (Some(start), Some(end)) => Some(
+                self.text_buffer
+                    .get_text(util::cast_point(start), util::cast_point(end)),
+            ),
+            _ => None,
+        }
     }
 
-    fn cut_selected_text(&mut self) -> Option<String> {
-        None
+    pub fn cut_selected_text(&mut self) -> Option<String> {
+        match (self.selection_start, self.selection_end) {
+            (Some(start), Some(end)) => Some(
+                self.text_buffer
+                    .cut_text(util::cast_point(start), util::cast_point(end)),
+            ),
+            _ => None,
+        }
     }
 
     /// this is for newer browsers
