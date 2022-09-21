@@ -1,4 +1,4 @@
-use crate::Options;
+
 use crate::TextBuffer;
 use nalgebra::Point2;
 

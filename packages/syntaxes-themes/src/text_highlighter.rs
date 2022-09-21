@@ -62,7 +62,7 @@ impl TextHighlighter {
 
     /// set the theme name
     pub fn select_theme(&mut self, theme_name: &str) {
-        if let Some(_) = self.theme_set.themes.get(theme_name) {
+        if self.theme_set.themes.get(theme_name).is_some() {
             self.theme_name = Some(theme_name.to_string());
         } else {
             format!("The valid theme names are: {:?}", self.get_theme_names());
@@ -86,7 +86,7 @@ impl TextHighlighter {
             .highlight_lines
             .as_mut()
             .expect("must have a highlight line");
-        highlight_lines.highlight_line(line, &self.syntax_set)
+        highlight_lines.highlight_line(line, self.syntax_set)
     }
 
     pub fn active_theme(&self) -> &'static Theme {

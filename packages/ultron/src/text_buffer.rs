@@ -31,7 +31,7 @@ impl TextBuffer {
         Self {
             chars: content
                 .lines()
-                .map(|line| line.chars().map(|ch| Ch::new(ch)).collect())
+                .map(|line| line.chars().map(Ch::new).collect())
                 .collect(),
             cursor: Point2::new(0, 0),
         }
@@ -317,8 +317,7 @@ impl TextBuffer {
         if let Some(line) = self.chars.get(y) {
             let column_index = self.column_index(x, y);
             column_index
-                .map(|col| line.get(col).map(|ch| ch.ch))
-                .flatten()
+                .and_then(|col| line.get(col).map(|ch| ch.ch))
         } else {
             None
         }

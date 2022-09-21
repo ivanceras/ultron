@@ -123,9 +123,9 @@ impl<XMSG> Editor<XMSG> {
             text_buffer.highlight_lines(&mut text_highlighter);
 
         Editor {
-            options: options,
+            options,
             text_buffer,
-            text_highlighter: text_highlighter,
+            text_highlighter,
             highlighted_lines,
             recorded: Recorded::new(),
             measurements: None,
@@ -506,7 +506,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 "-webkit-user-select": "none",
             },
             ".number_wide1 .number": {
-                width: px(1 * CH_WIDTH),
+                width: px(CH_WIDTH),
             },
             // when line number is in between: 10 - 99
             ".number_wide2 .number": {
@@ -585,7 +585,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 
 impl<XMSG> Editor<XMSG> {
     pub fn with_options(mut self, options: Options) -> Self {
-        self.options = options.clone();
+        self.options = options;
         self
     }
 
@@ -1258,9 +1258,9 @@ impl<XMSG> Editor<XMSG> {
             },
         ];
 
-        let rendered_lines = highlighted_lines.into_iter().map(|line| {
+        let rendered_lines = highlighted_lines.iter().map(|line| {
             div([class_ns("line")], {
-                line.into_iter()
+                line.iter()
                     .map(|(style, range)| {
                         let background =
                             util::to_rgba(style.background).to_css();

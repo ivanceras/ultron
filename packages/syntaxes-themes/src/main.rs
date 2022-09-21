@@ -51,14 +51,13 @@ fn load_syntaxset(package_dir: &str) -> SyntaxSet {
         Ok(_) => (),
         Err(e) => println!("Loading error: {:?}", e),
     };
-    let syntaxset = builder.build();
-    syntaxset
+    
+    builder.build()
 }
 
 fn load_themeset(theme_dir: &str) -> ThemeSet {
-    let themeset =
-        ThemeSet::load_from_folder(theme_dir).expect("must load themeset");
-    themeset
+    
+    ThemeSet::load_from_folder(theme_dir).expect("must load themeset")
 }
 
 fn load_sublime() -> (SyntaxSet, ThemeSet) {

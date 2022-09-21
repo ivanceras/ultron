@@ -32,7 +32,7 @@ impl App {
             ..Default::default()
         };
         App {
-            editor: Editor::from_str(options, &content),
+            editor: Editor::from_str(options, content),
         }
     }
 }
@@ -121,7 +121,7 @@ impl Application<Msg> for App {
     fn measurements(&self, measurements: Measurements) -> Cmd<Self, Msg> {
         Cmd::new(move |program| {
             program.dispatch(Msg::EditorMsg(editor::Msg::SetMeasurement(
-                measurements.clone(),
+                measurements,
             )))
         })
         .no_render()
