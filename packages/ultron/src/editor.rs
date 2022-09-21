@@ -7,41 +7,43 @@ use css_colors::Color;
 use css_colors::RGBA;
 use nalgebra::Point2;
 use sauron::{
-    html::{attributes, units},
-    jss_ns,
-    prelude::*,
-    wasm_bindgen::JsCast,
-    Measurements,
+    html::attributes, jss_ns, prelude::*, wasm_bindgen::JsCast, Measurements,
 };
 use ultron_syntaxes_themes::Style;
 
+pub enum Command {
+    Tab,
+    BreakLine,
+    DeleteBack,
+    DeleteForward,
+    MoveUp,
+    MoveDown,
+    MoveLeft,
+    MoveRight,
+    InsertChar(char),
+    InsertText(String),
+    Undo,
+    Redo,
+    SelectAll,
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum Msg {
-    TextareaMounted(web_sys::Node),
     EditorMounted(web_sys::Node),
     /// keydown from window events
     WindowKeydown(web_sys::KeyboardEvent),
     /// Keydown from the hidden text area
-    TextareaKeydown(web_sys::KeyboardEvent),
     MoveCursor(usize, usize),
     MoveCursorToLine(usize),
     StartSelection(usize, usize),
     EndSelection(usize, usize),
     StopSelection,
     ToSelection(usize, usize),
-    Paste(String),
     CopiedSelected,
     Mouseup(i32, i32),
     Mousedown(i32, i32),
     Mousemove(i32, i32),
     SetMeasurement(Measurements),
-    Scrolled((i32, i32)),
-    WindowScrolled((i32, i32)),
-    WindowResized {
-        width: i32,
-        height: i32,
-    },
-    TextareaInput(String),
 }
 
 pub struct Editor<XMSG> {
@@ -52,24 +54,12 @@ pub struct Editor<XMSG> {
     highlighted_lines: Vec<Vec<(Style, String)>>,
     measurements: Option<Measurements>,
     average_update_time: Option<f64>,
-    scroll_position: ScrollPosition,
     /// Other components can listen to the an event.
     /// When the content of the text editor changes, the change listener will be emitted
     change_listeners: Vec<Callback<String, XMSG>>,
     change_notify_listeners: Vec<Callback<(), XMSG>>,
-    hidden_textarea: Option<web_sys::HtmlTextAreaElement>,
     editor_element: Option<web_sys::Element>,
-    composed_key: Option<char>,
-    last_char_count: Option<usize>,
-    is_selecting: bool,
-    is_processing_key: bool,
     mouse_cursor: MouseCursor,
-}
-
-#[derive(Default)]
-struct ScrollPosition {
-    top: f32,
-    left: f32,
 }
 
 pub enum MouseCursor {
@@ -116,15 +106,9 @@ impl<XMSG> Editor<XMSG> {
             highlighted_lines,
             measurements: None,
             average_update_time: None,
-            scroll_position: ScrollPosition::default(),
             change_listeners: vec![],
             change_notify_listeners: vec![],
-            hidden_textarea: None,
             editor_element: None,
-            composed_key: None,
-            last_char_count: None,
-            is_selecting: false,
-            is_processing_key: false,
             mouse_cursor: MouseCursor::default(),
         }
     }
@@ -161,119 +145,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 self.editor_element = Some(element.clone());
                 Effects::none()
             }
-            Msg::TextareaMounted(target_node) => {
-                self.hidden_textarea = Some(target_node.unchecked_into());
-                Effects::none()
-            }
-            Msg::WindowScrolled((_scroll_top, _scroll_left)) => {
-                log::trace!("scrolling window..");
-                Effects::none()
-            }
-            Msg::WindowResized {
-                width: _,
-                height: _,
-            } => Effects::none(),
-            Msg::Scrolled((scroll_top, scroll_left)) => {
-                self.scroll_position.top = scroll_top as f32;
-                self.scroll_position.left = scroll_left as f32;
-                Effects::none()
-            }
-            Msg::TextareaInput(input) => {
-                if self.is_processing_key {
-                    log::warn!("---> Something is already processing a key.. returning early in from TextareaInput");
-                    return Effects::none();
-                }
-                let char_count = input.chars().count();
-                // for chrome:
-                // detect if the typed in character was a composed and becomes 1 unicode character
-                let char_count_decreased =
-                    if let Some(last_char_count) = self.last_char_count {
-                        last_char_count > 1
-                    } else {
-                        false
-                    };
-                // firefox doesn't register compose key strokes as input
-                // if there were 1 char then it was cleared
-                let was_cleared = self.last_char_count == Some(0);
-
-                let mut effects = Effects::none();
-                if char_count == 1 && (was_cleared || char_count_decreased) {
-                    self.clear_hidden_textarea();
-                    self.is_processing_key = true;
-                    log::trace!("in textarea input char_count == 1..");
-                    let c = input.chars().next().expect("must be only 1 chr");
-                    self.composed_key = Some(c);
-                    effects = if c == '\n' {
-                        log::trace!("A new_line is pressed");
-                        self.command_break_line()
-                    } else {
-                        log::trace!("inserting it as a char: {:?}", c);
-                        self.command_insert_char(c)
-                    };
-                    self.is_processing_key = false;
-                } else {
-                    log::trace!("char is not inserted becase char_count: {}, was_cleared: {}, char_count_decreased: {}", char_count, was_cleared, char_count_decreased);
-                }
-                self.last_char_count = Some(char_count);
-                log::trace!("extern messages");
-                effects
-            }
-            Msg::TextareaKeydown(ke) => {
-                if self.is_processing_key {
-                    log::warn!("Something is already processing a key.. returning early in from TextareaKeydown");
-                    return Effects::none();
-                }
-                let is_ctrl = ke.ctrl_key();
-                let is_shift = ke.shift_key();
-                log::trace!(
-                    "text area key down... ctrl: {} ,shift: {}",
-                    is_ctrl,
-                    is_shift
-                );
-                // don't process key presses when
-                // CTRL key is pressed.
-                let key = ke.key();
-                self.process_keypresses(&ke);
-                if key.chars().count() == 1 {
-                    log::trace!("In textarea keydown");
-                    let c = key.chars().next().expect("must be only 1 chr");
-                    match c {
-                        'c' if is_ctrl => {
-                            self.command_copy();
-                            Effects::none()
-                        }
-                        'x' if is_ctrl => self.command_cut(),
-                        'v' if is_ctrl => {
-                            log::trace!("pasting is handled");
-                            self.clear_hidden_textarea();
-                            self.content_has_changed()
-                        }
-                        'z' | 'Z' if is_ctrl => {
-                            if is_shift {
-                                self.redo()
-                            } else {
-                                self.undo()
-                            }
-                        }
-                        'a' if is_ctrl => {
-                            self.command_select_all();
-                            Effects::none()
-                        }
-                        _ => {
-                            self.clear_hidden_textarea();
-                            self.is_processing_key = true;
-                            log::trace!("for everything else: {}", c);
-                            let effects = self.command_insert_char(c);
-                            self.is_processing_key = false;
-                            effects
-                        }
-                    }
-                } else {
-                    Effects::none()
-                }
-            }
             Msg::Mouseup(client_x, client_y) => {
-                self.focus();
                 let cursor = self.client_to_cursor(client_x, client_y);
                 self.command_set_position(cursor.x, cursor.y);
                 self.text_edit.set_selection_end(cursor);
@@ -281,30 +153,20 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 if let (Some(start), Some(end)) =
                     (selection.start, selection.end)
                 {
-                    self.is_selecting = false;
                     self.command_set_selection(start, end);
-                    // pre-emptively put the selection into the hidden textarea
-                    self.set_hidden_textarea_with_selection();
-                }
-
-                if let Some(selected_text) = self.selected_text() {
-                    log::trace!("selected text: \n{}", selected_text);
                 }
                 Effects::none().measure()
             }
             Msg::Mousedown(client_x, client_y) => {
                 if self.in_bounds(client_x as f32, client_y as f32) {
                     let cursor = self.client_to_cursor(client_x, client_y);
-                    self.is_selecting = true;
                     self.text_edit.set_selection_start(cursor);
                     self.command_set_position(cursor.x, cursor.y);
                 }
                 Effects::none().measure()
             }
             Msg::Mousemove(client_x, client_y) => {
-                if self.is_selecting
-                    && self.in_bounds(client_x as f32, client_y as f32)
-                {
+                if self.in_bounds(client_x as f32, client_y as f32) {
                     let cursor = self.client_to_cursor(client_x, client_y);
                     self.text_edit.set_selection_end(cursor);
 
@@ -317,7 +179,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     Effects::none().no_render()
                 }
             }
-            Msg::Paste(text_content) => self.command_insert_text(&text_content),
             Msg::CopiedSelected => Effects::none(),
             Msg::MoveCursor(_line, _col) => Effects::none(),
             Msg::MoveCursorToLine(_line) => Effects::none(),
@@ -380,7 +241,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     COMPONENT_NAME,
                     [("occupy_container", self.options.occupy_container)],
                 ),
-                on_scroll(Msg::Scrolled),
                 on_mount(|mount| Msg::EditorMounted(mount.target_node)),
                 style! {
                     cursor: self.mouse_cursor.to_str(),
@@ -427,21 +287,6 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 word_wrap: "normal",
             },
 
-            // paste area hack, we don't want to use
-            // the clipboard read api, since it needs permission from the user
-            // create a textarea instead, where it is focused all the time
-            // so, pasting will be intercepted from this textarea
-            ".hidden_textarea": {
-                resize: "none",
-                height: 0,
-                position: "absolute",
-                padding: 0,
-                width: px(300),
-                height: px(0),
-                border:format!("{} solid black",px(1)),
-                bottom: units::em(-1),
-                outline: "none",
-            },
 
             ".hidden_textarea_wrapper": {
                 overflow: "hidden",
@@ -700,34 +545,11 @@ impl<XMSG> Editor<XMSG> {
         self.set_selection(start, end)
     }
 
-    fn command_select_all(&mut self) {
+    pub fn command_select_all(&mut self) {
         let start = Point2::new(0, 0);
         let max = self.text_edit.max_position();
         let end = Point2::new(max.x as i32, max.y as i32);
         self.set_selection(start, end);
-    }
-
-    /// calls on 2 ways to copy
-    /// either 1 should work
-    /// returns true if it succeded
-    fn command_copy(&self) {
-        if self.copy_to_clipboard() {
-            // do nothing
-        } else {
-            self.textarea_exec_copy();
-        }
-    }
-
-    /// try exec_cut, try cut to clipboard if the first fails
-    /// This shouldn't execute both since cut is destructive.
-    /// Returns true if it succeded
-    fn command_cut(&mut self) -> Effects<Msg, XMSG> {
-        if self.cut_to_clipboard() {
-            // nothing
-        } else {
-            self.textarea_exec_cut();
-        }
-        self.content_has_changed()
     }
 
     /// Make a history separator for the undo/redo
@@ -756,20 +578,6 @@ impl<XMSG> Editor<XMSG> {
         }
     }
 
-    /// set the content of the textarea to selection
-    ///
-    /// Note: This is necessary for webkit2.
-    /// webkit2 doesn't seem to allow to fire the setting of textarea value, select and copy
-    /// in the same animation frame.
-    fn set_hidden_textarea_with_selection(&self) {
-        if let Some(selected_text) = self.selected_text() {
-            if let Some(ref hidden_textarea) = self.hidden_textarea {
-                hidden_textarea.set_value(&selected_text);
-                hidden_textarea.select();
-            }
-        }
-    }
-
     /// clear the text selection
     pub fn clear_selection(&mut self) {
         self.text_edit.clear_selection()
@@ -783,126 +591,63 @@ impl<XMSG> Editor<XMSG> {
         self.text_edit.cut_selected_text()
     }
 
-    /// this is for newer browsers
-    /// This doesn't work on webkit2
-    #[cfg(web_sys_unstable_apis)]
-    #[cfg(feature = "with-navigator-clipboard")]
-    fn copy_to_clipboard(&self) -> bool {
-        if let Some(selected_text) = self.selected_text() {
-            let navigator = sauron::window().navigator();
-            if let Some(clipboard) = navigator.clipboard() {
-                let _ = clipboard.write_text(&selected_text);
-                return true;
-            } else {
-                log::warn!("no navigator clipboard");
-            }
-        }
-        false
-    }
-
-    #[cfg(not(feature = "with-navigator-clipboard"))]
-    fn copy_to_clipboard(&mut self) -> bool {
-        false
-    }
-
-    #[cfg(web_sys_unstable_apis)]
-    #[cfg(feature = "with-navigator-clipboard")]
-    fn cut_to_clipboard(&mut self) -> bool {
-        if let Some(selected_text) = self.cut_selected_text() {
-            let navigator = sauron::window().navigator();
-            if let Some(clipboard) = navigator.clipboard() {
-                let _ = clipboard.write_text(&selected_text);
-                return true;
-            } else {
-                log::warn!("no navigator clipboard");
-            }
-        }
-        false
-    }
-
-    #[cfg(not(feature = "with-navigator-clipboard"))]
-    fn cut_to_clipboard(&mut self) -> bool {
-        false
-    }
-
-    /// execute copy on the selected textarea
-    /// this works even on older browser
-    fn textarea_exec_copy(&self) -> bool {
-        use sauron::web_sys::HtmlDocument;
-
-        if let Some(selected_text) = self.selected_text() {
-            if let Some(ref hidden_textarea) = self.hidden_textarea {
-                hidden_textarea.set_value(&selected_text);
-                hidden_textarea.select();
-                let html_document: HtmlDocument =
-                    sauron::document().unchecked_into();
-                if let Ok(ret) = html_document.exec_command("copy") {
-                    hidden_textarea.set_value("");
-                    log::trace!("exec_copy ret: {}", ret);
-                    return ret;
-                }
-            }
-        }
-        false
-    }
-
-    /// returns true if the command succeeded
-    fn textarea_exec_cut(&mut self) -> bool {
-        use sauron::web_sys::HtmlDocument;
-
-        if let Some(selected_text) = self.cut_selected_text() {
-            if let Some(ref hidden_textarea) = self.hidden_textarea {
-                log::trace!("setting the value to textarea: {}", selected_text);
-                hidden_textarea.set_value(&selected_text);
-
-                hidden_textarea.select();
-                let html_document: HtmlDocument =
-                    sauron::document().unchecked_into();
-                if let Ok(ret) = html_document.exec_command("cut") {
-                    hidden_textarea.set_value("");
-                    return ret;
-                }
-            }
-        }
-        false
-    }
-
     fn process_keypresses(
         &mut self,
         ke: &web_sys::KeyboardEvent,
     ) -> Effects<Msg, XMSG> {
         let key = ke.key();
-        match &*key {
-            "Tab" => {
+        let command = match &*key {
+            "Tab" => Some(Command::Tab),
+            "Enter" => Some(Command::BreakLine),
+            "Backspace" => Some(Command::DeleteBack),
+            "Delete" => Some(Command::DeleteForward),
+            "ArrowUp" => Some(Command::MoveUp),
+            "ArrowDown" => Some(Command::MoveDown),
+            "ArrowLeft" => Some(Command::MoveLeft),
+            "ArrowRight" => Some(Command::MoveRight),
+            _ => None,
+        };
+        if let Some(command) = command {
+            self.process_command(command)
+        } else {
+            Effects::none()
+        }
+    }
+
+    pub fn process_command(&mut self, command: Command) -> Effects<Msg, XMSG> {
+        match command {
+            Command::Tab => {
                 log::trace!("tab key is pressed");
                 let tab = "    ";
-                let effects = self.command_insert_text(tab);
-                self.refocus_hidden_textarea();
-                effects
+                self.command_insert_text(tab)
             }
-            "Enter" => {
-                self.clear_hidden_textarea();
-                self.command_break_line()
-            }
-            "Backspace" => self.command_delete_back(),
-            "Delete" => self.command_delete_forward(),
-            "ArrowUp" => {
+            Command::BreakLine => self.command_break_line(),
+            Command::DeleteBack => self.command_delete_back(),
+            Command::DeleteForward => self.command_delete_forward(),
+            Command::MoveUp => {
                 self.command_move_up();
                 Effects::none()
             }
-            "ArrowDown" => {
+            Command::MoveDown => {
                 self.command_move_down();
                 Effects::none()
             }
-            "ArrowLeft" => {
+            Command::MoveLeft => {
                 self.command_move_left();
                 Effects::none()
             }
-            "ArrowRight" => {
+            Command::MoveRight => {
                 self.command_move_right();
                 Effects::none()
             }
-            _ => Effects::none(),
+            Command::InsertChar(c) => self.command_insert_char(c),
+            Command::InsertText(text) => self.command_insert_text(&text),
+            Command::Undo => self.undo(),
+            Command::Redo => self.redo(),
+            Command::SelectAll => {
+                self.command_select_all();
+                Effects::none()
+            }
         }
     }
 
@@ -1023,75 +768,6 @@ impl<XMSG> Editor<XMSG> {
             cursor.x as f32 * CH_WIDTH as f32,
             cursor.y as f32 * CH_HEIGHT as f32,
         )
-    }
-
-    // will be used in ultron-web
-    #[allow(unused)]
-    fn view_hidden_textarea(&self) -> Node<Msg> {
-        let class_ns = |class_names| {
-            attributes::class_namespaced(COMPONENT_NAME, class_names)
-        };
-        let cursor = self.cursor_to_client();
-        div(
-            [
-                class_ns("hidden_textarea_wrapper"),
-                style! {
-                    top: px(cursor.y),
-                    left: px(cursor.x),
-                    z_index: 99,
-                },
-            ],
-            [textarea(
-                [
-                    class_ns("hidden_textarea"),
-                    on_mount(|mount| Msg::TextareaMounted(mount.target_node)),
-                    #[cfg(web_sys_unstable_apis)]
-                    on_paste(|ce| {
-                        let pasted_text = ce
-                            .clipboard_data()
-                            .expect("must have data transfer")
-                            .get_data("text/plain")
-                            .expect("must be text data");
-                        log::trace!(
-                            "paste triggered from textarea: {}",
-                            pasted_text
-                        );
-                        Msg::Paste(pasted_text)
-                    }),
-                    // for listening to CTRL+C, CTRL+V, CTRL+X
-                    on_keydown(Msg::TextareaKeydown),
-                    focus(true),
-                    autofocus(true),
-                    attr("autocorrect", "off"),
-                    autocapitalize("none"),
-                    autocomplete("off"),
-                    spellcheck("off"),
-                    // for processing unicode characters typed via: CTRL+U<unicode number> (linux),
-                    on_input(|input| Msg::TextareaInput(input.value)),
-                ],
-                [],
-            )],
-        )
-    }
-
-    fn focus(&self) {
-        self.refocus_hidden_textarea();
-    }
-
-    fn refocus_hidden_textarea(&self) {
-        if let Some(element) = &self.hidden_textarea {
-            element.focus().expect("must focus the textarea");
-        }
-    }
-
-    fn clear_hidden_textarea(&self) {
-        /*
-        if let Some(element) = &self.hidden_textarea {
-            element.set_value("");
-        } else {
-            panic!("there should always be hidden textarea");
-        }
-        */
     }
 
     fn view_virtual_cursor(&self) -> Node<Msg> {

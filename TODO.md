@@ -43,8 +43,8 @@
 - [ ] Add config to ignore mouse-clicks outside of the editor range
 - [ ] Move the core-functionality of ultron to ultron, which has no view, just text manipulation
     - [ ] ultron-core will have the following modules
-        - [ ] TextBuffer
-        - [ ] TextView
+        - [X] TextBuffer
+        - [X] TextEdit (text-buffer with history)
         - [ ] Editor
         with no dependency on sauron, all types is abstracted
     - The ultron is the bare minimum library, which relies on sauron
@@ -52,8 +52,8 @@
         - [ ] ultron-tui abstract terminal events into ultron events
 
 ## Features
-- [ ] Smart edit blockmode
-    - When typing a key and the next characters next to it is far, say more than 2 space the character is typed in replace mode
+- [~] Smart edit blockmode
+    - [X] When typing a key and the next characters next to it is far, say more than 2 space the character is typed in replace mode
         instead of insert mode
     - [ ] Pressing enter should indent, instead of just moving down
 - [ ] Allow the editor to render different syntax highlighting scheme to a set of lines
@@ -80,7 +80,7 @@
             let page_offset = page_n * page_height;
             if scroll_top > page_offset && scroll_top < next_page_offset { show } else {hide}
           ```
-- [ ] Simplify the text buffer, just a `Vec<Vec<char>>`, no paging, no ranges, no char.
+- [X] Simplify the text buffer, just a `Vec<Vec<char>>`, no paging, no ranges, no char.
 
 ## Issues
 - [ ] Moving around characters with cell_width of 2

@@ -9,11 +9,7 @@ pub use sauron;
 #[cfg(feature = "with-dom")]
 pub mod editor;
 #[cfg(feature = "with-dom")]
-pub use editor::Editor;
-pub use editor::MouseCursor;
-
-#[cfg(feature = "with-dom")]
-pub use editor::Msg;
+pub use editor::{Command, Editor, MouseCursor, Msg};
 
 mod util;
 
