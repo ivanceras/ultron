@@ -10,6 +10,15 @@ fn line_length() {
 }
 
 #[test]
+fn cjk_length() {
+    let raw = "CJK文件";
+    let buffer = TextBuffer::from_str(raw);
+    assert_eq!(buffer.total_chars(), 5);
+    assert_eq!(buffer.total_lines(), 1);
+    assert_eq!(buffer.line_width(0), 7);
+}
+
+#[test]
 fn test_get_char() {
     let raw = "Hello world";
     let buffer = TextBuffer::from_str(raw);
@@ -30,6 +39,40 @@ fn test_get_text_world() {
     let buffer = TextBuffer::from_str(raw);
     let txt = buffer.get_text(Point2::new(6, 0), Point2::new(10, 0));
     assert_eq!(txt, "world");
+}
+
+#[test]
+fn test_get_text_with_cjk() {
+    let raw = "Hello 文件系统 world";
+    let buffer = TextBuffer::from_str(raw);
+    let txt = buffer.get_text(Point2::new(8, 0), Point2::new(10, 0));
+    assert_eq!(txt, "件系");
+}
+
+#[test]
+fn test_cut_text_with_cjk() {
+    let raw = "Hello 文件系统 world";
+    let mut buffer = TextBuffer::from_str(raw);
+    let txt = buffer.cut_text(Point2::new(8, 0), Point2::new(10, 0));
+    assert_eq!(txt, "件系");
+    assert_eq!(buffer.to_string(), "Hello 文统 world");
+}
+
+#[test]
+fn test_get_text_with_cjk_world() {
+    let raw = "Hello 文件系统 world";
+    let buffer = TextBuffer::from_str(raw);
+    let txt = buffer.get_text(Point2::new(15, 0), Point2::new(19, 0));
+    assert_eq!(txt, "world");
+}
+
+#[test]
+fn test_cut_text_with_cjk_world() {
+    let raw = "Hello 文件系统 world";
+    let mut buffer = TextBuffer::from_str(raw);
+    let txt = buffer.cut_text(Point2::new(15, 0), Point2::new(19, 0));
+    assert_eq!(txt, "world");
+    assert_eq!(buffer.to_string(), "Hello 文件系统 ");
 }
 
 #[test]

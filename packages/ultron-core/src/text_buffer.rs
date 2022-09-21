@@ -2,8 +2,10 @@ use nalgebra::Point2;
 use std::iter::FromIterator;
 use unicode_width::UnicodeWidthChar;
 
-/// A text buffer where every insertion of character it will
-/// recompute the highlighting of a line
+/// A text buffer where characters are manipulated visually with
+/// consideration on the unicode width of characters.
+/// Characters can span more than 1 cell, therefore
+/// visually manipulating text in a 2-dimensional way should consider using the unicode width.
 #[derive(Clone)]
 pub struct TextBuffer {
     chars: Vec<Vec<Ch>>,
@@ -44,12 +46,20 @@ impl TextBuffer {
         &self.chars
     }
 
+    /// return the total number of characters
+    /// excluding new lines
+    pub fn total_chars(&self) -> usize {
+        self.chars.iter().map(|line| line.len()).sum()
+    }
+
     /// Remove the text within the start and end position then return the deleted text
     pub fn cut_text(
         &mut self,
         start: Point2<usize>,
         end: Point2<usize>,
     ) -> String {
+        let start = self.point_to_index(start);
+        let end = self.point_to_index(end);
         let is_one_line = start.y == end.y;
         if is_one_line {
             let selection: Vec<Ch> =
@@ -89,6 +99,10 @@ impl TextBuffer {
     }
 
     pub fn get_text(&self, start: Point2<usize>, end: Point2<usize>) -> String {
+        println!("original : {}, {}", start, end);
+        let start = self.point_to_index(start);
+        let end = self.point_to_index(end);
+        println!("corrected : {}, {}", start, end);
         let is_one_line = start.y == end.y;
         if is_one_line {
             let selection: &[Ch] = &self.chars[start.y][start.x..=end.x];
@@ -243,6 +257,15 @@ impl TextBuffer {
         }
     }
 
+    /// translate this point into the correct index position
+    /// considering the character widths
+    fn point_to_index(&self, point: Point2<usize>) -> Point2<usize> {
+        let x = point.x;
+        let y = point.y;
+        let column_x = self.column_index(x, y).unwrap_or(x);
+        Point2::new(column_x, y)
+    }
+
     /// insert a character at this x and y and move cells after it to the right
     pub fn insert_char(&mut self, x: usize, y: usize, ch: char) {
         self.ensure_before_cell_exist(x, y);
@@ -291,6 +314,7 @@ impl TextBuffer {
         Some(ex_ch.ch)
     }
 
+    /// get the character at this cursor position
     pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
         if let Some(line) = self.chars.get(y) {
             let column_index = self.column_index(x, y);
@@ -435,10 +459,13 @@ impl TextBuffer {
     pub fn command_delete_forward(&mut self) -> Option<char> {
         self.delete_char(self.cursor.x, self.cursor.y)
     }
+
+    /// move the cursor to position
     pub fn move_to(&mut self, pos: Point2<usize>) {
         self.set_position(pos.x, pos.y);
     }
 
+    /// clear the contents of this text buffer
     pub fn clear(&mut self) {
         self.chars.clear();
     }
