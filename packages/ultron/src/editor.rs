@@ -196,27 +196,27 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 // if there were 1 char then it was cleared
                 let was_cleared = self.last_char_count == Some(0);
 
+                let mut effects = Effects::none();
                 if char_count == 1 && (was_cleared || char_count_decreased) {
                     self.clear_hidden_textarea();
                     self.is_processing_key = true;
                     log::trace!("in textarea input char_count == 1..");
                     let c = input.chars().next().expect("must be only 1 chr");
                     self.composed_key = Some(c);
-                    if c == '\n' {
+                    effects = if c == '\n' {
                         log::trace!("A new_line is pressed");
-                        self.command_break_line();
+                        self.command_break_line()
                     } else {
                         log::trace!("inserting it as a char: {:?}", c);
-                        self.command_insert_char(c);
-                    }
+                        self.command_insert_char(c)
+                    };
                     self.is_processing_key = false;
                 } else {
                     log::trace!("char is not inserted becase char_count: {}, was_cleared: {}, char_count_decreased: {}", char_count, was_cleared, char_count_decreased);
                 }
                 self.last_char_count = Some(char_count);
                 log::trace!("extern messages");
-                let extern_msgs = self.emit_on_change_listeners();
-                Effects::with_external(extern_msgs).measure()
+                effects
             }
             Msg::TextareaKeydown(ke) => {
                 if self.is_processing_key {
@@ -246,8 +246,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                         'v' if is_ctrl => {
                             log::trace!("pasting is handled");
                             self.clear_hidden_textarea();
-                            let extern_msgs = self.emit_on_change_listeners();
-                            Effects::with_external(extern_msgs).measure()
+                            self.content_has_changed()
                         }
                         'z' | 'Z' if is_ctrl => {
                             if is_shift {
@@ -264,10 +263,9 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                             self.clear_hidden_textarea();
                             self.is_processing_key = true;
                             log::trace!("for everything else: {}", c);
-                            self.command_insert_char(c);
+                            let effects = self.command_insert_char(c);
                             self.is_processing_key = false;
-                            let extern_msgs = self.emit_on_change_listeners();
-                            Effects::with_external(extern_msgs).measure()
+                            effects
                         }
                     }
                 } else {
@@ -319,11 +317,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                     Effects::none().no_render()
                 }
             }
-            Msg::Paste(text_content) => {
-                self.command_insert_text(&text_content);
-                let extern_msgs = self.emit_on_change_listeners();
-                Effects::with_external(extern_msgs)
-            }
+            Msg::Paste(text_content) => self.command_insert_text(&text_content),
             Msg::CopiedSelected => Effects::none(),
             Msg::MoveCursor(_line, _col) => Effects::none(),
             Msg::MoveCursorToLine(_line) => Effects::none(),
@@ -363,23 +357,16 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                         }
                         _ => {
                             if self.options.use_smart_replace_insert {
-                                self.command_smart_replace_insert_char(c);
+                                self.command_smart_replace_insert_char(c)
                             } else {
-                                self.command_insert_char(c);
+                                self.command_insert_char(c)
                             }
-                            self.rehighlight();
-                            let extern_msgs = self.emit_on_change_listeners();
-                            Effects::with_external(extern_msgs)
                         }
                     }
                 } else {
                     // process key presses other than single characters such as
                     // backspace, enter, tag, arrows
-                    self.process_keypresses(&ke);
-                    log::info!("key: {}", key);
-                    self.rehighlight();
-                    let extern_msgs = self.emit_on_change_listeners();
-                    Effects::with_external(extern_msgs)
+                    self.process_keypresses(&ke)
                 }
             }
         }
@@ -585,8 +572,7 @@ impl<XMSG> Editor<XMSG> {
 
     fn command_insert_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
         self.text_edit.command_insert_char(ch);
-        let extern_msgs = self.emit_on_change_listeners();
-        Effects::with_external(extern_msgs).measure()
+        self.content_has_changed()
     }
 
     pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
@@ -605,13 +591,12 @@ impl<XMSG> Editor<XMSG> {
                 false
             };
         if has_right_char {
-            self.command_insert_char(ch);
+            self.command_insert_char(ch)
         } else {
-            self.command_replace_char(ch);
+            let effects = self.command_replace_char(ch);
             self.command_move_right();
+            effects
         }
-        let extern_msgs = self.emit_on_change_listeners();
-        Effects::with_external(extern_msgs).measure()
     }
 
     fn theme_background(&self) -> Option<RGBA> {
@@ -642,20 +627,17 @@ impl<XMSG> Editor<XMSG> {
     }
     pub fn command_replace_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
         self.text_edit.command_replace_char(ch);
-        let extern_msgs = self.emit_on_change_listeners();
-        Effects::with_external(extern_msgs).measure()
+        self.content_has_changed()
     }
 
     fn command_delete_back(&mut self) -> Effects<Msg, XMSG> {
         self.text_edit.command_delete_back();
-        let extern_msgs = self.emit_on_change_listeners();
-        Effects::with_external(extern_msgs).measure()
+        self.content_has_changed()
     }
 
     fn command_delete_forward(&mut self) -> Effects<Msg, XMSG> {
         let _ch = self.text_edit.command_delete_forward();
-        let extern_msgs = self.emit_on_change_listeners();
-        Effects::with_external(extern_msgs).measure()
+        self.content_has_changed()
     }
 
     fn command_move_up(&mut self) {
@@ -688,21 +670,18 @@ impl<XMSG> Editor<XMSG> {
 
     fn command_break_line(&mut self) -> Effects<Msg, XMSG> {
         self.text_edit.command_break_line();
-        let extern_msgs = self.emit_on_change_listeners();
-        Effects::with_external(extern_msgs).measure()
+        self.content_has_changed()
     }
 
     #[allow(unused)]
     fn command_join_line(&mut self) -> Effects<Msg, XMSG> {
         self.text_edit.command_join_line();
-        let extern_msgs = self.emit_on_change_listeners();
-        Effects::with_external(extern_msgs).measure()
+        self.content_has_changed()
     }
 
     fn command_insert_text(&mut self, text: &str) -> Effects<Msg, XMSG> {
         self.text_edit.command_insert_text(text);
-        let extern_msgs = self.emit_on_change_listeners();
-        Effects::with_external(extern_msgs).measure()
+        self.content_has_changed()
     }
 
     pub fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
@@ -748,8 +727,7 @@ impl<XMSG> Editor<XMSG> {
         } else {
             self.textarea_exec_cut();
         }
-        let extern_msgs = self.emit_on_change_listeners();
-        Effects::with_external(extern_msgs).measure()
+        self.content_has_changed()
     }
 
     /// Make a history separator for the undo/redo
@@ -760,16 +738,22 @@ impl<XMSG> Editor<XMSG> {
 
     pub fn undo(&mut self) -> Effects<Msg, XMSG> {
         self.text_edit.undo();
-        self.rehighlight();
-        let extern_msgs = self.emit_on_change_listeners();
-        Effects::with_external(extern_msgs).measure()
+        self.content_has_changed()
     }
 
     pub fn redo(&mut self) -> Effects<Msg, XMSG> {
         self.text_edit.redo();
+        self.content_has_changed()
+    }
+
+    fn content_has_changed(&mut self) -> Effects<Msg, XMSG> {
         self.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
-        Effects::with_external(extern_msgs).measure()
+        if !extern_msgs.is_empty() {
+            Effects::with_external(extern_msgs).measure()
+        } else {
+            Effects::none()
+        }
     }
 
     /// set the content of the textarea to selection
@@ -883,42 +867,42 @@ impl<XMSG> Editor<XMSG> {
         false
     }
 
-    fn process_keypresses(&mut self, ke: &web_sys::KeyboardEvent) {
+    fn process_keypresses(
+        &mut self,
+        ke: &web_sys::KeyboardEvent,
+    ) -> Effects<Msg, XMSG> {
         let key = ke.key();
         match &*key {
             "Tab" => {
                 log::trace!("tab key is pressed");
                 let tab = "    ";
-                self.command_insert_text(tab);
+                let effects = self.command_insert_text(tab);
                 self.refocus_hidden_textarea();
-                self.rehighlight();
+                effects
             }
             "Enter" => {
                 self.clear_hidden_textarea();
-                self.command_break_line();
-                self.rehighlight();
+                self.command_break_line()
             }
-            "Backspace" => {
-                self.command_delete_back();
-                self.rehighlight();
-            }
-            "Delete" => {
-                self.command_delete_forward();
-                self.rehighlight();
-            }
+            "Backspace" => self.command_delete_back(),
+            "Delete" => self.command_delete_forward(),
             "ArrowUp" => {
                 self.command_move_up();
+                Effects::none()
             }
             "ArrowDown" => {
                 self.command_move_down();
+                Effects::none()
             }
             "ArrowLeft" => {
                 self.command_move_left();
+                Effects::none()
             }
             "ArrowRight" => {
                 self.command_move_right();
+                Effects::none()
             }
-            _ => (),
+            _ => Effects::none(),
         }
     }
 
