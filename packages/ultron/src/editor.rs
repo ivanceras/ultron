@@ -41,6 +41,9 @@ pub enum Msg {
     SetMeasurement(Measurements),
 }
 
+///TODO: abstract more this editor
+/// There should be no browser specific types
+/// here, the points should be converted to cursor coordinate rather than pixels
 pub struct Editor<XMSG> {
     options: Options,
     text_edit: TextEdit,
