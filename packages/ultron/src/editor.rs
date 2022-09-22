@@ -135,6 +135,45 @@ impl<XMSG> Editor<XMSG> {
     pub fn set_selection_end(&mut self, end: Point2<i32>) {
         self.text_edit.set_selection_end(end);
     }
+
+    pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
+        self.text_edit.get_char(x, y)
+    }
+
+    fn theme_background(&self) -> Option<RGBA> {
+        self.text_highlighter
+            .active_theme()
+            .settings
+            .background
+            .map(util::to_rgba)
+    }
+    pub(crate) fn cursor_color(&self) -> Option<RGBA> {
+        Some(rgba(0, 0, 0, 1.0))
+    }
+
+    fn gutter_background(&self) -> Option<RGBA> {
+        self.text_highlighter
+            .active_theme()
+            .settings
+            .gutter
+            .map(util::to_rgba)
+    }
+
+    fn gutter_foreground(&self) -> Option<RGBA> {
+        self.text_highlighter
+            .active_theme()
+            .settings
+            .gutter_foreground
+            .map(util::to_rgba)
+    }
+
+    pub fn get_position(&self) -> Point2<usize> {
+        self.text_edit.get_position()
+    }
+
+    pub fn get_content(&self) -> String {
+        self.text_edit.get_content()
+    }
 }
 
 impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
@@ -432,37 +471,6 @@ impl<XMSG> Editor<XMSG> {
         self.content_has_changed()
     }
 
-    pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
-        self.text_edit.get_char(x, y)
-    }
-
-    fn theme_background(&self) -> Option<RGBA> {
-        self.text_highlighter
-            .active_theme()
-            .settings
-            .background
-            .map(util::to_rgba)
-    }
-    pub(crate) fn cursor_color(&self) -> Option<RGBA> {
-        None
-    }
-
-    fn gutter_background(&self) -> Option<RGBA> {
-        self.text_highlighter
-            .active_theme()
-            .settings
-            .gutter
-            .map(util::to_rgba)
-    }
-
-    fn gutter_foreground(&self) -> Option<RGBA> {
-        self.text_highlighter
-            .active_theme()
-            .settings
-            .gutter_foreground
-            .map(util::to_rgba)
-    }
-
     fn command_replace_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
         self.text_edit.command_replace_char(ch);
         self.content_has_changed()
@@ -561,6 +569,9 @@ impl<XMSG> Editor<XMSG> {
         self.content_has_changed()
     }
 
+    /// call this when a command changes the text_edit content
+    /// This will rehighlight the content
+    /// and emit the external XMSG in the event listeners
     fn content_has_changed(&mut self) -> Effects<Msg, XMSG> {
         self.rehighlight();
         let extern_msgs = self.emit_on_change_listeners();
@@ -855,14 +866,6 @@ impl<XMSG> Editor<XMSG> {
 
     pub fn plain_view<MSG>(&self) -> Node<MSG> {
         text_buffer_view(self.text_edit.text_buffer(), &self.options)
-    }
-
-    pub fn get_position(&self) -> Point2<usize> {
-        self.text_edit.get_position()
-    }
-
-    pub fn get_content(&self) -> String {
-        self.text_edit.get_content()
     }
 }
 
