@@ -3,14 +3,11 @@ use crate::TextBuffer;
 use nalgebra::Point2;
 use std::collections::VecDeque;
 
-const HISTORY_SIZE: usize = usize::MAX;
-const UNDO_SIZE: usize = usize::MAX;
+const HISTORY_SIZE: usize = 100;
+const UNDO_SIZE: usize = 100;
 
 #[derive(Debug)]
 pub struct Recorded {
-    /// a flag whether to continue to last action list or
-    /// create a new one
-    use_new: bool,
     history: VecDeque<ActionList>,
     undone: VecDeque<ActionList>,
 }
@@ -39,31 +36,54 @@ impl ActionList {
 impl Recorded {
     pub fn new() -> Self {
         Recorded {
-            use_new: false,
             history: VecDeque::new(),
             undone: VecDeque::new(),
         }
     }
-    /// Close the current history, such that undo and redo will
-    /// be split in this bump point
+
+    /// Skip the merging the action on the next record call
+    /// and straigh into making a new action list
+    ///
+    /// TODO: this is hacky since it relies on a stateful flag `use_new`
+    /// This can be accomplished with pushing an empty action list
     pub fn bump_history(&mut self) {
-        self.use_new = true;
+        // pushing an empty new action list, will ensure that the next action
+        // will in a separate action list from the previous ones
+        self.history.push_front(ActionList::from(vec![]));
         log::trace!("bumping history..");
+    }
+
+    /// if the last action list is empty use it, otherwise create a new one
+    fn record_new(&mut self, act: Action) {
+        self.history.push_front(ActionList::from(vec![act]));
+    }
+
+    /// if the last action list is empty, add it there
+    /// if it has content, merge if same variant
+    ///
+    /// returns true if the action `act` is added to history.
+    fn try_merge(&mut self, act: Action) -> Result<(), bool> {
+        if let Some(a) = self.history.front_mut() {
+            if a.actions.is_empty() {
+                a.actions.push(act);
+                return Ok(());
+            } else if a.same_variant_to_last(&act) {
+                a.actions.push(act);
+                return Ok(());
+            }
+        }
+        Err(false)
     }
 
     fn record(&mut self, act: Action) {
         self.undone.clear(); // we are branching to a new sequence of events
-        if !self.use_new {
-            if let Some(a) = self.history.front_mut() {
-                if a.same_variant_to_last(&act) {
-                    // join similar actions together
-                    a.actions.push(act);
-                    return;
-                }
-            }
+        if self.try_merge(act.clone()).is_err() {
+            self.record_new(act);
         }
-        self.history.push_front(ActionList::from(vec![act]));
-        self.use_new = false;
+        self.free_some_history();
+    }
+
+    fn free_some_history(&mut self) {
         while self.history.len() > HISTORY_SIZE {
             self.history.pop_back();
         }
@@ -74,26 +94,24 @@ impl Recorded {
         &mut self,
         text_buffer: &mut TextBuffer,
     ) -> Option<Point2<usize>> {
-        log::trace!("undoing...");
-        let to_undo = match self.history.pop_front() {
-            None => return None,
-            Some(a) => {
-                log::info!("undoing: {:?}", a);
-                a
-            }
-        };
-        self.undone.push_front(to_undo.clone());
+        let mut last_location = None;
+        if let Some(to_undo) = self.history.pop_front() {
+            self.undone.push_front(to_undo.clone());
+            self.free_some_undone();
+
+            to_undo.actions.iter().rev().for_each(|tu| {
+                let inverted = tu.invert();
+                inverted.apply(text_buffer);
+                last_location = Some(inverted.location());
+            });
+        }
+        last_location
+    }
+
+    fn free_some_undone(&mut self) {
         while self.undone.len() > UNDO_SIZE {
             self.undone.pop_back();
         }
-        let mut last_location = None;
-        to_undo.actions.iter().rev().for_each(|tu| {
-            let inverted = tu.invert();
-            log::trace!("inverted: {:?}", inverted);
-            inverted.apply(text_buffer);
-            last_location = Some(inverted.location());
-        });
-        last_location
     }
 
     pub(crate) fn redo(
@@ -101,21 +119,14 @@ impl Recorded {
         text_buffer: &mut TextBuffer,
     ) -> Option<Point2<usize>> {
         let mut last_location = None;
-        let to_redo = match self.undone.pop_front() {
-            None => return None,
-            Some(a) => a,
-        };
-        to_redo.actions.iter().for_each(|tr| {
-            tr.apply(text_buffer);
-            last_location = Some(tr.location());
-        });
-        self.history.push_front(to_redo);
+        if let Some(to_redo) = self.undone.pop_front() {
+            to_redo.actions.iter().for_each(|tr| {
+                tr.apply(text_buffer);
+                last_location = Some(tr.location());
+            });
+            self.history.push_front(to_redo);
+        }
         last_location
-    }
-
-    #[allow(unused)]
-    fn history_len(&self) -> usize {
-        self.history.len()
     }
 
     pub(crate) fn insert_char(&mut self, cursor: Point2<usize>, ch: char) {

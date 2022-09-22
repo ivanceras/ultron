@@ -22,10 +22,14 @@ pub enum Command {
     MoveLeft,
     MoveRight,
     InsertChar(char),
+    ReplaceChar(char),
     InsertText(String),
     Undo,
     Redo,
+    BumpHistory,
     SelectAll,
+    ClearSelection,
+    SetPosition(i32, i32),
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -397,11 +401,24 @@ impl<XMSG> Editor<XMSG> {
                 Effects::none()
             }
             Command::InsertChar(c) => self.command_insert_char(c),
+            Command::ReplaceChar(c) => self.command_replace_char(c),
             Command::InsertText(text) => self.command_insert_text(&text),
             Command::Undo => self.undo(),
             Command::Redo => self.redo(),
+            Command::BumpHistory => {
+                self.bump_history();
+                Effects::none()
+            }
             Command::SelectAll => {
                 self.command_select_all();
+                Effects::none()
+            }
+            Command::ClearSelection => {
+                self.clear_selection();
+                Effects::none()
+            }
+            Command::SetPosition(x, y) => {
+                self.command_set_position(x, y);
                 Effects::none()
             }
         }
@@ -414,26 +431,6 @@ impl<XMSG> Editor<XMSG> {
 
     pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
         self.text_edit.get_char(x, y)
-    }
-
-    pub fn command_smart_replace_insert_char(
-        &mut self,
-        ch: char,
-    ) -> Effects<Msg, XMSG> {
-        let cursor = self.text_edit.get_position();
-        let has_right_char =
-            if let Some(ch) = self.get_char(cursor.x + 1, cursor.y) {
-                !ch.is_whitespace()
-            } else {
-                false
-            };
-        if has_right_char {
-            self.command_insert_char(ch)
-        } else {
-            let effects = self.command_replace_char(ch);
-            self.command_move_right();
-            effects
-        }
     }
 
     fn theme_background(&self) -> Option<RGBA> {
@@ -462,7 +459,8 @@ impl<XMSG> Editor<XMSG> {
             .gutter_foreground
             .map(util::to_rgba)
     }
-    pub fn command_replace_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
+
+    fn command_replace_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
         self.text_edit.command_replace_char(ch);
         self.content_has_changed()
     }
@@ -521,7 +519,7 @@ impl<XMSG> Editor<XMSG> {
         self.content_has_changed()
     }
 
-    pub fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
+    fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
         if self.options.use_virtual_edit {
             self.text_edit
                 .command_set_position(cursor_x as usize, cursor_y as usize);
@@ -537,7 +535,7 @@ impl<XMSG> Editor<XMSG> {
         self.set_selection(start, end)
     }
 
-    pub fn command_select_all(&mut self) {
+    fn command_select_all(&mut self) {
         let start = Point2::new(0, 0);
         let max = self.text_edit.max_position();
         let end = Point2::new(max.x as i32, max.y as i32);
@@ -546,16 +544,18 @@ impl<XMSG> Editor<XMSG> {
 
     /// Make a history separator for the undo/redo
     /// This is used for breaking undo action list
-    pub fn bump_history(&mut self) {
+    fn bump_history(&mut self) {
         self.text_edit.bump_history();
     }
 
-    pub fn undo(&mut self) -> Effects<Msg, XMSG> {
+    // TODO: rename to command_undo
+    fn undo(&mut self) -> Effects<Msg, XMSG> {
         self.text_edit.undo();
         self.content_has_changed()
     }
 
-    pub fn redo(&mut self) -> Effects<Msg, XMSG> {
+    // TODO: rename to command undo
+    fn redo(&mut self) -> Effects<Msg, XMSG> {
         self.text_edit.redo();
         self.content_has_changed()
     }
@@ -571,7 +571,7 @@ impl<XMSG> Editor<XMSG> {
     }
 
     /// clear the text selection
-    pub fn clear_selection(&mut self) {
+    fn clear_selection(&mut self) {
         self.text_edit.clear_selection()
     }
 
