@@ -854,6 +854,10 @@ impl<XMSG> Editor<XMSG> {
         text_buffer_view(self.text_edit.text_buffer(), &self.options)
     }
 
+    pub fn get_position(&self) -> Point2<usize> {
+        self.text_edit.get_position()
+    }
+
     pub fn get_content(&self) -> String {
         self.text_edit.get_content()
     }
