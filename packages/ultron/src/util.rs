@@ -37,3 +37,9 @@ pub(crate) fn normalize_number(n1: usize, n2: usize) -> (usize, usize) {
 pub(crate) fn cast_point(point: Point2<i32>) -> Point2<usize> {
     Point2::new(point.x.try_into().unwrap(), point.y.try_into().unwrap())
 }
+
+pub fn clamp_to_edge(point: Point2<i32>) -> Point2<i32> {
+    let x = if point.x < 0 { 0 } else { point.x };
+    let y = if point.y < 0 { 0 } else { point.y };
+    Point2::new(x, y)
+}

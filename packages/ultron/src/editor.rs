@@ -185,7 +185,7 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 Effects::none()
             }
             Msg::Mouseup(client_x, client_y) => {
-                let cursor = self.client_to_cursor(client_x, client_y);
+                let cursor = self.client_to_cursor_clamped(client_x, client_y);
                 self.command_set_position(cursor.x, cursor.y);
                 self.text_edit.set_selection_end(cursor);
                 let selection = self.text_edit.selection();
@@ -198,7 +198,8 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::Mousedown(client_x, client_y) => {
                 if self.in_bounds(client_x as f32, client_y as f32) {
-                    let cursor = self.client_to_cursor(client_x, client_y);
+                    let cursor =
+                        self.client_to_cursor_clamped(client_x, client_y);
                     self.text_edit.set_selection_start(cursor);
                     self.command_set_position(cursor.x, cursor.y);
                 }
@@ -206,7 +207,8 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
             }
             Msg::Mousemove(client_x, client_y) => {
                 if self.in_bounds(client_x as f32, client_y as f32) {
-                    let cursor = self.client_to_cursor(client_x, client_y);
+                    let cursor =
+                        self.client_to_cursor_clamped(client_x, client_y);
                     self.text_edit.set_selection_end(cursor);
 
                     let selection = self.text_edit.selection();
@@ -417,7 +419,6 @@ impl<XMSG> Editor<XMSG> {
         match command {
             //TODO: make a command indent forward and backward in text_buffer
             Command::IndentForward => {
-                log::trace!("indent key is pressed");
                 let indent = "    ";
                 self.command_insert_text(indent)
             }
@@ -705,6 +706,16 @@ impl<XMSG> Editor<XMSG> {
         let x = col.floor() as i32;
         let y = line.floor() as i32;
         Point2::new(x, y)
+    }
+
+    /// clamped negative cursor values due to padding in the line number
+    pub fn client_to_cursor_clamped(
+        &self,
+        client_x: i32,
+        client_y: i32,
+    ) -> Point2<i32> {
+        let cursor = self.client_to_cursor(client_x, client_y);
+        util::clamp_to_edge(cursor)
     }
 
     /// convert current cursor position to client coordinate relative to the editor div
