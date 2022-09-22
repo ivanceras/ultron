@@ -41,21 +41,12 @@ impl Recorded {
         }
     }
 
-    /// Skip the merging the action on the next record call
-    /// and straigh into making a new action list
-    ///
-    /// TODO: this is hacky since it relies on a stateful flag `use_new`
-    /// This can be accomplished with pushing an empty action list
+    /// This ensures that the succeeding action to be recorded will not be merged in the last
+    /// action list
     pub fn bump_history(&mut self) {
         // pushing an empty new action list, will ensure that the next action
         // will in a separate action list from the previous ones
         self.history.push_front(ActionList::from(vec![]));
-        log::trace!("bumping history..");
-    }
-
-    /// if the last action list is empty use it, otherwise create a new one
-    fn record_new(&mut self, act: Action) {
-        self.history.push_front(ActionList::from(vec![act]));
     }
 
     /// if the last action list is empty, add it there
@@ -75,15 +66,23 @@ impl Recorded {
         Err(false)
     }
 
+    /// create a new action list
+    fn record_new(&mut self, act: Action) {
+        self.history.push_front(ActionList::from(vec![act]));
+    }
+
+    /// will try to merge the action to the last action list if possible
+    /// otherwise record it as a new action list
     fn record(&mut self, act: Action) {
         self.undone.clear(); // we are branching to a new sequence of events
         if self.try_merge(act.clone()).is_err() {
             self.record_new(act);
         }
-        self.free_some_history();
+        self.freeup_history();
     }
 
-    fn free_some_history(&mut self) {
+    /// free up some history if there are more than allowable length
+    fn freeup_history(&mut self) {
         while self.history.len() > HISTORY_SIZE {
             self.history.pop_back();
         }
@@ -97,7 +96,7 @@ impl Recorded {
         let mut last_location = None;
         if let Some(to_undo) = self.history.pop_front() {
             self.undone.push_front(to_undo.clone());
-            self.free_some_undone();
+            self.freeup_undone();
 
             to_undo.actions.iter().rev().for_each(|tu| {
                 let inverted = tu.invert();
@@ -108,7 +107,7 @@ impl Recorded {
         last_location
     }
 
-    fn free_some_undone(&mut self) {
+    fn freeup_undone(&mut self) {
         while self.undone.len() > UNDO_SIZE {
             self.undone.pop_back();
         }
