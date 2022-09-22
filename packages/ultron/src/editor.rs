@@ -328,8 +328,9 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
                 flex: "none", // dont compress the numbers
                 text_align: "right",
                 background_color: "#002b36",
-                padding_right: px(CH_WIDTH * self.numberline_padding_wide() as u32),
+                padding_right: px(CH_WIDTH as f32 * self.numberline_padding_wide() as f32),
                 height: px(CH_HEIGHT),
+                display: "inline-block",
                 user_select: "none",
                 "-webkit-user-select": "none",
             },
@@ -695,10 +696,11 @@ impl<XMSG> Editor<XMSG> {
         client_x: i32,
         client_y: i32,
     ) -> Point2<i32> {
-        let numberline_wide = self.numberline_wide() as f32 * CH_WIDTH as f32;
+        let numberline_wide_with_padding =
+            self.numberline_wide_with_padding() as f32;
         let editor = self.editor_offset().expect("must have an editor offset");
-        let col =
-            (client_x as f32 - editor.x) / CH_WIDTH as f32 - numberline_wide;
+        let col = (client_x as f32 - editor.x) / CH_WIDTH as f32
+            - numberline_wide_with_padding;
         let line = (client_y as f32 - editor.y) / CH_HEIGHT as f32;
         let x = col.floor() as i32;
         let y = line.floor() as i32;
@@ -709,7 +711,8 @@ impl<XMSG> Editor<XMSG> {
     pub fn cursor_to_client(&self) -> Point2<f32> {
         let cursor = self.text_edit.get_position();
         Point2::new(
-            cursor.x as f32 * CH_WIDTH as f32,
+            (cursor.x + self.numberline_wide_with_padding()) as f32
+                * CH_WIDTH as f32,
             cursor.y as f32 * CH_HEIGHT as f32,
         )
     }
@@ -733,10 +736,11 @@ impl<XMSG> Editor<XMSG> {
 
     /// height of the status line which displays editor infor such as cursor location
     pub fn status_line_height(&self) -> i32 {
-        60
+        30
     }
 
     /// the number of page of the editor based on the number of lines
+    #[allow(unused)]
     fn pages(&self) -> i32 {
         let n_lines = self.text_edit.total_lines() as i32;
         (n_lines - 1) / self.options.page_size as i32 + 1
@@ -788,15 +792,20 @@ impl<XMSG> Editor<XMSG> {
                     comment("")
                 },
                 text!("| version:{}", env!("CARGO_PKG_VERSION")),
-                text!("| pages: {}", self.pages()),
+                text!("| lines: {}", self.text_edit.total_lines()),
             ],
         )
     }
 
-    /// how wide the numberline based on the character lengths of the number
     fn numberline_wide(&self) -> usize {
+        self.text_edit.numberline_wide()
+    }
+
+    /// how wide the numberline based on the character lengths of the number
+    fn numberline_wide_with_padding(&self) -> usize {
         if self.options.show_line_numbers {
             self.text_edit.total_lines().to_string().len()
+                + self.numberline_padding_wide()
         } else {
             0
         }
@@ -805,6 +814,35 @@ impl<XMSG> Editor<XMSG> {
     /// the padding of the number line width
     pub(crate) fn numberline_padding_wide(&self) -> usize {
         1
+    }
+
+    fn view_line_number<MSG>(&self, line_number: usize) -> Node<MSG> {
+        let class_ns = |class_names| {
+            attributes::class_namespaced(COMPONENT_NAME, class_names)
+        };
+        view_if(
+            self.options.show_line_numbers,
+            span(
+                [
+                    class_ns("number"),
+                    if let Some(gutter_bg) = self.gutter_background() {
+                        style! {
+                            background_color: gutter_bg.to_css(),
+                        }
+                    } else {
+                        empty_attr()
+                    },
+                    if let Some(gutter_fg) = self.gutter_foreground() {
+                        style! {
+                            color: gutter_fg.to_css(),
+                        }
+                    } else {
+                        empty_attr()
+                    },
+                ],
+                [text(line_number)],
+            ),
+        )
     }
 
     // highlighted view
@@ -829,25 +867,30 @@ impl<XMSG> Editor<XMSG> {
             },
         ];
 
-        let rendered_lines = highlighted_lines.iter().map(|line| {
-            div([class_ns("line")], {
-                line.iter()
-                    .map(|(style, range)| {
-                        let background =
-                            util::to_rgba(style.background).to_css();
-                        let foreground =
-                            util::to_rgba(style.foreground).to_css();
-                        span(
-                            [style! {
-                                color: foreground,
-                                background_color: background,
-                            }],
-                            [text(range)],
-                        )
+        let rendered_lines =
+            highlighted_lines
+                .iter()
+                .enumerate()
+                .map(|(line_index, line)| {
+                    div([class_ns("line")], {
+                        [self.view_line_number(line_index + 1)]
+                            .into_iter()
+                            .chain(line.iter().map(|(style, range)| {
+                                let background =
+                                    util::to_rgba(style.background).to_css();
+                                let foreground =
+                                    util::to_rgba(style.foreground).to_css();
+                                span(
+                                    [style! {
+                                        color: foreground,
+                                        background_color: background,
+                                    }],
+                                    [text(range)],
+                                )
+                            }))
+                            .collect::<Vec<_>>()
                     })
-                    .collect::<Vec<_>>()
-            })
-        });
+                });
 
         if self.options.use_for_ssg {
             // using div works well when select-copying for both chrome and firefox
@@ -894,8 +937,8 @@ pub fn text_buffer_view<MSG>(
     let class_ns =
         |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
 
-    let numberline_wide = text_buffer.total_lines().to_string().len();
-    let class_number_wide = format!("number_wide{}", numberline_wide);
+    let class_number_wide =
+        format!("number_wide{}", text_buffer.numberline_wide());
 
     let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
     let rendered_lines = text_buffer

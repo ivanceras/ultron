@@ -232,4 +232,10 @@ impl TextEdit {
     pub fn lines(&self) -> Vec<String> {
         self.text_buffer.lines()
     }
+
+    /// return the number of characters to represent the line number of the last line of the text
+    /// buffer
+    pub fn numberline_wide(&self) -> usize {
+        self.text_buffer.numberline_wide()
+    }
 }

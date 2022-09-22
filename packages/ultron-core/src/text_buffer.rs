@@ -148,6 +148,12 @@ impl TextBuffer {
         self.chars.len()
     }
 
+    /// return the number of characters to represent the line number of the last line of
+    /// this text buffer
+    pub fn numberline_wide(&self) -> usize {
+        self.total_lines().to_string().len()
+    }
+
     pub fn lines(&self) -> Vec<String> {
         self.chars
             .iter()
