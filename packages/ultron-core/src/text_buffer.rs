@@ -344,6 +344,11 @@ impl TextBuffer {
 ///
 /// functions that are preceeded with command also moves the
 /// cursor and highlight the texts
+///
+/// Note: methods that are preceeded with `command` such as `command_insert_char` are high level methods
+/// which has consequences in the text buffer such as moving the cursor.
+/// While there corresponding more primitive counter parts such as `insert_char` are low level
+/// commands, which doesn't move the cursor location
 impl TextBuffer {
     pub fn command_insert_char(&mut self, ch: char) {
         self.insert_char(self.cursor.x, self.cursor.y, ch);

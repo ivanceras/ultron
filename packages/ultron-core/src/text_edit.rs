@@ -175,13 +175,13 @@ impl TextEdit {
         self.recorded.bump_history();
     }
 
-    pub fn undo(&mut self) {
+    pub fn command_undo(&mut self) {
         if let Some(location) = self.recorded.undo(&mut self.text_buffer) {
             self.text_buffer.set_position(location.x, location.y);
         }
     }
 
-    pub fn redo(&mut self) {
+    pub fn command_redo(&mut self) {
         if let Some(location) = self.recorded.redo(&mut self.text_buffer) {
             self.text_buffer.set_position(location.x, location.y);
         }

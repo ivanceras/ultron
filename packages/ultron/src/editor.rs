@@ -403,8 +403,8 @@ impl<XMSG> Editor<XMSG> {
             Command::InsertChar(c) => self.command_insert_char(c),
             Command::ReplaceChar(c) => self.command_replace_char(c),
             Command::InsertText(text) => self.command_insert_text(&text),
-            Command::Undo => self.undo(),
-            Command::Redo => self.redo(),
+            Command::Undo => self.command_undo(),
+            Command::Redo => self.command_redo(),
             Command::BumpHistory => {
                 self.bump_history();
                 Effects::none()
@@ -548,15 +548,13 @@ impl<XMSG> Editor<XMSG> {
         self.text_edit.bump_history();
     }
 
-    // TODO: rename to command_undo
-    fn undo(&mut self) -> Effects<Msg, XMSG> {
-        self.text_edit.undo();
+    fn command_undo(&mut self) -> Effects<Msg, XMSG> {
+        self.text_edit.command_undo();
         self.content_has_changed()
     }
 
-    // TODO: rename to command undo
-    fn redo(&mut self) -> Effects<Msg, XMSG> {
-        self.text_edit.redo();
+    fn command_redo(&mut self) -> Effects<Msg, XMSG> {
+        self.text_edit.command_redo();
         self.content_has_changed()
     }
 
