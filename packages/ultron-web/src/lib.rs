@@ -99,7 +99,7 @@ impl Application<Msg> for App {
             vec![class("app")],
             vec![
                 self.editor.view().map_msg(Msg::EditorMsg),
-                self.view_hidden_textarea(),
+                //self.view_hidden_textarea(),
             ],
         )
     }
@@ -130,33 +130,8 @@ impl Application<Msg> for App {
                     .update(editor::Msg::Mousemove(client_x, client_y));
                 Cmd::from(effects.localize(Msg::EditorMsg))
             }
-            Msg::Keydown(ke) => {
-                let is_ctrl = ke.ctrl_key();
-                let is_shift = ke.shift_key();
-                let key = ke.key();
-                if key.chars().count() == 1 {
-                    log::trace!("inserting from window keydown event");
-                    let c = key.chars().next().expect("must be only 1 chr");
-                    match c {
-                        'z' | 'Z' if is_ctrl => {
-                            if is_shift {
-                                self.editor.process_command(Command::Redo);
-                            } else {
-                                self.editor.process_command(Command::Undo);
-                            }
-                            Cmd::none()
-                        }
-                        _ => {
-                            self.editor.process_command(Command::InsertChar(c));
-                            Cmd::none()
-                        }
-                    }
-                } else {
-                    // process key presses other than single characters such as
-                    // backspace, enter, tag, arrows
-                    self.process_keypresses(&ke)
-                }
-            }
+            Msg::Keydown(ke) => self.process_keypress(&ke),
+            Msg::TextareaKeydown(ke) => self.process_keypress(&ke),
             Msg::TextareaMounted(target_node) => {
                 self.hidden_textarea = Some(target_node.unchecked_into());
                 self.refocus_hidden_textarea();
@@ -195,57 +170,6 @@ impl Application<Msg> for App {
                 Cmd::from(effects.localize(Msg::EditorMsg)).measure()
             }
 
-            Msg::TextareaKeydown(ke) => {
-                let is_ctrl = ke.ctrl_key();
-                let is_shift = ke.shift_key();
-                log::trace!(
-                    "text area key down... ctrl: {} ,shift: {}",
-                    is_ctrl,
-                    is_shift
-                );
-                // don't process key presses when
-                // CTRL key is pressed.
-                let key = ke.key();
-                if key.chars().count() == 1 {
-                    log::trace!("In textarea keydown");
-                    let c = key.chars().next().expect("must be only 1 chr");
-                    match c {
-                        'c' if is_ctrl => {
-                            self.command_copy();
-                            Cmd::none()
-                        }
-                        'x' if is_ctrl => {
-                            self.command_cut();
-                            Cmd::none()
-                        }
-                        'v' if is_ctrl => {
-                            log::trace!("pasting is handled");
-                            self.clear_hidden_textarea();
-                            Cmd::none()
-                        }
-                        'z' | 'Z' if is_ctrl => {
-                            if is_shift {
-                                self.editor.process_command(Command::Redo);
-                            } else {
-                                self.editor.process_command(Command::Undo);
-                            }
-                            Cmd::none()
-                        }
-                        'a' if is_ctrl => {
-                            self.editor.process_command(Command::SelectAll);
-                            Cmd::none()
-                        }
-                        _ => {
-                            self.clear_hidden_textarea();
-                            log::trace!("for everything else: {}", c);
-                            self.editor.process_command(Command::InsertChar(c));
-                            Cmd::none()
-                        }
-                    }
-                } else {
-                    Cmd::none()
-                }
-            }
             Msg::Paste(text_content) => {
                 let effects = self
                     .editor
@@ -267,7 +191,7 @@ impl Application<Msg> for App {
 }
 
 impl App {
-    // will be used in ultron-web
+    #[allow(unused)]
     fn view_hidden_textarea(&self) -> Node<Msg> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
@@ -315,27 +239,65 @@ impl App {
         )
     }
 
-    fn process_keypresses(
+    fn process_keypress(
         &mut self,
         ke: &web_sys::KeyboardEvent,
     ) -> Cmd<Self, Msg> {
+        let is_ctrl = ke.ctrl_key();
+        let is_shift = ke.shift_key();
         let key = ke.key();
-        let command = match &*key {
-            "Tab" => Some(Command::Tab),
-            "Enter" => Some(Command::BreakLine),
-            "Backspace" => Some(Command::DeleteBack),
-            "Delete" => Some(Command::DeleteForward),
-            "ArrowUp" => Some(Command::MoveUp),
-            "ArrowDown" => Some(Command::MoveDown),
-            "ArrowLeft" => Some(Command::MoveLeft),
-            "ArrowRight" => Some(Command::MoveRight),
-            _ => None,
-        };
-        if let Some(command) = command {
-            let effects = self.editor.process_command(command);
-            Cmd::from(effects.localize(Msg::EditorMsg))
+        if key.chars().count() == 1 {
+            log::trace!("inserting from window keydown event");
+            let c = key.chars().next().expect("must be only 1 chr");
+            match c {
+                'c' if is_ctrl => {
+                    self.command_copy();
+                    Cmd::none()
+                }
+                'x' if is_ctrl => {
+                    self.command_cut();
+                    Cmd::none()
+                }
+                'v' if is_ctrl => {
+                    log::trace!("pasting is handled");
+                    self.clear_hidden_textarea();
+                    Cmd::none()
+                }
+                'z' | 'Z' if is_ctrl => {
+                    if is_shift {
+                        self.editor.process_command(Command::Redo);
+                    } else {
+                        self.editor.process_command(Command::Undo);
+                    }
+                    Cmd::none()
+                }
+                'a' if is_ctrl => {
+                    self.editor.process_command(Command::SelectAll);
+                    Cmd::none()
+                }
+                _ => {
+                    self.editor.process_command(Command::InsertChar(c));
+                    Cmd::none()
+                }
+            }
         } else {
-            Cmd::none()
+            let command = match &*key {
+                "Tab" => Some(Command::IndentForward),
+                "Enter" => Some(Command::BreakLine),
+                "Backspace" => Some(Command::DeleteBack),
+                "Delete" => Some(Command::DeleteForward),
+                "ArrowUp" => Some(Command::MoveUp),
+                "ArrowDown" => Some(Command::MoveDown),
+                "ArrowLeft" => Some(Command::MoveLeft),
+                "ArrowRight" => Some(Command::MoveRight),
+                _ => None,
+            };
+            if let Some(command) = command {
+                let effects = self.editor.process_command(command);
+                Cmd::from(effects.localize(Msg::EditorMsg))
+            } else {
+                Cmd::none()
+            }
         }
     }
 

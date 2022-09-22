@@ -12,7 +12,8 @@ use sauron::{
 use ultron_syntaxes_themes::Style;
 
 pub enum Command {
-    Tab,
+    IndentForward,
+    IndentBackward,
     BreakLine,
     DeleteBack,
     DeleteForward,
@@ -367,10 +368,14 @@ impl<XMSG> Component<Msg, XMSG> for Editor<XMSG> {
 impl<XMSG> Editor<XMSG> {
     pub fn process_command(&mut self, command: Command) -> Effects<Msg, XMSG> {
         match command {
-            Command::Tab => {
-                log::trace!("tab key is pressed");
-                let tab = "    ";
-                self.command_insert_text(tab)
+            //TODO: make a command indent forward and backward in text_buffer
+            Command::IndentForward => {
+                log::trace!("indent key is pressed");
+                let indent = "    ";
+                self.command_insert_text(indent)
+            }
+            Command::IndentBackward => {
+                todo!()
             }
             Command::BreakLine => self.command_break_line(),
             Command::DeleteBack => self.command_delete_back(),
