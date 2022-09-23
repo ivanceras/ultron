@@ -2,6 +2,5 @@
 
 set -v
 
-
 cargo test --all
 

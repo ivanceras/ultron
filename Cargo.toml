@@ -2,6 +2,7 @@ cargo-features = ["strip"]
 
 [workspace]
 members = [
+    "packages/ultron-core",
     "packages/ultron",
     "packages/ultron-ssg",
     "packages/ultron-web",

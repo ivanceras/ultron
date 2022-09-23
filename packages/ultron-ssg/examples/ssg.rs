@@ -1,5 +1,3 @@
-use ultron_ssg;
-
 fn main() {
     let content = include_str!("../../ultron-web/test_data/hello.rs");
     let html =

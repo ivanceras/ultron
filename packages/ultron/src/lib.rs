@@ -1,5 +1,6 @@
 #![deny(warnings)]
-pub use text_buffer::TextBuffer;
+pub use ultron_core::TextBuffer;
+pub use ultron_core::TextEdit;
 pub use ultron_syntaxes_themes::TextHighlighter;
 
 pub use nalgebra;
@@ -8,17 +9,12 @@ pub use sauron;
 #[cfg(feature = "with-dom")]
 pub mod editor;
 #[cfg(feature = "with-dom")]
-pub use editor::Editor;
-pub use text_buffer::Context;
+pub use editor::{Command, Editor, MouseCursor, Msg};
 
-#[cfg(feature = "with-dom")]
-pub use editor::Msg;
-
-mod text_buffer;
 mod util;
 
 pub const COMPONENT_NAME: &str = "ultron";
-pub const CH_WIDTH: u32 = 8;
+pub const CH_WIDTH: u32 = 7;
 pub const CH_HEIGHT: u32 = 16;
 
 #[derive(Clone, Debug)]
@@ -50,6 +46,9 @@ pub struct Options {
     pub page_size: usize,
     /// a flag to use syntax highlighting or not
     pub use_syntax_highlighter: bool,
+    /// a flag to do replace mode when there is no characters to the right
+    /// and switch to insert mode when there is characters to the right
+    pub use_smart_replace_insert: bool,
 }
 
 impl Default for Options {
@@ -69,9 +68,7 @@ impl Default for Options {
             occupy_container: true,
             page_size: 20,
             use_syntax_highlighter: true,
+            use_smart_replace_insert: false,
         }
     }
 }
-
-#[cfg(test)]
-mod unit_tests;

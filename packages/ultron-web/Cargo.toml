@@ -18,5 +18,4 @@ ultron = { version = "0.2.6", path = "../ultron", features = ["with-measure"] }
 log = "0.4"
 console_log = { version = "0.2", features = ["color"]}
 console_error_panic_hook = "0.1"
-wee_alloc = { version = "0.4", optional = true }
 

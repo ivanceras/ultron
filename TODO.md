@@ -41,14 +41,24 @@
     - undo/redo
     - cut/copy/paste
 - [ ] Add config to ignore mouse-clicks outside of the editor range
+- [ ] Move the core-functionality of ultron to ultron, which has no view, just text manipulation
+    - [ ] ultron-core will have the following modules
+        - [X] TextBuffer
+        - [X] TextEdit (text-buffer with history)
+        - [ ] Editor
+        with no dependency on sauron, all types is abstracted
+    - The ultron is the bare minimum library, which relies on sauron
+        - [ ] Wrap the editor with sauron for the web
+        - [ ] ultron-tui abstract terminal events into ultron events
 
 ## Features
-- [ ] Smart edit blockmode
-    - When typing a key and the next characters next to it is far, say more than 2 space the character is typed in replace mode
+- [~] Smart edit blockmode
+    - [X] When typing a key and the next characters next to it is far, say more than 2 space the character is typed in replace mode
         instead of insert mode
     - [ ] Pressing enter should indent, instead of just moving down
 - [ ] Allow the editor to render different syntax highlighting scheme to a set of lines
     - Use would be markdown text with code fence in the content
+- [ ] Make the keypresses be translated into Commands, so we can use remap such as vi, kakune, etc.
 
 ## Maintenance
 - [ ] Put the css of each of the component to their own module
@@ -70,6 +80,7 @@
             let page_offset = page_n * page_height;
             if scroll_top > page_offset && scroll_top < next_page_offset { show } else {hide}
           ```
+- [X] Simplify the text buffer, just a `Vec<Vec<char>>`, no paging, no ranges, no char.
 
 ## Issues
 - [ ] Moving around characters with cell_width of 2
@@ -90,3 +101,8 @@
     - 80ms when syntax highlighting is disabled
 - [X] When `replace_char` is called for the next page, it applies to the first page instead
 - [ ] replace addition and subtraction operation with saturating_add and saturating_sub.
+- [ ] If the top level view of a Program changes, then the original root_node is not set, which causes
+    - [ ] Add a test for replacing the top-level root-node and confirm it is changed
+
+## Tests
+- [ ] Add test for undo and redo (editor)
