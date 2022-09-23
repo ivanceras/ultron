@@ -1,13 +1,25 @@
 use crate::{
-    util, Options, TextBuffer, TextEdit, TextHighlighter, CH_HEIGHT, CH_WIDTH,
+    util,
+    Options,
+    TextBuffer,
+    TextEdit,
+    TextHighlighter,
+    CH_HEIGHT,
+    CH_WIDTH,
     COMPONENT_NAME,
 };
-use css_colors::rgba;
-use css_colors::Color;
-use css_colors::RGBA;
+use css_colors::{
+    rgba,
+    Color,
+    RGBA,
+};
 use nalgebra::Point2;
 use sauron::{
-    html::attributes, jss_ns, prelude::*, wasm_bindgen::JsCast, Measurements,
+    html::attributes,
+    jss_ns,
+    prelude::*,
+    wasm_bindgen::JsCast,
+    Measurements,
 };
 use ultron_syntaxes_themes::Style;
 
@@ -147,6 +159,7 @@ impl<XMSG> Editor<XMSG> {
             .background
             .map(util::to_rgba)
     }
+
     pub(crate) fn cursor_color(&self) -> Option<RGBA> {
         Some(rgba(0, 0, 0, 1.0))
     }

@@ -369,9 +369,11 @@ impl TextBuffer {
     pub fn command_insert_text(&mut self, text: &str) {
         self.insert_text(self.cursor.x, self.cursor.y, text);
     }
+
     pub fn move_left(&mut self) {
         self.cursor.x = self.cursor.x.saturating_sub(1);
     }
+
     pub fn move_left_start(&mut self) {
         self.cursor.x = 0;
     }
@@ -379,12 +381,15 @@ impl TextBuffer {
     pub fn move_right(&mut self) {
         self.cursor.x = self.cursor.x.saturating_add(1);
     }
+
     fn line_max_column(&self, line: usize) -> usize {
         self.chars.get(line).map(|line| line.len()).unwrap_or(0)
     }
+
     fn current_line_max_column(&self) -> usize {
         self.line_max_column(self.cursor.y)
     }
+
     pub fn move_right_clamped(&mut self) {
         if self.cursor.x < self.current_line_max_column() {
             self.move_right();
@@ -398,15 +403,19 @@ impl TextBuffer {
     pub fn move_x(&mut self, x: usize) {
         self.cursor.x = self.cursor.x.saturating_add(x);
     }
+
     pub fn move_y(&mut self, y: usize) {
         self.cursor.y = self.cursor.y.saturating_add(y);
     }
+
     pub fn move_up(&mut self) {
         self.cursor.y = self.cursor.y.saturating_sub(1);
     }
+
     pub fn move_down(&mut self) {
         self.cursor.y = self.cursor.y.saturating_add(1);
     }
+
     pub fn move_up_clamped(&mut self) {
         let target_line = self.cursor.y.saturating_sub(1);
         let target_line_max_column = self.line_max_column(target_line);
@@ -417,6 +426,7 @@ impl TextBuffer {
             self.move_up()
         }
     }
+
     pub fn move_down_clamped(&mut self) {
         let target_line = self.cursor.y.saturating_add(1);
         let target_line_max_column = self.line_max_column(target_line);
@@ -427,6 +437,7 @@ impl TextBuffer {
             self.move_down()
         }
     }
+
     pub fn set_position(&mut self, x: usize, y: usize) {
         self.cursor.x = x;
         self.cursor.y = y;
@@ -467,6 +478,7 @@ impl TextBuffer {
             None
         }
     }
+
     pub fn command_delete_forward(&mut self) -> Option<char> {
         self.delete_char(self.cursor.x, self.cursor.y)
     }

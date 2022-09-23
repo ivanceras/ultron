@@ -1,7 +1,12 @@
-use crate::HighlightLines;
-use crate::Style;
-use crate::{Color, Theme, ThemeSet};
-use crate::{SyntaxReference, SyntaxSet};
+use crate::{
+    Color,
+    HighlightLines,
+    Style,
+    SyntaxReference,
+    SyntaxSet,
+    Theme,
+    ThemeSet,
+};
 
 const DEFAULT_THEME: &str = "solarized-light";
 

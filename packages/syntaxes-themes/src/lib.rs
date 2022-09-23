@@ -1,9 +1,19 @@
 #![deny(warnings)]
 use once_cell::sync::Lazy;
 use syntect::dumps;
-pub use syntect::easy::HighlightLines;
-pub use syntect::highlighting::{Color, Style, Theme, ThemeSet};
-pub use syntect::parsing::{SyntaxReference, SyntaxSet};
+pub use syntect::{
+    easy::HighlightLines,
+    highlighting::{
+        Color,
+        Style,
+        Theme,
+        ThemeSet,
+    },
+    parsing::{
+        SyntaxReference,
+        SyntaxSet,
+    },
+};
 pub use text_highlighter::TextHighlighter;
 
 mod text_highlighter;

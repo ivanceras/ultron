@@ -1,6 +1,8 @@
 #![deny(warnings)]
-pub use ultron_core::TextBuffer;
-pub use ultron_core::TextEdit;
+pub use ultron_core::{
+    TextBuffer,
+    TextEdit,
+};
 pub use ultron_syntaxes_themes::TextHighlighter;
 
 pub use nalgebra;
@@ -9,7 +11,12 @@ pub use sauron;
 #[cfg(feature = "with-dom")]
 pub mod editor;
 #[cfg(feature = "with-dom")]
-pub use editor::{Command, Editor, MouseCursor, Msg};
+pub use editor::{
+    Command,
+    Editor,
+    MouseCursor,
+    Msg,
+};
 
 mod util;
 

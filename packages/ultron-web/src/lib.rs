@@ -1,11 +1,21 @@
 #![deny(warnings)]
-use ultron::sauron::wasm_bindgen::JsCast;
-use ultron::sauron::web_sys::HtmlDocument;
-use ultron::{editor, editor::Command, editor::Editor};
 use ultron::{
+    editor,
+    editor::{
+        Command,
+        Editor,
+    },
     sauron,
-    sauron::{html::attributes, jss, prelude::*, Window},
-    Options, COMPONENT_NAME,
+    sauron::{
+        html::attributes,
+        jss,
+        prelude::*,
+        wasm_bindgen::JsCast,
+        web_sys::HtmlDocument,
+        Window,
+    },
+    Options,
+    COMPONENT_NAME,
 };
 
 #[derive(Debug, Clone)]
@@ -67,6 +77,7 @@ impl Application<Msg> for App {
             ]),
         ])
     }
+
     fn style(&self) -> String {
         let lib_css = jss! {
             ".app": {
@@ -94,6 +105,7 @@ impl Application<Msg> for App {
 
         [lib_css, self.editor.style()].join("\n")
     }
+
     fn view(&self) -> Node<Msg> {
         div(
             vec![class("app")],
@@ -314,6 +326,7 @@ impl App {
             element.focus().expect("must focus the textarea");
         }
     }
+
     /// set the content of the textarea to selection
     ///
     /// Note: This is necessary for webkit2.

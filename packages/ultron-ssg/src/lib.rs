@@ -1,8 +1,12 @@
 #![deny(warnings)]
 
 use ultron::{
-    sauron::{html::tags::style, prelude::*},
-    Editor, Options,
+    sauron::{
+        html::tags::style,
+        prelude::*,
+    },
+    Editor,
+    Options,
 };
 
 pub fn render<MSG>(
