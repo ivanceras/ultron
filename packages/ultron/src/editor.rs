@@ -1,25 +1,11 @@
 use crate::{
-    util,
-    Options,
-    TextBuffer,
-    TextEdit,
-    TextHighlighter,
-    CH_HEIGHT,
-    CH_WIDTH,
+    util, Options, TextBuffer, TextEdit, TextHighlighter, CH_HEIGHT, CH_WIDTH,
     COMPONENT_NAME,
 };
-use css_colors::{
-    rgba,
-    Color,
-    RGBA,
-};
+use css_colors::{rgba, Color, RGBA};
 use nalgebra::Point2;
 use sauron::{
-    html::attributes,
-    jss_ns,
-    prelude::*,
-    wasm_bindgen::JsCast,
-    Measurements,
+    html::attributes, jss_ns, prelude::*, wasm_bindgen::JsCast, Measurements,
 };
 use ultron_syntaxes_themes::Style;
 
@@ -36,6 +22,8 @@ pub enum Command {
     InsertChar(char),
     ReplaceChar(char),
     InsertText(String),
+    /// set a new content to the editor, resetting to a new history for undo/redo
+    SetContent(String),
     Undo,
     Redo,
     BumpHistory,
@@ -460,6 +448,7 @@ impl<XMSG> Editor<XMSG> {
             Command::InsertChar(c) => self.command_insert_char(c),
             Command::ReplaceChar(c) => self.command_replace_char(c),
             Command::InsertText(text) => self.command_insert_text(&text),
+            Command::SetContent(content) => self.command_set_content(&content),
             Command::Undo => self.command_undo(),
             Command::Redo => self.command_redo(),
             Command::BumpHistory => {
@@ -479,6 +468,12 @@ impl<XMSG> Editor<XMSG> {
                 Effects::none()
             }
         }
+    }
+
+    /// recreate the text edit, this also clears the history
+    pub fn command_set_content(&mut self, content: &str) -> Effects<Msg, XMSG> {
+        self.text_edit = TextEdit::from_str(content);
+        self.content_has_changed()
     }
 
     fn command_insert_char(&mut self, ch: char) -> Effects<Msg, XMSG> {
