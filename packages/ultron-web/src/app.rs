@@ -1,7 +1,7 @@
-use crate::editor_web;
-use crate::editor_web::EditorWeb;
-use crate::editor_web::COMPONENT_NAME;
 use crate::ultron_core::editor;
+use crate::web_editor;
+use crate::web_editor::WebEditor;
+use crate::web_editor::COMPONENT_NAME;
 use sauron::{html::attributes, prelude::*, wasm_bindgen::JsCast};
 pub use ultron_core;
 use web_sys::HtmlDocument;
@@ -11,7 +11,7 @@ pub enum Msg {
     TextareaInput(String),
     TextareaKeydown(web_sys::KeyboardEvent),
     Paste(String),
-    EditorWebMsg(editor_web::Msg),
+    EditorWebMsg(web_editor::Msg),
     Keydown(web_sys::KeyboardEvent),
     Mouseup(i32, i32),
     Mousedown(i32, i32),
@@ -20,14 +20,14 @@ pub enum Msg {
 
 /// The web editor with text area hacks for listening to typing events
 pub struct App {
-    editor_web: EditorWeb,
+    web_editor: WebEditor,
     hidden_textarea: Option<web_sys::HtmlTextAreaElement>,
 }
 
 impl App {
     pub fn new() -> Self {
         Self {
-            editor_web: EditorWeb::new(),
+            web_editor: WebEditor::new(),
             hidden_textarea: None,
         }
     }
@@ -36,7 +36,7 @@ impl App {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
-        let cursor = self.editor_web.cursor_to_client();
+        let cursor = self.web_editor.cursor_to_client();
         div(
             [
                 class_ns("hidden_textarea_wrapper"),
@@ -100,7 +100,7 @@ impl App {
     /// in the same animation frame.
     #[allow(unused)]
     fn set_hidden_textarea_with_selection(&self) {
-        if let Some(selected_text) = self.editor_web.selected_text() {
+        if let Some(selected_text) = self.web_editor.selected_text() {
             if let Some(ref hidden_textarea) = self.hidden_textarea {
                 hidden_textarea.set_value(&selected_text);
                 hidden_textarea.select();
@@ -111,7 +111,7 @@ impl App {
     /// execute copy on the selected textarea
     /// this works even on older browser
     fn textarea_exec_copy(&self) -> bool {
-        if let Some(selected_text) = self.editor_web.selected_text() {
+        if let Some(selected_text) = self.web_editor.selected_text() {
             if let Some(ref hidden_textarea) = self.hidden_textarea {
                 hidden_textarea.set_value(&selected_text);
                 hidden_textarea.select();
@@ -129,7 +129,7 @@ impl App {
 
     /// returns true if the command succeeded
     fn textarea_exec_cut(&mut self) -> bool {
-        if let Some(selected_text) = self.editor_web.cut_selected_text() {
+        if let Some(selected_text) = self.web_editor.cut_selected_text() {
             if let Some(ref hidden_textarea) = self.hidden_textarea {
                 log::trace!("setting the value to textarea: {}", selected_text);
                 hidden_textarea.set_value(&selected_text);
@@ -152,7 +152,7 @@ impl Component<Msg, ()> for App {
         match msg {
             Msg::TextareaKeydown(ke) => {
                 /*
-                let effects = self.editor_web.process_keypress(&ke);
+                let effects = self.web_editor.process_keypress(&ke);
                 effects.map_msg(Msg::EditorWebMsg)
                 */
                 Effects::none()
@@ -184,9 +184,9 @@ impl Component<Msg, ()> for App {
                     let c = input.chars().next().expect("must be only 1 chr");
                     self.composed_key = Some(c);
                     let more_msgs = if c == '\n' {
-                        self.editor_web.process_command(Command::BreakLine)
+                        self.web_editor.process_command(Command::BreakLine)
                     } else {
-                        self.editor_web.process_command(Command::InsertChar(c))
+                        self.web_editor.process_command(Command::InsertChar(c))
                     };
                     msgs.extend(more_msgs);
                 } else {
@@ -199,8 +199,8 @@ impl Component<Msg, ()> for App {
                 Effects::none()
             }
             Msg::Paste(text_content) => {
-                let msgs = self.editor_web.process_command(
-                    editor_web::Command::EditorCommand(
+                let msgs = self.web_editor.process_command(
+                    web_editor::Command::EditorCommand(
                         editor::Command::InsertText(text_content),
                     ),
                 );
@@ -208,29 +208,29 @@ impl Component<Msg, ()> for App {
             }
             Msg::Keydown(key_event) => {
                 let effects =
-                    self.editor_web.update(editor_web::Msg::Keydown(key_event));
+                    self.web_editor.update(web_editor::Msg::Keydown(key_event));
                 effects.map_msg(Msg::EditorWebMsg)
             }
             Msg::Mouseup(client_x, client_y) => {
                 let effects = self
-                    .editor_web
-                    .update(editor_web::Msg::Mouseup(client_x, client_y));
+                    .web_editor
+                    .update(web_editor::Msg::Mouseup(client_x, client_y));
                 effects.map_msg(Msg::EditorWebMsg)
             }
             Msg::Mousedown(client_x, client_y) => {
                 let effects = self
-                    .editor_web
-                    .update(editor_web::Msg::Mousedown(client_x, client_y));
+                    .web_editor
+                    .update(web_editor::Msg::Mousedown(client_x, client_y));
                 effects.map_msg(Msg::EditorWebMsg)
             }
             Msg::Mousemove(client_x, client_y) => {
                 let effects = self
-                    .editor_web
-                    .update(editor_web::Msg::Mousemove(client_x, client_y));
+                    .web_editor
+                    .update(web_editor::Msg::Mousemove(client_x, client_y));
                 effects.map_msg(Msg::EditorWebMsg)
             }
             Msg::EditorWebMsg(emsg) => {
-                let effects = self.editor_web.update(emsg);
+                let effects = self.web_editor.update(emsg);
                 effects.map_msg(Msg::EditorWebMsg)
             }
         }
@@ -240,14 +240,14 @@ impl Component<Msg, ()> for App {
         div(
             [],
             [
-                self.editor_web.view().map_msg(Msg::EditorWebMsg),
+                self.web_editor.view().map_msg(Msg::EditorWebMsg),
                 //self.view_hidden_textarea(),
             ],
         )
     }
 
     fn style(&self) -> String {
-        self.editor_web.style()
+        self.web_editor.style()
     }
 }
 

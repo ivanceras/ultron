@@ -53,14 +53,14 @@ pub enum Msg {
 }
 
 /// rename this to WebEditor
-pub struct EditorWeb {
+pub struct WebEditor {
     options: Options,
     editor: Editor<Msg>,
     editor_element: Option<web_sys::Element>,
     mouse_cursor: MouseCursor,
 }
 
-impl EditorWeb {
+impl WebEditor {
     pub fn new() -> Self {
         //let content = include_str!("../test_data/hello.rs");
         let content = include_str!("../test_data/long.rs");
@@ -71,7 +71,7 @@ impl EditorWeb {
             ..Default::default()
         };
         let editor = Editor::from_str(options.clone(), content);
-        EditorWeb {
+        WebEditor {
             options,
             editor,
             editor_element: None,
@@ -80,7 +80,7 @@ impl EditorWeb {
     }
 }
 
-impl Component<Msg, ()> for EditorWeb {
+impl Component<Msg, ()> for WebEditor {
     fn style(&self) -> String {
         let cursor_color = rgba(0, 0, 0, 1.0);
         let border_color = rgba(0, 0, 0, 1.0);
@@ -321,7 +321,7 @@ impl Component<Msg, ()> for EditorWeb {
     }
 }
 
-impl EditorWeb {
+impl WebEditor {
     #[allow(unused)]
     pub fn set_mouse_cursor(&mut self, mouse_cursor: MouseCursor) {
         self.mouse_cursor = mouse_cursor;

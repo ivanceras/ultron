@@ -1,13 +1,13 @@
 #![allow(warnings)]
 use app::App;
-pub use editor_web::MouseCursor;
 use sauron::prelude::*;
+pub use web_editor::MouseCursor;
 
 pub use ultron_core;
 
 pub(crate) mod app;
-pub(crate) mod editor_web;
 pub(crate) mod util;
+pub(crate) mod web_editor;
 
 #[wasm_bindgen(start)]
 pub fn main() {
