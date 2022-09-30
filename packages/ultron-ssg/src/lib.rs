@@ -1,13 +1,7 @@
 #![deny(warnings)]
 
-use ultron::{
-    sauron::{
-        html::tags::style,
-        prelude::*,
-    },
-    Editor,
-    Options,
-};
+use sauron::{html::tags::style, prelude::*};
+use ultron_core::{Editor, Options};
 
 pub fn render<MSG>(
     content: &str,
@@ -37,12 +31,16 @@ pub fn render_to_string(
     node.render_to_string()
 }
 
+#[allow(unused)]
 fn page<MSG>(editor: Editor<MSG>) -> Node<MSG> {
     main(
         [],
         [
-            header([], [style([r#type("text/css")], [text(editor.style())])]),
-            article([], [editor.plain_view()]),
+            header(
+                [],
+                [style([r#type("text/css")], [/*text(editor.style())*/])],
+            ),
+            article([], [/*editor.plain_view()*/]),
         ],
     )
 }

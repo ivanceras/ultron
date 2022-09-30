@@ -1,8 +1,4 @@
-use nalgebra::Point2;
-use ultron::{
-    Editor,
-    Options,
-};
+use ultron_core::{Editor, Options, Point2};
 #[test]
 fn test_text_selection() {
     let raw = "Hello world";
