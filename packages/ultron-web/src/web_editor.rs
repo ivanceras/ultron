@@ -1,4 +1,4 @@
-#![deny(warnings)]
+#![allow(warnings)]
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::{
@@ -16,6 +16,12 @@ pub enum Command {
     PasteText,
     CopyText,
     CutText,
+}
+
+impl From<editor::Command> for Command {
+    fn from(ecommand: editor::Command) -> Self {
+        Self::EditorCommand(ecommand)
+    }
 }
 
 pub enum MouseCursor {
@@ -104,14 +110,6 @@ impl Component<Msg, ()> for WebEditor {
                 word_spacing: "normal",
                 word_break: "normal",
                 word_wrap: "normal",
-            },
-
-
-            ".hidden_textarea_wrapper": {
-                overflow: "hidden",
-                position: "relative",
-                width: px(300),
-                height: px(0),
             },
 
             ".code_wrapper": {

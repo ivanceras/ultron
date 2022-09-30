@@ -2,14 +2,16 @@ use crate::ultron_core::editor;
 use crate::web_editor;
 use crate::web_editor::WebEditor;
 use crate::web_editor::COMPONENT_NAME;
-use sauron::{html::attributes, jss_pretty, prelude::*, wasm_bindgen::JsCast};
+use sauron::{
+    html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast,
+};
 pub use ultron_core;
 use web_sys::HtmlDocument;
 
 pub enum Msg {
     TextareaMounted(web_sys::Node),
     TextareaInput(String),
-    TextareaKeydown(web_sys::KeyboardEvent),
+    //TextareaKeydown(web_sys::KeyboardEvent),
     Paste(String),
     EditorWebMsg(web_editor::Msg),
     Keydown(web_sys::KeyboardEvent),
@@ -22,6 +24,7 @@ pub enum Msg {
 pub struct App {
     web_editor: WebEditor,
     hidden_textarea: Option<web_sys::HtmlTextAreaElement>,
+    last_char_count: Option<usize>,
 }
 
 impl App {
@@ -29,6 +32,7 @@ impl App {
         Self {
             web_editor: WebEditor::new(),
             hidden_textarea: None,
+            last_char_count: None,
         }
     }
 
@@ -41,8 +45,10 @@ impl App {
             [
                 class_ns("hidden_textarea_wrapper"),
                 style! {
-                    top: px(cursor.y),
-                    left: px(cursor.x),
+                    //top: px(cursor.y),
+                    //left: px(cursor.x),
+                    top: 0,
+                    left: 0,
                     z_index: 99,
                 },
             ],
@@ -64,7 +70,7 @@ impl App {
                         Msg::Paste(pasted_text)
                     }),
                     // for listening to CTRL+C, CTRL+V, CTRL+X
-                    on_keydown(Msg::TextareaKeydown),
+                    //on_keydown(Msg::TextareaKeydown),
                     focus(true),
                     autofocus(true),
                     attr("autocorrect", "off"),
@@ -145,11 +151,20 @@ impl App {
         }
         false
     }
+
+    fn process_command(&mut self, wcommand: web_editor::Command) -> Vec<Msg> {
+        self.web_editor
+            .process_command(wcommand)
+            .into_iter()
+            .map(Msg::EditorWebMsg)
+            .collect()
+    }
 }
 
 impl Component<Msg, ()> for App {
     fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
         match msg {
+            /*
             Msg::TextareaKeydown(ke) => {
                 /*
                 let effects = self.web_editor.process_keypress(&ke);
@@ -157,13 +172,18 @@ impl Component<Msg, ()> for App {
                 */
                 Effects::none()
             }
+            */
+            Msg::Keydown(key_event) => {
+                let effects =
+                    self.web_editor.update(web_editor::Msg::Keydown(key_event));
+                effects.map_msg(Msg::EditorWebMsg)
+            }
             Msg::TextareaMounted(target_node) => {
                 self.hidden_textarea = Some(target_node.unchecked_into());
                 self.refocus_hidden_textarea();
                 Effects::none()
             }
             Msg::TextareaInput(input) => {
-                /*
                 let char_count = input.chars().count();
                 // for chrome:
                 // detect if the typed in character was a composed and becomes 1 unicode character
@@ -182,11 +202,12 @@ impl Component<Msg, ()> for App {
                     self.clear_hidden_textarea();
                     log::trace!("in textarea input char_count == 1..");
                     let c = input.chars().next().expect("must be only 1 chr");
-                    self.composed_key = Some(c);
                     let more_msgs = if c == '\n' {
-                        self.web_editor.process_command(Command::BreakLine)
+                        self.process_command(editor::Command::BreakLine.into())
                     } else {
-                        self.web_editor.process_command(Command::InsertChar(c))
+                        self.process_command(
+                            editor::Command::InsertChar(c).into(),
+                        )
                     };
                     msgs.extend(more_msgs);
                 } else {
@@ -195,21 +216,12 @@ impl Component<Msg, ()> for App {
                 self.last_char_count = Some(char_count);
                 log::trace!("extern messages");
                 Effects::new(msgs, vec![]).measure()
-                */
-                Effects::none()
             }
             Msg::Paste(text_content) => {
                 let msgs = self.web_editor.process_command(
-                    web_editor::Command::EditorCommand(
-                        editor::Command::InsertText(text_content),
-                    ),
+                    editor::Command::InsertText(text_content).into(),
                 );
                 Effects::new(msgs.into_iter().map(Msg::EditorWebMsg), vec![])
-            }
-            Msg::Keydown(key_event) => {
-                let effects =
-                    self.web_editor.update(web_editor::Msg::Keydown(key_event));
-                effects.map_msg(Msg::EditorWebMsg)
             }
             Msg::Mouseup(client_x, client_y) => {
                 let effects = self
@@ -238,7 +250,7 @@ impl Component<Msg, ()> for App {
 
     fn view(&self) -> Node<Msg> {
         div(
-            [],
+            [class("app")],
             [
                 self.web_editor.view().map_msg(Msg::EditorWebMsg),
                 //self.view_hidden_textarea(),
@@ -247,12 +259,19 @@ impl Component<Msg, ()> for App {
     }
 
     fn style(&self) -> String {
-        let css = jss_pretty! {
+        let css = jss_ns_pretty! {COMPONENT_NAME,
             ".app": {
                 display: "flex",
                 flex: "none",
                 width: percent(100),
                 height: percent(100),
+            },
+
+            ".hidden_textarea_wrapper": {
+                overflow: "hidden",
+                position: "relative",
+                width: px(300),
+                height: px(0),
             },
             // paste area hack, we don't want to use
             // the clipboard read api, since it needs permission from the user
@@ -260,11 +279,10 @@ impl Component<Msg, ()> for App {
             // so, pasting will be intercepted from this textarea
             ".hidden_textarea": {
                 resize: "none",
-                height: 0,
                 position: "absolute",
                 padding: 0,
                 width: px(300),
-                height: px(0),
+                height: px(10),
                 border:format!("{} solid black",px(1)),
                 bottom: units::em(-1),
                 outline: "none",
