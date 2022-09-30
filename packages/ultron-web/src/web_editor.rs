@@ -67,15 +67,7 @@ pub struct WebEditor {
 }
 
 impl WebEditor {
-    pub fn new() -> Self {
-        //let content = include_str!("../test_data/hello.rs");
-        let content = include_str!("../test_data/long.rs");
-        //let content = include_str!("../test_data/svgbob.md");
-        let options = Options {
-            syntax_token: "rust".to_string(),
-            theme_name: Some("solarized-light".to_string()),
-            ..Default::default()
-        };
+    pub fn from_str(options: Options, content: &str) -> Self {
         let editor = Editor::from_str(options.clone(), content);
         WebEditor {
             options,

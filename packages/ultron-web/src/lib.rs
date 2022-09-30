@@ -3,13 +3,17 @@ use app::App;
 pub use sauron;
 use sauron::prelude::*;
 pub use ultron_core::nalgebra;
+pub use ultron_core::Options;
+pub use ultron_core::TextBuffer;
+pub use web_editor::Command;
 pub use web_editor::MouseCursor;
+pub use web_editor::WebEditor;
 
 pub use ultron_core;
 
 pub(crate) mod app;
 pub(crate) mod util;
-pub(crate) mod web_editor;
+pub mod web_editor;
 
 #[wasm_bindgen(start)]
 pub fn main() {

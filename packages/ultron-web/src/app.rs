@@ -6,6 +6,7 @@ use sauron::{
     html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast,
 };
 pub use ultron_core;
+use ultron_core::Options;
 use web_sys::HtmlDocument;
 
 pub enum Msg {
@@ -29,8 +30,17 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
+        //let content = include_str!("../test_data/hello.rs");
+        let content = include_str!("../test_data/long.rs");
+        //let content = include_str!("../test_data/svgbob.md");
+
+        let options = Options {
+            syntax_token: "rust".to_string(),
+            theme_name: Some("solarized-light".to_string()),
+            ..Default::default()
+        };
         Self {
-            web_editor: WebEditor::new(),
+            web_editor: WebEditor::from_str(options, content),
             hidden_textarea: None,
             last_char_count: None,
         }
