@@ -229,7 +229,32 @@ impl Component<Msg, ()> for WebEditor {
     }
 
     fn view(&self) -> Node<Msg> {
-        div(vec![class("app")], vec![self.view_editor()])
+        div(
+            [
+                class(COMPONENT_NAME),
+                classes_flag_namespaced(
+                    COMPONENT_NAME,
+                    [("occupy_container", self.options.occupy_container)],
+                ),
+                on_mount(|mount_event| Msg::EditorMounted(mount_event)),
+                style! {
+                    cursor: self.mouse_cursor.to_str(),
+                },
+            ],
+            [
+                if self.options.use_syntax_highlighter {
+                    self.view_highlighted_lines(
+                        self.editor.highlighted_lines(),
+                        self.theme_background(),
+                    )
+                } else {
+                    //self.plain_view()
+                    span([], [])
+                },
+                view_if(self.options.show_status_line, self.view_status_line()),
+                view_if(self.options.show_cursor, self.view_virtual_cursor()),
+            ],
+        )
     }
 
     fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
@@ -709,35 +734,6 @@ impl WebEditor {
         text_buffer_view(self.text_edit.text_buffer(), &self.options)
     }
     */
-
-    fn view_editor(&self) -> Node<Msg> {
-        div(
-            [
-                class(COMPONENT_NAME),
-                classes_flag_namespaced(
-                    COMPONENT_NAME,
-                    [("occupy_container", self.options.occupy_container)],
-                ),
-                on_mount(|mount_event| Msg::EditorMounted(mount_event)),
-                style! {
-                    cursor: self.mouse_cursor.to_str(),
-                },
-            ],
-            [
-                if self.options.use_syntax_highlighter {
-                    self.view_highlighted_lines(
-                        self.editor.highlighted_lines(),
-                        self.theme_background(),
-                    )
-                } else {
-                    //self.plain_view()
-                    span([], [])
-                },
-                view_if(self.options.show_status_line, self.view_status_line()),
-                view_if(self.options.show_cursor, self.view_virtual_cursor()),
-            ],
-        )
-    }
 
     /// height of the status line which displays editor infor such as cursor location
     pub fn status_line_height(&self) -> i32 {
