@@ -1,7 +1,8 @@
-use crate::ultron_core::editor;
-use crate::web_editor;
-use crate::web_editor::WebEditor;
-use crate::web_editor::COMPONENT_NAME;
+use crate::{
+    ultron_core::editor,
+    web_editor,
+    web_editor::{WebEditor, COMPONENT_NAME},
+};
 use sauron::{
     html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast,
 };

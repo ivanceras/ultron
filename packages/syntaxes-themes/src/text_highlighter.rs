@@ -1,11 +1,5 @@
 use crate::{
-    Color,
-    HighlightLines,
-    Style,
-    SyntaxReference,
-    SyntaxSet,
-    Theme,
-    ThemeSet,
+    Color, HighlightLines, Style, SyntaxReference, SyntaxSet, Theme, ThemeSet,
 };
 
 const DEFAULT_THEME: &str = "solarized-light";

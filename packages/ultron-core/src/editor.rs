@@ -2,8 +2,7 @@ pub use crate::Selection;
 use crate::TextEdit;
 use nalgebra::Point2;
 use std::rc::Rc;
-pub use ultron_syntaxes_themes::Style;
-pub use ultron_syntaxes_themes::TextHighlighter;
+pub use ultron_syntaxes_themes::{Style, TextHighlighter};
 
 #[derive(Clone, Debug)]
 pub struct Options {

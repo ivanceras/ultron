@@ -2,12 +2,8 @@
 use app::App;
 pub use sauron;
 use sauron::prelude::*;
-pub use ultron_core::nalgebra;
-pub use ultron_core::Options;
-pub use ultron_core::TextBuffer;
-pub use web_editor::Command;
-pub use web_editor::MouseCursor;
-pub use web_editor::WebEditor;
+pub use ultron_core::{nalgebra, Options, TextBuffer};
+pub use web_editor::{Command, MouseCursor, WebEditor};
 
 pub use ultron_core;
 

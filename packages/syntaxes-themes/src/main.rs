@@ -1,15 +1,8 @@
-use std::{
-    fs,
-    io,
-    path::Path,
-};
+use std::{fs, io, path::Path};
 use syntect::{
     dumps,
     highlighting::ThemeSet,
-    parsing::{
-        SyntaxSet,
-        SyntaxSetBuilder,
-    },
+    parsing::{SyntaxSet, SyntaxSetBuilder},
 };
 
 //NOTE: syntect is not always compatible with the latest

@@ -3,16 +3,8 @@ use once_cell::sync::Lazy;
 use syntect::dumps;
 pub use syntect::{
     easy::HighlightLines,
-    highlighting::{
-        Color,
-        Style,
-        Theme,
-        ThemeSet,
-    },
-    parsing::{
-        SyntaxReference,
-        SyntaxSet,
-    },
+    highlighting::{Color, Style, Theme, ThemeSet},
+    parsing::{SyntaxReference, SyntaxSet},
 };
 pub use text_highlighter::TextHighlighter;
 
