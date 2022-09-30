@@ -1,5 +1,5 @@
 use crate::ultron_core::Color;
-use crate::Point2;
+use crate::ultron_core::Point2;
 use css_colors::RGBA;
 use std::fmt::Debug;
 
