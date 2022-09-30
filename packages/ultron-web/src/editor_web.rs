@@ -3,14 +3,20 @@ use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::{
     html::attributes, jss_ns, jss_pretty, prelude::*, wasm_bindgen::JsCast,
-    web_sys::HtmlDocument,
 };
 pub use ultron_core;
-use ultron_core::{editor, nalgebra::Point2, Command, Editor, Options};
+use ultron_core::{editor, nalgebra::Point2, Editor, Options};
 
 pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
 pub const CH_HEIGHT: u32 = 16;
+
+pub enum Command {
+    EditorCommand(editor::Command),
+    PasteText,
+    CopyText,
+    CutText,
+}
 
 pub enum MouseCursor {
     Text,
@@ -39,28 +45,18 @@ impl MouseCursor {
 #[derive(Debug, Clone)]
 pub enum Msg {
     EditorMounted(MountEvent),
-    WindowScrolled((i32, i32)),
-    WindowResized(i32, i32),
+    //TODO: Turn this into a generic keyboard event
     Keydown(web_sys::KeyboardEvent),
     Mouseup(i32, i32),
     Mousedown(i32, i32),
     Mousemove(i32, i32),
-    TextareaKeydown(web_sys::KeyboardEvent),
-    TextareaInput(String),
-    Paste(String),
-    TextareaMounted(web_sys::Node),
 }
 
 /// rename this to WebEditor
 pub struct EditorWeb {
     options: Options,
     editor: Editor<Msg>,
-    hidden_textarea: Option<web_sys::HtmlTextAreaElement>,
-    composed_key: Option<char>,
-    last_char_count: Option<usize>,
     editor_element: Option<web_sys::Element>,
-    measurements: Option<Measurements>,
-    average_update_time: Option<f64>,
     mouse_cursor: MouseCursor,
 }
 
@@ -78,12 +74,7 @@ impl EditorWeb {
         EditorWeb {
             options,
             editor,
-            hidden_textarea: None,
-            composed_key: None,
-            last_char_count: None,
             editor_element: None,
-            measurements: None,
-            average_update_time: None,
             mouse_cursor: MouseCursor::default(),
         }
     }
@@ -264,41 +255,34 @@ impl Component<Msg, ()> for EditorWeb {
     }
 
     fn view(&self) -> Node<Msg> {
-        div(
-            vec![class("app")],
-            vec![
-                self.view_editor(),
-                //self.view_hidden_textarea(),
-            ],
-        )
+        div(vec![class("app")], vec![self.view_editor()])
     }
 
     fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
         match msg {
-            Msg::WindowScrolled((_scroll_top, _scroll_left)) => Effects::none(),
-            Msg::WindowResized(_width, _height) => Effects::none(),
-            Msg::Mouseup(client_x, client_y) => {
-                let cursor = self.client_to_cursor_clamped(client_x, client_y);
-                self.editor
-                    .process_command(Command::SetPosition(cursor.x, cursor.y));
-                self.editor.set_selection_end(cursor);
-                let selection = self.editor.selection();
-                if let (Some(start), Some(end)) =
-                    (selection.start, selection.end)
-                {
-                    let msgs = self
-                        .editor
-                        .process_command(Command::SetSelection(start, end));
-                    Effects::new(msgs, vec![])
-                } else {
-                    Effects::none()
-                }
-            }
             Msg::EditorMounted(mount_event) => {
                 let mount_element: web_sys::Element =
                     mount_event.target_node.unchecked_into();
                 self.editor_element = Some(mount_element);
                 Effects::none()
+            }
+            Msg::Mouseup(client_x, client_y) => {
+                let cursor = self.client_to_cursor_clamped(client_x, client_y);
+                self.editor.process_command(editor::Command::SetPosition(
+                    cursor.x, cursor.y,
+                ));
+                self.editor.set_selection_end(cursor);
+                let selection = self.editor.selection();
+                if let (Some(start), Some(end)) =
+                    (selection.start, selection.end)
+                {
+                    let msgs = self.editor.process_command(
+                        editor::Command::SetSelection(start, end),
+                    );
+                    Effects::new(msgs, vec![])
+                } else {
+                    Effects::none()
+                }
             }
             Msg::Mousedown(client_x, client_y) => {
                 if self.in_bounds(client_x as f32, client_y as f32) {
@@ -306,7 +290,7 @@ impl Component<Msg, ()> for EditorWeb {
                         self.client_to_cursor_clamped(client_x, client_y);
                     self.editor.set_selection_start(cursor);
                     let msgs = self.editor.process_command(
-                        Command::SetPosition(cursor.x, cursor.y),
+                        editor::Command::SetPosition(cursor.x, cursor.y),
                     );
                     Effects::new(msgs, vec![]).measure()
                 } else {
@@ -322,7 +306,7 @@ impl Component<Msg, ()> for EditorWeb {
                     let selection = self.editor.selection();
                     if let Some(start) = selection.start {
                         let msgs = self.editor.process_command(
-                            Command::SetSelection(start, cursor),
+                            editor::Command::SetSelection(start, cursor),
                         );
                         Effects::new(msgs, vec![]).measure()
                     } else {
@@ -333,200 +317,93 @@ impl Component<Msg, ()> for EditorWeb {
                 }
             }
             Msg::Keydown(ke) => self.process_keypress(&ke),
-            Msg::TextareaKeydown(ke) => self.process_keypress(&ke),
-            Msg::TextareaMounted(target_node) => {
-                self.hidden_textarea = Some(target_node.unchecked_into());
-                self.refocus_hidden_textarea();
-                Effects::none()
-            }
-            Msg::TextareaInput(input) => {
-                let char_count = input.chars().count();
-                // for chrome:
-                // detect if the typed in character was a composed and becomes 1 unicode character
-                let char_count_decreased =
-                    if let Some(last_char_count) = self.last_char_count {
-                        last_char_count > 1
-                    } else {
-                        false
-                    };
-                // firefox doesn't register compose key strokes as input
-                // if there were 1 char then it was cleared
-                let was_cleared = self.last_char_count == Some(0);
-
-                let mut msgs = vec![];
-                if char_count == 1 && (was_cleared || char_count_decreased) {
-                    self.clear_hidden_textarea();
-                    log::trace!("in textarea input char_count == 1..");
-                    let c = input.chars().next().expect("must be only 1 chr");
-                    self.composed_key = Some(c);
-                    let more_msgs = if c == '\n' {
-                        self.editor.process_command(Command::BreakLine)
-                    } else {
-                        self.editor.process_command(Command::InsertChar(c))
-                    };
-                    msgs.extend(more_msgs);
-                } else {
-                    log::trace!("char is not inserted becase char_count: {}, was_cleared: {}, char_count_decreased: {}", char_count, was_cleared, char_count_decreased);
-                }
-                self.last_char_count = Some(char_count);
-                log::trace!("extern messages");
-                Effects::new(msgs, vec![]).measure()
-            }
-
-            Msg::Paste(text_content) => {
-                let msgs = self
-                    .editor
-                    .process_command(Command::InsertText(text_content));
-                Effects::new(msgs, vec![])
-            }
         }
     }
 }
 
 impl EditorWeb {
+    #[allow(unused)]
     pub fn set_mouse_cursor(&mut self, mouse_cursor: MouseCursor) {
         self.mouse_cursor = mouse_cursor;
     }
-    #[allow(unused)]
-    fn view_hidden_textarea(&self) -> Node<Msg> {
-        let class_ns = |class_names| {
-            attributes::class_namespaced(COMPONENT_NAME, class_names)
-        };
-        let cursor = self.cursor_to_client();
-        div(
-            [
-                class_ns("hidden_textarea_wrapper"),
-                style! {
-                    top: px(cursor.y),
-                    left: px(cursor.x),
-                    z_index: 99,
-                },
-            ],
-            [textarea(
-                [
-                    class_ns("hidden_textarea"),
-                    on_mount(|mount| Msg::TextareaMounted(mount.target_node)),
-                    #[cfg(web_sys_unstable_apis)]
-                    on_paste(|ce| {
-                        let pasted_text = ce
-                            .clipboard_data()
-                            .expect("must have data transfer")
-                            .get_data("text/plain")
-                            .expect("must be text data");
-                        log::trace!(
-                            "paste triggered from textarea: {}",
-                            pasted_text
-                        );
-                        Msg::Paste(pasted_text)
-                    }),
-                    // for listening to CTRL+C, CTRL+V, CTRL+X
-                    on_keydown(Msg::TextareaKeydown),
-                    focus(true),
-                    autofocus(true),
-                    attr("autocorrect", "off"),
-                    autocapitalize("none"),
-                    autocomplete("off"),
-                    spellcheck("off"),
-                    // for processing unicode characters typed via: CTRL+U<unicode number> (linux),
-                    on_input(|input| Msg::TextareaInput(input.value)),
-                ],
-                [],
-            )],
-        )
-    }
 
-    /// make this into keypress to command
-    fn process_keypress(
-        &mut self,
-        ke: &web_sys::KeyboardEvent,
-    ) -> Effects<Msg, ()> {
+    pub fn keyevent_to_command(ke: &web_sys::KeyboardEvent) -> Option<Command> {
         let is_ctrl = ke.ctrl_key();
         let is_shift = ke.shift_key();
         let key = ke.key();
         if key.chars().count() == 1 {
             log::trace!("inserting from window keydown event");
             let c = key.chars().next().expect("must be only 1 chr");
-            match c {
-                'c' if is_ctrl => {
-                    self.command_copy();
-                    Effects::none()
-                }
-                'x' if is_ctrl => {
-                    self.command_cut();
-                    Effects::none()
-                }
+            let command = match c {
+                'c' if is_ctrl => Command::CopyText,
+                'x' if is_ctrl => Command::CutText,
                 'v' if is_ctrl => {
                     log::trace!("pasting is handled");
-                    self.clear_hidden_textarea();
-                    Effects::none()
+                    Command::PasteText
                 }
                 'z' | 'Z' if is_ctrl => {
                     if is_shift {
-                        self.editor.process_command(Command::Redo);
+                        Command::EditorCommand(editor::Command::Redo)
                     } else {
-                        self.editor.process_command(Command::Undo);
+                        Command::EditorCommand(editor::Command::Undo)
                     }
-                    Effects::none()
                 }
                 'a' if is_ctrl => {
-                    self.editor.process_command(Command::SelectAll);
-                    Effects::none()
+                    Command::EditorCommand(editor::Command::SelectAll)
                 }
-                _ => {
-                    self.editor.process_command(Command::InsertChar(c));
-                    Effects::none()
-                }
-            }
+                _ => Command::EditorCommand(editor::Command::InsertChar(c)),
+            };
+
+            Some(command)
         } else {
-            let command = match &*key {
-                "Tab" => Some(Command::IndentForward),
-                "Enter" => Some(Command::BreakLine),
-                "Backspace" => Some(Command::DeleteBack),
-                "Delete" => Some(Command::DeleteForward),
-                "ArrowUp" => Some(Command::MoveUp),
-                "ArrowDown" => Some(Command::MoveDown),
-                "ArrowLeft" => Some(Command::MoveLeft),
-                "ArrowRight" => Some(Command::MoveRight),
+            let editor_command = match &*key {
+                "Tab" => Some(editor::Command::IndentForward),
+                "Enter" => Some(editor::Command::BreakLine),
+                "Backspace" => Some(editor::Command::DeleteBack),
+                "Delete" => Some(editor::Command::DeleteForward),
+                "ArrowUp" => Some(editor::Command::MoveUp),
+                "ArrowDown" => Some(editor::Command::MoveDown),
+                "ArrowLeft" => Some(editor::Command::MoveLeft),
+                "ArrowRight" => Some(editor::Command::MoveRight),
                 _ => None,
             };
-            if let Some(command) = command {
-                let msgs = self.editor.process_command(command);
-                Effects::new(msgs, vec![])
-            } else {
-                Effects::none()
-            }
+            editor_command.map(Command::EditorCommand)
         }
     }
 
-    fn clear_hidden_textarea(&self) {
-        if let Some(element) = &self.hidden_textarea {
-            element.set_value("");
+    /// make this into keypress to command
+    pub fn process_keypress(
+        &mut self,
+        ke: &web_sys::KeyboardEvent,
+    ) -> Effects<Msg, ()> {
+        if let Some(command) = Self::keyevent_to_command(ke) {
+            let msgs = self.process_command(command);
+            Effects::new(msgs, vec![])
         } else {
-            panic!("there should always be hidden textarea");
+            Effects::none()
         }
     }
 
-    fn refocus_hidden_textarea(&self) {
-        if let Some(element) = &self.hidden_textarea {
-            element.focus().expect("must focus the textarea");
-        }
-    }
-
-    /// set the content of the textarea to selection
-    ///
-    /// Note: This is necessary for webkit2.
-    /// webkit2 doesn't seem to allow to fire the setting of textarea value, select and copy
-    /// in the same animation frame.
-    #[allow(unused)]
-    fn set_hidden_textarea_with_selection(&self) {
-        if let Some(selected_text) = self.editor.selected_text() {
-            if let Some(ref hidden_textarea) = self.hidden_textarea {
-                hidden_textarea.set_value(&selected_text);
-                hidden_textarea.select();
+    pub fn process_command(&mut self, command: Command) -> Vec<Msg> {
+        match command {
+            Command::EditorCommand(ecommand) => {
+                self.editor.process_command(ecommand)
             }
+            Command::PasteText => todo!(),
+            Command::CopyText => todo!(),
+            Command::CutText => todo!(),
         }
     }
 
+    pub fn selected_text(&self) -> Option<String> {
+        self.editor.selected_text()
+    }
+
+    pub fn cut_selected_text(&mut self) -> Option<String> {
+        self.editor.cut_selected_text()
+    }
+
+    /*
     /// this is for newer browsers
     /// This doesn't work on webkit2
     #[cfg(web_sys_unstable_apis)]
@@ -546,44 +423,6 @@ impl EditorWeb {
 
     #[cfg(not(feature = "with-navigator-clipboard"))]
     fn copy_to_clipboard(&self) -> bool {
-        false
-    }
-
-    /// execute copy on the selected textarea
-    /// this works even on older browser
-    fn textarea_exec_copy(&self) -> bool {
-        if let Some(selected_text) = self.editor.selected_text() {
-            if let Some(ref hidden_textarea) = self.hidden_textarea {
-                hidden_textarea.set_value(&selected_text);
-                hidden_textarea.select();
-                let html_document: HtmlDocument =
-                    sauron::document().unchecked_into();
-                if let Ok(ret) = html_document.exec_command("copy") {
-                    hidden_textarea.set_value("");
-                    log::trace!("exec_copy ret: {}", ret);
-                    return ret;
-                }
-            }
-        }
-        false
-    }
-
-    /// returns true if the command succeeded
-    fn textarea_exec_cut(&mut self) -> bool {
-        if let Some(selected_text) = self.editor.cut_selected_text() {
-            if let Some(ref hidden_textarea) = self.hidden_textarea {
-                log::trace!("setting the value to textarea: {}", selected_text);
-                hidden_textarea.set_value(&selected_text);
-
-                hidden_textarea.select();
-                let html_document: HtmlDocument =
-                    sauron::document().unchecked_into();
-                if let Ok(ret) = html_document.exec_command("cut") {
-                    hidden_textarea.set_value("");
-                    return ret;
-                }
-            }
-        }
         false
     }
 
@@ -628,6 +467,7 @@ impl EditorWeb {
     fn cut_to_clipboard(&mut self) -> bool {
         false
     }
+    */
 
     pub fn bounding_rect(&self) -> Option<(Point2<f32>, Point2<f32>)> {
         if let Some(ref editor_element) = self.editor_element {
@@ -662,6 +502,7 @@ impl EditorWeb {
         }
     }
 
+    #[allow(unused)]
     pub fn relative_client(&self, client_x: i32, client_y: i32) -> Point2<i32> {
         let editor = self.editor_offset().expect("must have an editor offset");
         let x = client_x as f32 - editor.x;
@@ -792,24 +633,6 @@ impl EditorWeb {
             ],
             [
                 text!("line: {}, col: {} ", cursor.y + 1, cursor.x + 1),
-                if let Some(measurements) = &self.measurements {
-                    text!(
-                        "| msgs: {} | patches: {} | nodes: {} | view time: {}ms | patch time: {}ms | update time: {}ms",
-                        measurements.msg_count,
-                        measurements.total_patches,
-                        measurements.view_node_count,
-                        measurements.build_view_took.round(),
-                        measurements.dom_update_took.round(),
-                        measurements.total_time.round(),
-                    )
-                } else {
-                    comment("")
-                },
-                if let Some(average_update_time) = self.average_update_time {
-                    text!("| average time: {:.2}ms", average_update_time)
-                } else {
-                    comment("")
-                },
                 text!("| version:{}", env!("CARGO_PKG_VERSION")),
                 text!("| lines: {}", self.editor.total_lines()),
             ],
