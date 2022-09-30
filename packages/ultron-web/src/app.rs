@@ -2,7 +2,7 @@ use crate::ultron_core::editor;
 use crate::web_editor;
 use crate::web_editor::WebEditor;
 use crate::web_editor::COMPONENT_NAME;
-use sauron::{html::attributes, prelude::*, wasm_bindgen::JsCast};
+use sauron::{html::attributes, jss_pretty, prelude::*, wasm_bindgen::JsCast};
 pub use ultron_core;
 use web_sys::HtmlDocument;
 
@@ -247,7 +247,31 @@ impl Component<Msg, ()> for App {
     }
 
     fn style(&self) -> String {
-        self.web_editor.style()
+        let css = jss_pretty! {
+            ".app": {
+                display: "flex",
+                flex: "none",
+                width: percent(100),
+                height: percent(100),
+            },
+            // paste area hack, we don't want to use
+            // the clipboard read api, since it needs permission from the user
+            // create a textarea instead, where it is focused all the time
+            // so, pasting will be intercepted from this textarea
+            ".hidden_textarea": {
+                resize: "none",
+                height: 0,
+                position: "absolute",
+                padding: 0,
+                width: px(300),
+                height: px(0),
+                border:format!("{} solid black",px(1)),
+                bottom: units::em(-1),
+                outline: "none",
+            },
+        };
+
+        [css, self.web_editor.style()].join("\n")
     }
 }
 

@@ -2,7 +2,7 @@
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::{
-    html::attributes, jss_ns, jss_pretty, prelude::*, wasm_bindgen::JsCast,
+    html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast,
 };
 pub use ultron_core;
 use ultron_core::{editor, nalgebra::Point2, Editor, Options};
@@ -85,7 +85,7 @@ impl Component<Msg, ()> for WebEditor {
         let cursor_color = rgba(0, 0, 0, 1.0);
         let border_color = rgba(0, 0, 0, 1.0);
 
-        let editor_css = jss_ns! {COMPONENT_NAME,
+        jss_ns_pretty! {COMPONENT_NAME,
             ".": {
                 position: "relative",
                 font_size: px(14),
@@ -225,33 +225,7 @@ impl Component<Msg, ()> for WebEditor {
               },
             },
 
-        };
-
-        let lib_css = jss_pretty! {
-            ".app": {
-                display: "flex",
-                flex: "none",
-                width: percent(100),
-                height: percent(100),
-            },
-            // paste area hack, we don't want to use
-            // the clipboard read api, since it needs permission from the user
-            // create a textarea instead, where it is focused all the time
-            // so, pasting will be intercepted from this textarea
-            ".hidden_textarea": {
-                resize: "none",
-                height: 0,
-                position: "absolute",
-                padding: 0,
-                width: px(300),
-                height: px(0),
-                border:format!("{} solid black",px(1)),
-                bottom: units::em(-1),
-                outline: "none",
-            },
-        };
-
-        [lib_css, editor_css].join("\n")
+        }
     }
 
     fn view(&self) -> Node<Msg> {
