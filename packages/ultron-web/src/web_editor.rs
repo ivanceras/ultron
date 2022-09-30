@@ -316,6 +316,18 @@ impl WebEditor {
         self.mouse_cursor = mouse_cursor;
     }
 
+    pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
+        self.editor.get_char(x, y)
+    }
+
+    pub fn get_position(&self) -> Point2<usize> {
+        self.editor.get_position()
+    }
+
+    pub fn rehighlight(&mut self) {
+        self.editor.rehighlight()
+    }
+
     pub fn keyevent_to_command(ke: &web_sys::KeyboardEvent) -> Option<Command> {
         let is_ctrl = ke.ctrl_key();
         let is_shift = ke.shift_key();
