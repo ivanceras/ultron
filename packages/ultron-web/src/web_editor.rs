@@ -62,14 +62,14 @@ pub enum Msg {
 }
 
 /// rename this to WebEditor
-pub struct WebEditor {
+pub struct WebEditor<XMSG> {
     options: Options,
-    editor: Editor<Msg>,
+    editor: Editor<XMSG>,
     editor_element: Option<web_sys::Element>,
     mouse_cursor: MouseCursor,
 }
 
-impl WebEditor {
+impl<XMSG> WebEditor<XMSG> {
     pub fn from_str(options: Options, content: &str) -> Self {
         let editor = Editor::from_str(options.clone(), content);
         WebEditor {
@@ -79,9 +79,23 @@ impl WebEditor {
             mouse_cursor: MouseCursor::default(),
         }
     }
+
+    pub fn add_on_change_listener<F>(&mut self, f: F)
+    where
+        F: Fn(String) -> XMSG + 'static,
+    {
+        self.editor.add_on_change_listener(f);
+    }
+
+    pub fn add_on_change_notify<F>(&mut self, f: F)
+    where
+        F: Fn(()) -> XMSG + 'static,
+    {
+        self.editor.add_on_change_notify(f);
+    }
 }
 
-impl Component<Msg, ()> for WebEditor {
+impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
     fn style(&self) -> String {
         let cursor_color = rgba(0, 0, 0, 1.0);
         let border_color = rgba(0, 0, 0, 1.0);
@@ -241,8 +255,7 @@ impl Component<Msg, ()> for WebEditor {
                         self.theme_background(),
                     )
                 } else {
-                    //self.plain_view()
-                    span([], [])
+                    self.plain_view()
                 },
                 view_if(self.options.show_status_line, self.view_status_line()),
                 view_if(self.options.show_cursor, self.view_virtual_cursor()),
@@ -250,7 +263,7 @@ impl Component<Msg, ()> for WebEditor {
         )
     }
 
-    fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
+    fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
             Msg::EditorMounted(mount_event) => {
                 let mount_element: web_sys::Element =
@@ -271,7 +284,7 @@ impl Component<Msg, ()> for WebEditor {
                     let msgs = self.editor.process_command(
                         editor::Command::SetSelection(start, end),
                     );
-                    Effects::new(msgs, vec![])
+                    Effects::new(vec![], msgs)
                 } else {
                     Effects::none()
                 }
@@ -284,7 +297,7 @@ impl Component<Msg, ()> for WebEditor {
                     let msgs = self.editor.process_command(
                         editor::Command::SetPosition(cursor.x, cursor.y),
                     );
-                    Effects::new(msgs, vec![]).measure()
+                    Effects::new(vec![], msgs).measure()
                 } else {
                     Effects::none()
                 }
@@ -300,7 +313,7 @@ impl Component<Msg, ()> for WebEditor {
                         let msgs = self.editor.process_command(
                             editor::Command::SetSelection(start, cursor),
                         );
-                        Effects::new(msgs, vec![]).measure()
+                        Effects::new(vec![], msgs).measure()
                     } else {
                         Effects::none()
                     }
@@ -313,7 +326,7 @@ impl Component<Msg, ()> for WebEditor {
     }
 }
 
-impl WebEditor {
+impl<XMSG> WebEditor<XMSG> {
     #[allow(unused)]
     pub fn set_mouse_cursor(&mut self, mouse_cursor: MouseCursor) {
         self.mouse_cursor = mouse_cursor;
@@ -379,16 +392,16 @@ impl WebEditor {
     pub fn process_keypress(
         &mut self,
         ke: &web_sys::KeyboardEvent,
-    ) -> Effects<Msg, ()> {
+    ) -> Effects<Msg, XMSG> {
         if let Some(command) = Self::keyevent_to_command(ke) {
             let msgs = self.process_command(command);
-            Effects::new(msgs, vec![])
+            Effects::new(vec![], msgs)
         } else {
             Effects::none()
         }
     }
 
-    pub fn process_command(&mut self, command: Command) -> Vec<Msg> {
+    pub fn process_command(&mut self, command: Command) -> Vec<XMSG> {
         match command {
             Command::EditorCommand(ecommand) => {
                 self.editor.process_command(ecommand)
@@ -734,11 +747,9 @@ impl WebEditor {
         }
     }
 
-    /*
     pub fn plain_view<MSG>(&self) -> Node<MSG> {
-        text_buffer_view(self.text_edit.text_buffer(), &self.options)
+        view_text_buffer(self.editor.text_buffer(), &self.options)
     }
-    */
 
     /// height of the status line which displays editor infor such as cursor location
     pub fn status_line_height(&self) -> i32 {
@@ -746,9 +757,8 @@ impl WebEditor {
     }
 }
 
-/*
-pub fn text_buffer_view<MSG>(
-    text_buffer: &TextBuffer,
+pub fn view_text_buffer<MSG>(
+    text_buffer: &crate::TextBuffer,
     options: &Options,
 ) -> Node<MSG> {
     let class_ns =
@@ -777,4 +787,3 @@ pub fn text_buffer_view<MSG>(
         )
     }
 }
-*/

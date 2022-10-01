@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Code editor</title>
+    <style type="text/css">
+        @font-face {
+          font-family: 'Iosevka Fixed';
+          src: url('fonts/iosevka-fixed-regular.woff2') format('woff2'), url('fonts/iosevka-fixed-regular.ttf') format('truetype');
+        }
+        @font-face {
+          font-family: 'Ubuntu';
+          src: url('fonts/Ubuntu-Regular.ttf') format('truetype');
+        }
+        html {
+            height: 100%;
+        }
+        body {
+            font-family: "Iosevka Fixed", "Ubuntu", "Fira Sans", "Courier New", Courier,"Lucida Sans Typewriter","Lucida Typewriter",monospace;
+            margin: 0;
+            /*background-color: rgba(0,43,54,1.0);*/
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+
+        #app_container{
+          width: 100%;
+          height: 100%;
+          position: relative;
+        }
+
+        .ultron code, .ultron pre{
+            font-family: "Iosevka Fixed";
+        }
+
+        .preload_spinner {
+          top: 50%;
+          left: 50%;
+          position: absolute;
+          z-index: 1000;
+          display: block;
+          opacity: 1;
+          min-height: 90px;
+          transition: all 250ms ease-out;
+        }
+
+        .preload_spinner::before, .preload_spinner::after {
+          content: '';
+          border-top: 5px solid rgba(2, 157, 187, 1.00);
+          border-bottom: 5px solid rgba(2, 157, 187, 1.00);
+          box-shadow: 0 0 8px rgba(2, 157, 187, 1.00);
+          display: block;
+          position: absolute;
+          transition: all 250ms ease-out;
+          border-left: 5px solid transparent;
+          border-right: 5px solid transparent;
+          border-radius: 50%;
+          background-color: transparent;
+        }
+
+        .preload_spinner::before {
+          width: 50px;
+          height: 50px;
+          animation: preload_spinner-circle1 750ms infinite linear;
+          margin-top: -25px;
+          margin-left: -25px;
+        }
+
+        .preload_spinner::after {
+          width: 30px;
+          height: 30px;
+          animation: preload_spinner-circle2 750ms infinite linear;
+          margin-top: -15px;
+          margin-left: -15px;
+        }
+
+        @keyframes preload_spinner-circle1 {
+          0% {
+            transform: rotate(160deg);
+            opacity: 0;
+          }
+          50% {
+            transform: rotate(145deg);
+            opacity: 1;
+          }
+          100% {
+            transform: rotate(-320deg);
+            opacity: 0;
+          }
+        }
+
+        @keyframes preload_spinner-circle2 {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+    </style>
+    <link rel="modulepreload" href="./pkg/ultron_app.js">
+    <link rel="modulepreload" href="./pkg/ultron_app.wasm">
+  </head>
+  <body>
+    <main id="app_container">
+        <div class="preload_spinner"></div>
+    </main>
+    <script type=module>
+      import wasm_bindgen from './pkg/ultron_app.js';
+      async function start(){
+        await wasm_bindgen().catch(console.error);
+      }
+      start();
+    </script>
+  </body>
+</html>

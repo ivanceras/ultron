@@ -1,4 +1,5 @@
 pub use crate::Selection;
+use crate::TextBuffer;
 use crate::TextEdit;
 use nalgebra::Point2;
 use std::rc::Rc;
@@ -148,6 +149,10 @@ impl<XMSG> Editor<XMSG> {
             change_listeners: vec![],
             change_notify_listeners: vec![],
         }
+    }
+
+    pub fn text_buffer(&self) -> &TextBuffer {
+        &self.text_edit.text_buffer()
     }
 
     pub fn set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
@@ -413,6 +418,14 @@ impl<XMSG> Editor<XMSG> {
         self
     }
 
+    pub fn add_on_change_listener<F>(&mut self, f: F)
+    where
+        F: Fn(String) -> XMSG + 'static,
+    {
+        let cb = Callback::from(f);
+        self.change_listeners.push(cb);
+    }
+
     /// Attach an callback to this editor where it is invoked when the content is changed.
     /// The callback function just notifies the parent component that uses the Editor component.
     /// It will be up to the parent component to extract the content of the editor manually.
@@ -428,6 +441,14 @@ impl<XMSG> Editor<XMSG> {
         let cb = Callback::from(f);
         self.change_notify_listeners.push(cb);
         self
+    }
+
+    pub fn add_on_change_notify<F>(&mut self, f: F)
+    where
+        F: Fn(()) -> XMSG + 'static,
+    {
+        let cb = Callback::from(f);
+        self.change_notify_listeners.push(cb);
     }
 
     fn emit_on_change_listeners(&self) -> Vec<XMSG> {
