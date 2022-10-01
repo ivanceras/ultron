@@ -163,9 +163,12 @@ impl App {
         false
     }
 
-    fn process_command(&mut self, wcommand: web_editor::Command) -> Vec<Msg> {
+    fn process_command(
+        &mut self,
+        wcommand: impl Into<web_editor::Command>,
+    ) -> Vec<Msg> {
         self.web_editor
-            .process_command(wcommand)
+            .process_command(wcommand.into())
             .into_iter()
             .map(Msg::EditorWebMsg)
             .collect()
@@ -214,11 +217,9 @@ impl Component<Msg, ()> for App {
                     log::trace!("in textarea input char_count == 1..");
                     let c = input.chars().next().expect("must be only 1 chr");
                     let more_msgs = if c == '\n' {
-                        self.process_command(editor::Command::BreakLine.into())
+                        self.process_command(editor::Command::BreakLine)
                     } else {
-                        self.process_command(
-                            editor::Command::InsertChar(c).into(),
-                        )
+                        self.process_command(editor::Command::InsertChar(c))
                     };
                     msgs.extend(more_msgs);
                 } else {
@@ -229,10 +230,9 @@ impl Component<Msg, ()> for App {
                 Effects::new(msgs, vec![]).measure()
             }
             Msg::Paste(text_content) => {
-                let msgs = self.web_editor.process_command(
-                    editor::Command::InsertText(text_content).into(),
-                );
-                Effects::new(msgs.into_iter().map(Msg::EditorWebMsg), vec![])
+                let msgs = self
+                    .process_command(editor::Command::InsertText(text_content));
+                Effects::new(msgs, vec![])
             }
             Msg::Mouseup(client_x, client_y) => {
                 let effects = self

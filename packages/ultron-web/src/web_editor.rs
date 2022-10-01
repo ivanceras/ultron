@@ -13,8 +13,11 @@ pub const CH_HEIGHT: u32 = 16;
 
 pub enum Command {
     EditorCommand(editor::Command),
+    /// execute paste text
     PasteText,
+    /// execute copy text
     CopyText,
+    /// execute cut text
     CutText,
 }
 
