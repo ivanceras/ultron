@@ -96,16 +96,13 @@ impl<XMSG> WebEditor<XMSG> {
 
 impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
     fn style(&self) -> String {
-        let cursor_color = rgba(0, 0, 0, 1.0);
-        let border_color = rgba(0, 0, 0, 1.0);
-
         jss_ns_pretty! {COMPONENT_NAME,
             ".": {
                 position: "relative",
                 font_size: px(14),
                 white_space: "normal",
-                user_select: "none",
-                "-webkit-user-select": "none",
+                //user_select: "none",
+                //"-webkit-user-select": "none",
             },
 
             ".occupy_container": {
@@ -131,8 +128,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 // to make the background color extend to the longest line, otherwise only the
                 // longest lines has a background-color leaving the shorter lines ugly
                 min_width: "max-content",
-                user_select: "none",
-                "-webkit-user-select": "none",
+                //user_select: "none",
+                //"-webkit-user-select": "none",
             },
 
             ".line_block": {
@@ -182,8 +179,12 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 flex: "none", // dont compress lines
                 height: px(CH_HEIGHT),
                 display: "block",
-                user_select: "none",
-                "-webkit-user-select": "none",
+                //user_select: "none",
+                //"-webkit-user-select": "none",
+            },
+
+            ".line span::selection": {
+                background_color: self.selection_background().to_css(),
             },
 
 
@@ -200,7 +201,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 width: px(CH_WIDTH),
                 height: px(CH_HEIGHT),
                 border_width: px(1),
-                border_color: border_color.to_css(),
+                border_color: self.cursor_border().to_css(),
                 opacity: 1,
                 border_style: "solid",
             },
@@ -208,7 +209,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             ".cursor_center":{
                 width: percent(100),
                 height: percent(100),
-                background_color: cursor_color.to_css(),
+                background_color: self.cursor_color().to_css(),
                 opacity: percent(50),
                 animation: "cursor_blink-anim 1000ms step-end infinite",
             },
@@ -249,10 +250,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             ],
             [
                 if self.options.use_syntax_highlighter {
-                    self.view_highlighted_lines(
-                        self.editor.highlighted_lines(),
-                        self.theme_background(),
-                    )
+                    self.view_highlighted_lines(self.editor.highlighted_lines())
                 } else {
                     self.plain_view()
                 },
@@ -531,31 +529,56 @@ impl<XMSG> WebEditor<XMSG> {
         1
     }
 
-    fn theme_background(&self) -> Option<RGBA> {
+    fn theme_background(&self) -> RGBA {
+        let default = rgba(255, 255, 255, 1.0);
         self.editor
             .text_highlighter()
             .active_theme()
             .settings
             .background
             .map(util::to_rgba)
+            .unwrap_or(default)
     }
 
-    fn gutter_background(&self) -> Option<RGBA> {
+    fn gutter_background(&self) -> RGBA {
+        let default = rgba(0, 0, 0, 1.0);
         self.editor
             .text_highlighter()
             .active_theme()
             .settings
             .gutter
             .map(util::to_rgba)
+            .unwrap_or(default)
     }
 
-    fn gutter_foreground(&self) -> Option<RGBA> {
+    fn gutter_foreground(&self) -> RGBA {
+        let default = rgba(255, 255, 255, 1.0);
         self.editor
             .text_highlighter()
             .active_theme()
             .settings
             .gutter_foreground
             .map(util::to_rgba)
+            .unwrap_or(default)
+    }
+
+    fn selection_background(&self) -> RGBA {
+        let default = rgba(0, 0, 255, 1.0);
+        self.editor
+            .text_highlighter()
+            .active_theme()
+            .settings
+            .selection
+            .map(util::to_rgba)
+            .unwrap_or(default)
+    }
+
+    fn cursor_color(&self) -> RGBA {
+        rgba(0, 0, 0, 1.0)
+    }
+
+    fn cursor_border(&self) -> RGBA {
+        rgba(0, 0, 0, 1.0)
     }
 
     /// how wide the numberline based on the character lengths of the number
@@ -628,24 +651,15 @@ impl<XMSG> WebEditor<XMSG> {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
         let cursor = self.editor.get_position();
+
         div(
             [
                 class_ns("status"),
-                if let Some(gutter_bg) = self.gutter_background() {
-                    style! {
-                        background_color: gutter_bg.to_css(),
-                    }
-                } else {
-                    empty_attr()
+                style! {
+                    background_color: self.gutter_background().to_css(),
+                    color: self.gutter_foreground().to_css(),
+                    height: px(self.status_line_height()),
                 },
-                if let Some(gutter_fg) = self.gutter_foreground() {
-                    style! {
-                        color: gutter_fg.to_css()
-                    }
-                } else {
-                    empty_attr()
-                },
-                style! {height: px(self.status_line_height()) },
             ],
             [
                 text!("line: {}, col: {} ", cursor.y + 1, cursor.x + 1),
@@ -664,19 +678,9 @@ impl<XMSG> WebEditor<XMSG> {
             span(
                 [
                     class_ns("number"),
-                    if let Some(gutter_bg) = self.gutter_background() {
-                        style! {
-                            background_color: gutter_bg.to_css(),
-                        }
-                    } else {
-                        empty_attr()
-                    },
-                    if let Some(gutter_fg) = self.gutter_foreground() {
-                        style! {
-                            color: gutter_fg.to_css(),
-                        }
-                    } else {
-                        empty_attr()
+                    style! {
+                        background_color: self.gutter_background().to_css(),
+                        color: self.gutter_foreground().to_css(),
                     },
                 ],
                 [text(line_number)],
@@ -688,7 +692,6 @@ impl<XMSG> WebEditor<XMSG> {
     pub fn view_highlighted_lines<MSG>(
         &self,
         highlighted_lines: &[Vec<(editor::Style, String)>],
-        theme_background: Option<RGBA>,
     ) -> Node<MSG> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
@@ -699,11 +702,7 @@ impl<XMSG> WebEditor<XMSG> {
         let code_attributes = [
             class_ns("code"),
             class_ns(&class_number_wide),
-            if let Some(theme_background) = theme_background {
-                style! {background: theme_background.to_css()}
-            } else {
-                empty_attr()
-            },
+            style! {background: self.theme_background().to_css()},
         ];
 
         let rendered_lines =
