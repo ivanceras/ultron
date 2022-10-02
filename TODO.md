@@ -25,7 +25,7 @@
 - [ ] Scroll the view to when the cursor is not visible on the screen
     - This is done automatically due the textarea being always on the cursor, which is focused all the time
         and the browser automatically scroll it to view
-- [ ] Centralize the commands into actions first, so we can send an external messages
+- [X] Centralize the commands into actions first, so we can send an external messages
     and hook it into history for undor/redo functionality
     - the command functions are now returning effects, and its up for the caller to wire them.
         It doesn't need to be the centralized inm the update function as there could be many more variation of commands
@@ -40,15 +40,15 @@
 - [ ] Context Menu (Right click)
     - undo/redo
     - cut/copy/paste
-- [ ] Add config to ignore mouse-clicks outside of the editor range
-- [ ] Move the core-functionality of ultron to ultron, which has no view, just text manipulation
-    - [ ] ultron-core will have the following modules
+- [~] Add config to ignore mouse-clicks outside of the editor range
+- [~] Move the core-functionality of ultron to ultron, which has no view, just text manipulation
+    - [X] ultron-core will have the following modules
         - [X] TextBuffer
         - [X] TextEdit (text-buffer with history)
-        - [ ] Editor
+        - [X] Editor
         with no dependency on sauron, all types is abstracted
     - The ultron is the bare minimum library, which relies on sauron
-        - [ ] Wrap the editor with sauron for the web
+        - [X] Wrap the editor with sauron for the web
         - [ ] ultron-tui abstract terminal events into ultron events
 
 ## Features

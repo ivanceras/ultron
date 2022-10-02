@@ -1,4 +1,4 @@
-#![allow(warnings)]
+#![deny(warnings)]
 pub use sauron;
 use sauron::prelude::*;
 pub use ultron_core::{editor, nalgebra, Options, TextBuffer};

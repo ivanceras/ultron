@@ -1,4 +1,3 @@
-#![allow(warnings)]
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::{

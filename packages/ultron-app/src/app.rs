@@ -1,3 +1,4 @@
+#![allow(unused)]
 use ultron_web::sauron;
 use ultron_web::sauron::{
     html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast,
@@ -54,10 +55,8 @@ impl App {
             [
                 class_ns("hidden_textarea_wrapper"),
                 style! {
-                    //top: px(cursor.y),
-                    //left: px(cursor.x),
-                    top: 0,
-                    left: 0,
+                    top: px(cursor.y),
+                    left: px(cursor.x),
                     z_index: 99,
                 },
             ],

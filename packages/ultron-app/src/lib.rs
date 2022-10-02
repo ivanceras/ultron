@@ -1,4 +1,4 @@
-#![allow(warnings)]
+#![deny(warnings)]
 use app::App;
 use ultron_web::sauron;
 use ultron_web::sauron::prelude::*;
