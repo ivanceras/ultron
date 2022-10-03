@@ -1,3 +1,4 @@
+use crate::Options;
 pub use crate::Selection;
 use crate::TextBuffer;
 use crate::TextEdit;
@@ -5,60 +6,19 @@ use nalgebra::Point2;
 use std::rc::Rc;
 pub use ultron_syntaxes_themes::{Style, TextHighlighter};
 
-#[derive(Clone, Debug)]
-pub struct Options {
-    /// block mode is when the selection is rectangular
-    pub use_block_mode: bool,
-    /// allow the click outside of the bounds of the text content editor
-    pub use_virtual_edit: bool,
-    /// allow the editor to show or hide pages for optimization
-    /// Note: set this to false when using the editor as a headless buffer
-    pub use_paging_optimization: bool,
-    pub show_line_numbers: bool,
-    pub show_status_line: bool,
-    pub show_cursor: bool,
-    /// use spans instead of div when rendering ranges
-    /// and characters
-    /// this is used when doing a static site rendering
-    pub use_spans: bool,
-    /// when used for ssg, whitespace will be rendered as &nbsp;
-    pub use_for_ssg: bool,
-    /// apply background on the characters from syntax highlighter
-    pub use_background: bool,
-    pub theme_name: Option<String>,
-    pub syntax_token: String,
-    /// whether or not the editor occupy the container element
-    /// false means the editor only expands to the number of lines in the code
-    pub occupy_container: bool,
-    /// number of lines in a page, when paging up and down
-    pub page_size: usize,
-    /// a flag to use syntax highlighting or not
-    pub use_syntax_highlighter: bool,
-    /// a flag to do replace mode when there is no characters to the right
-    /// and switch to insert mode when there is characters to the right
-    pub use_smart_replace_insert: bool,
-}
-
-impl Default for Options {
-    fn default() -> Self {
-        Self {
-            use_block_mode: false,
-            use_virtual_edit: false,
-            use_paging_optimization: true,
-            show_line_numbers: true,
-            show_status_line: true,
-            show_cursor: true,
-            use_spans: true,
-            use_for_ssg: false,
-            use_background: true,
-            theme_name: None,
-            syntax_token: "txt".to_string(),
-            occupy_container: true,
-            page_size: 20,
-            use_syntax_highlighter: true,
-            use_smart_replace_insert: false,
-        }
-    }
+/// An editor with core functionality platform specific UI
+pub struct Editor<XMSG> {
+    options: Options,
+    text_edit: TextEdit,
+    text_highlighter: TextHighlighter,
+    /// lines of highlighted ranges
+    highlighted_lines: Vec<Vec<(Style, String)>>,
+    /// Other components can listen to the an event.
+    /// When the content of the text editor changes, the change listener will be emitted
+    change_listeners: Vec<Callback<String, XMSG>>,
+    /// a cheaper listener which doesn't need to assemble the text content
+    /// of the text editor everytime
+    change_notify_listeners: Vec<Callback<(), XMSG>>,
 }
 
 pub enum Command {
@@ -85,9 +45,6 @@ pub enum Command {
     SetPosition(i32, i32),
 }
 
-#[derive(Clone, PartialEq, Debug)]
-pub enum Msg {}
-
 pub struct Callback<IN, OUT> {
     func: Rc<dyn Fn(IN) -> OUT>,
 }
@@ -108,25 +65,6 @@ impl<IN, OUT> Callback<IN, OUT> {
     pub fn emit(&self, input: IN) -> OUT {
         (self.func)(input)
     }
-}
-
-///TODO: abstract more this editor
-/// There should be no browser specific types
-/// here, the points should be converted to cursor coordinate rather than pixels
-///
-/// This should be akin to headless editor
-pub struct Editor<XMSG> {
-    options: Options,
-    text_edit: TextEdit,
-    text_highlighter: TextHighlighter,
-    /// lines of highlighted ranges
-    highlighted_lines: Vec<Vec<(Style, String)>>,
-    /// Other components can listen to the an event.
-    /// When the content of the text editor changes, the change listener will be emitted
-    change_listeners: Vec<Callback<String, XMSG>>,
-    /// a cheaper listener which doesn't need to assemble the text content
-    /// of the text editor everytime
-    change_notify_listeners: Vec<Callback<(), XMSG>>,
 }
 
 impl<XMSG> Editor<XMSG> {

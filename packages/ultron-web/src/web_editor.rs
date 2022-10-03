@@ -96,13 +96,18 @@ impl<XMSG> WebEditor<XMSG> {
 
 impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
     fn style(&self) -> String {
+        let user_select = if self.options.allow_text_selection {
+            "text"
+        } else {
+            "none"
+        };
         jss_ns_pretty! {COMPONENT_NAME,
             ".": {
                 position: "relative",
                 font_size: px(14),
                 white_space: "normal",
-                //user_select: "none",
-                //"-webkit-user-select": "none",
+                user_select: user_select,
+                "-webkit-user-select": user_select,
             },
 
             ".occupy_container": {
@@ -128,8 +133,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 // to make the background color extend to the longest line, otherwise only the
                 // longest lines has a background-color leaving the shorter lines ugly
                 min_width: "max-content",
-                //user_select: "none",
-                //"-webkit-user-select": "none",
+                user_select: user_select,
+                "-webkit-user-select": user_select,
             },
 
             ".line_block": {
@@ -179,8 +184,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 flex: "none", // dont compress lines
                 height: px(CH_HEIGHT),
                 display: "block",
-                //user_select: "none",
-                //"-webkit-user-select": "none",
+                user_select: user_select,
+                "-webkit-user-select": user_select,
             },
 
             ".line span::selection": {
@@ -552,7 +557,7 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     fn gutter_foreground(&self) -> RGBA {
-        let default = rgba(255, 255, 255, 1.0);
+        let default = rgba(0, 0, 0, 1.0);
         self.editor
             .text_highlighter()
             .active_theme()

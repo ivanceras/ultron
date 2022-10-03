@@ -1,7 +1,7 @@
 #![deny(warnings)]
 
-use sauron::{html::tags::style, prelude::*};
-use ultron_core::{Editor, Options};
+use ultron_web::sauron::{html::tags::style, prelude::*};
+use ultron_web::{Options, WebEditor};
 
 pub fn render<MSG>(
     content: &str,
@@ -18,8 +18,8 @@ pub fn render<MSG>(
         syntax_token: syntax_token.to_string(),
         ..Default::default()
     };
-    let editor = Editor::from_str(options, content);
-    page(editor)
+    let web_editor = WebEditor::from_str(options, content);
+    page(web_editor)
 }
 
 pub fn render_to_string(
@@ -31,16 +31,15 @@ pub fn render_to_string(
     node.render_to_string()
 }
 
-#[allow(unused)]
-fn page<MSG>(editor: Editor<MSG>) -> Node<MSG> {
+fn page<MSG>(web_editor: WebEditor<MSG>) -> Node<MSG> {
     main(
         [],
         [
             header(
                 [],
-                [style([r#type("text/css")], [/*text(editor.style())*/])],
+                [style([r#type("text/css")], [text(web_editor.style())])],
             ),
-            article([], [/*editor.plain_view()*/]),
+            article([], [web_editor.plain_view()]),
         ],
     )
 }
