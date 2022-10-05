@@ -1,7 +1,6 @@
 #![deny(warnings)]
 use app::App;
-use ultron_web::sauron;
-use ultron_web::sauron::prelude::*;
+use ultron_web::{sauron, sauron::prelude::*};
 
 mod app;
 

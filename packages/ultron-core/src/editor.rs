@@ -1,7 +1,5 @@
-use crate::Options;
 pub use crate::Selection;
-use crate::TextBuffer;
-use crate::TextEdit;
+use crate::{Options, TextBuffer, TextEdit};
 use nalgebra::Point2;
 use std::rc::Rc;
 pub use ultron_syntaxes_themes::{Style, TextHighlighter};

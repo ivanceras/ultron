@@ -1,11 +1,10 @@
 #![allow(unused)]
-use ultron_web::sauron;
-use ultron_web::sauron::{
-    html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast,
-};
-use ultron_web::Options;
 use ultron_web::{
-    editor, web_editor, {WebEditor, COMPONENT_NAME},
+    editor, sauron,
+    sauron::{
+        html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast,
+    },
+    web_editor, Options, WebEditor, COMPONENT_NAME,
 };
 use web_sys::HtmlDocument;
 

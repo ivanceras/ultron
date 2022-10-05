@@ -92,6 +92,10 @@ impl<XMSG> WebEditor<XMSG> {
     {
         self.editor.add_on_change_notify(f);
     }
+
+    pub fn get_content(&self) -> String {
+        self.editor.get_content()
+    }
 }
 
 impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {

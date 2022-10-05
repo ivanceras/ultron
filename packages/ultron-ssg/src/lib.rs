@@ -1,7 +1,9 @@
 #![deny(warnings)]
 
-use ultron_web::sauron::{html::tags::style, prelude::*};
-use ultron_web::{Options, WebEditor};
+use ultron_web::{
+    sauron::{html::tags::style, prelude::*},
+    Options, WebEditor,
+};
 
 pub fn render<MSG>(
     content: &str,
