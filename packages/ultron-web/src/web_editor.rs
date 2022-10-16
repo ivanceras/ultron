@@ -426,72 +426,7 @@ impl<XMSG> WebEditor<XMSG> {
         self.editor.cut_selected_text()
     }
 
-    /*
-    /// this is for newer browsers
-    /// This doesn't work on webkit2
-    #[cfg(web_sys_unstable_apis)]
-    #[cfg(feature = "with-navigator-clipboard")]
-    fn copy_to_clipboard(&self) -> bool {
-        if let Some(selected_text) = self.editor.selected_text() {
-            let navigator = sauron::window().navigator();
-            if let Some(clipboard) = navigator.clipboard() {
-                let _ = clipboard.write_text(&selected_text);
-                return true;
-            } else {
-                log::warn!("no navigator clipboard");
-            }
-        }
-        false
-    }
-
-    #[cfg(not(feature = "with-navigator-clipboard"))]
-    fn copy_to_clipboard(&self) -> bool {
-        false
-    }
-
-    /// calls on 2 ways to copy
-    /// either 1 should work
-    /// returns true if it succeded
-    fn command_copy(&self) {
-        if self.copy_to_clipboard() {
-            // do nothing
-        } else {
-            self.textarea_exec_copy();
-        }
-    }
-
-    /// try exec_cut, try cut to clipboard if the first fails
-    /// This shouldn't execute both since cut is destructive.
-    /// Returns true if it succeded
-    fn command_cut(&mut self) {
-        if self.cut_to_clipboard() {
-            // nothing
-        } else {
-            self.textarea_exec_cut();
-        }
-    }
-
-    #[cfg(web_sys_unstable_apis)]
-    #[cfg(feature = "with-navigator-clipboard")]
-    fn cut_to_clipboard(&mut self) -> bool {
-        if let Some(selected_text) = self.editor.cut_selected_text() {
-            let navigator = sauron::window().navigator();
-            if let Some(clipboard) = navigator.clipboard() {
-                let _ = clipboard.write_text(&selected_text);
-                return true;
-            } else {
-                log::warn!("no navigator clipboard");
-            }
-        }
-        false
-    }
-
-    #[cfg(not(feature = "with-navigator-clipboard"))]
-    fn cut_to_clipboard(&mut self) -> bool {
-        false
-    }
-    */
-
+    /// calculate the bounding rect of the editor using a DOM call [getBoundingClientRect](https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect)
     pub fn bounding_rect(&self) -> Option<(Point2<f32>, Point2<f32>)> {
         if let Some(ref editor_element) = self.editor_element {
             let rect = editor_element.get_bounding_client_rect();
@@ -526,6 +461,7 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     #[allow(unused)]
+    /// calculate the points relative to the editor bounding box
     pub fn relative_client(&self, client_x: i32, client_y: i32) -> Point2<i32> {
         let editor = self.editor_offset().expect("must have an editor offset");
         let x = client_x as f32 - editor.x;
