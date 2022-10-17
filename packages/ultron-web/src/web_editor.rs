@@ -156,7 +156,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             ".number": {
                 flex: "none", // dont compress the numbers
                 text_align: "right",
-                background_color: "#002b36",
+                background_color: "#ddd",
                 padding_right: px(CH_WIDTH as f32 * self.numberline_padding_wide() as f32),
                 height: px(CH_HEIGHT),
                 display: "inline-block",
@@ -711,10 +711,21 @@ pub fn view_text_buffer<MSG>(
         format!("number_wide{}", text_buffer.numberline_wide());
 
     let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
-    let rendered_lines = text_buffer
-        .lines()
-        .into_iter()
-        .map(|line| div([class_ns("line")], [text(line)]));
+    let rendered_lines = text_buffer.lines().into_iter().enumerate().map(
+        |(line_index, line)| {
+            let line_number = line_index + 1;
+            div(
+                [class_ns("line")],
+                [
+                    view_if(
+                        options.show_line_numbers,
+                        span([class_ns("number")], [text(line_number)]),
+                    ),
+                    text(line),
+                ],
+            )
+        },
+    );
 
     if options.use_for_ssg {
         // using div works well when select-copying for both chrome and firefox
