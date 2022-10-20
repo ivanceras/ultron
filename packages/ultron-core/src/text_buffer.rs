@@ -137,6 +137,38 @@ impl TextBuffer {
             }
         }
     }
+
+    pub fn get_text_block_mode(
+        &self,
+        start: Point2<usize>,
+        end: Point2<usize>,
+    ) -> String {
+        let start = self.point_to_index(start);
+        let end = self.point_to_index(end);
+        (start.y..=end.y)
+            .map(|y| {
+                let text = &self.chars[y][start.x..=end.x];
+                String::from_iter(text.iter().map(|ch| ch.ch))
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    pub fn cut_text_block_mode(
+        &mut self,
+        start: Point2<usize>,
+        end: Point2<usize>,
+    ) -> String {
+        let start = self.point_to_index(start);
+        let end = self.point_to_index(end);
+        (start.y..=end.y)
+            .map(|y| {
+                let text = self.chars[y].drain(start.x..=end.x);
+                String::from_iter(text.map(|ch| ch.ch))
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
 }
 
 /// text manipulation
