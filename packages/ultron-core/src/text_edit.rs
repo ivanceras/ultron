@@ -53,7 +53,6 @@ impl TextEdit {
 
     pub fn command_insert_char(&mut self, ch: char) {
         let cursor = self.text_buffer.get_position();
-        log::trace!("inserting char: {}, at cursor: {}", ch, cursor);
         self.text_buffer.command_insert_char(ch);
         self.recorded.insert_char(cursor, ch);
     }

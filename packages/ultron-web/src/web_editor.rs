@@ -355,7 +355,6 @@ impl<XMSG> WebEditor<XMSG> {
         let is_shift = ke.shift_key();
         let key = ke.key();
         if key.chars().count() == 1 {
-            log::trace!("inserting from window keydown event");
             let c = key.chars().next().expect("must be only 1 chr");
             let command = match c {
                 'c' if is_ctrl => Command::CopyText,
