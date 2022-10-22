@@ -341,6 +341,10 @@ impl<XMSG> Editor<XMSG> {
         self.text_edit.cut_selected_text()
     }
 
+    pub fn selected_text_block_mode(&self) -> Option<String> {
+        self.text_edit.selected_text_block_mode()
+    }
+
     /// Attach a callback to this editor where it is invoked when the content is changed.
     ///
     /// Note:The content is extracted into string and used as a parameter to the function.

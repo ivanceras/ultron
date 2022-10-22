@@ -145,10 +145,16 @@ impl TextBuffer {
     ) -> String {
         let start = self.point_to_index(start);
         let end = self.point_to_index(end);
+        log::info!("here: {} {}", start, end);
         (start.y..=end.y)
             .map(|y| {
-                let text = &self.chars[y][start.x..=end.x];
-                String::from_iter(text.iter().map(|ch| ch.ch))
+                if let Some(chars) = &self.chars.get(y) {
+                    let text = (start.x..=end.x)
+                        .map(|x| chars.get(x).map(|ch| ch.ch).unwrap_or(' '));
+                    String::from_iter(text)
+                } else {
+                    String::new()
+                }
             })
             .collect::<Vec<_>>()
             .join("\n")

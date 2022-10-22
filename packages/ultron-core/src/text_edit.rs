@@ -201,6 +201,18 @@ impl TextEdit {
         }
     }
 
+    pub fn selected_text_block_mode(&self) -> Option<String> {
+        match (self.selection.start, self.selection.end) {
+            (Some(start), Some(end)) => {
+                Some(self.text_buffer.get_text_block_mode(
+                    util::cast_point(start),
+                    util::cast_point(end),
+                ))
+            }
+            _ => None,
+        }
+    }
+
     pub fn cut_selected_text(&mut self) -> Option<String> {
         match (self.selection.start, self.selection.end) {
             (Some(start), Some(end)) => Some(

@@ -425,6 +425,14 @@ impl<XMSG> WebEditor<XMSG> {
         self.editor.cut_selected_text()
     }
 
+    pub fn selected_text_block_mode(&self) -> Option<String> {
+        self.editor.selected_text_block_mode()
+    }
+
+    pub fn set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
+        self.editor.set_selection(start, end);
+    }
+
     /// calculate the bounding rect of the editor using a DOM call [getBoundingClientRect](https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect)
     pub fn bounding_rect(&self) -> Option<(Point2<f32>, Point2<f32>)> {
         if let Some(ref editor_element) = self.editor_element {
