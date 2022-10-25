@@ -2,6 +2,8 @@ use nalgebra::Point2;
 use std::iter::FromIterator;
 use unicode_width::UnicodeWidthChar;
 
+const BLANK_CH: char = ' ';
+
 /// A text buffer where characters are manipulated visually with
 /// consideration on the unicode width of characters.
 /// Characters can span more than 1 cell, therefore
@@ -149,8 +151,9 @@ impl TextBuffer {
         (start.y..=end.y)
             .map(|y| {
                 if let Some(chars) = &self.chars.get(y) {
-                    let text = (start.x..=end.x)
-                        .map(|x| chars.get(x).map(|ch| ch.ch).unwrap_or(' '));
+                    let text = (start.x..=end.x).map(|x| {
+                        chars.get(x).map(|ch| ch.ch).unwrap_or(BLANK_CH)
+                    });
                     String::from_iter(text)
                 } else {
                     String::new()
@@ -199,6 +202,35 @@ impl TextBuffer {
             .collect()
     }
 
+    /// return the first non blank line
+    pub fn first_non_blank_line(&self) -> Option<usize> {
+        self.chars
+            .iter()
+            .enumerate()
+            .find_map(|(line_index, line)| {
+                if line.iter().any(|ch| ch.ch != BLANK_CH) {
+                    Some(line_index)
+                } else {
+                    None
+                }
+            })
+    }
+
+    /// return the last non blank line
+    pub fn last_non_blank_line(&self) -> Option<usize> {
+        self.chars
+            .iter()
+            .enumerate()
+            .rev()
+            .find_map(|(line_index, line)| {
+                if line.iter().any(|ch| ch.ch != BLANK_CH) {
+                    Some(line_index)
+                } else {
+                    None
+                }
+            })
+    }
+
     /// the width of the line at line `n`
     pub fn line_width(&self, n: usize) -> usize {
         self.chars
@@ -214,6 +246,18 @@ impl TextBuffer {
             .map(|line| line.iter().map(|ch| ch.width).sum())
             .max()
             .unwrap_or(0)
+    }
+
+    /// return the location of the  most bottom right non whitespace character
+    pub fn bottom_right_non_whitespace(&self) -> Option<Point2<usize>> {
+        let last_non_blank_line = self.last_non_blank_line();
+        let max_column = self.max_column_width();
+        match last_non_blank_line {
+            Some(last_non_blank_line) => {
+                Some(Point2::new(max_column, last_non_blank_line))
+            }
+            None => None,
+        }
     }
 
     /// return rectangular position starting from 0,0 to contain all
@@ -273,7 +317,7 @@ impl TextBuffer {
         let line_width = self.line_width(y);
         let diff = x.saturating_add(1).saturating_sub(line_width);
         for _ in 0..diff {
-            self.chars[y].push(Ch::new(' '));
+            self.chars[y].push(Ch::new(BLANK_CH));
         }
     }
 
