@@ -248,18 +248,6 @@ impl TextBuffer {
             .unwrap_or(0)
     }
 
-    /// return the location of the  most bottom right non whitespace character
-    pub fn bottom_right_non_whitespace(&self) -> Option<Point2<usize>> {
-        let last_non_blank_line = self.last_non_blank_line();
-        let max_column = self.max_column_width();
-        match last_non_blank_line {
-            Some(last_non_blank_line) => {
-                Some(Point2::new(max_column, last_non_blank_line))
-            }
-            None => None,
-        }
-    }
-
     /// return rectangular position starting from 0,0 to contain all
     /// the text
     pub fn max_position(&self) -> Point2<usize> {
