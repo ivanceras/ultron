@@ -13,7 +13,7 @@ pub const CH_HEIGHT: u32 = 16;
 pub enum Command {
     EditorCommand(editor::Command),
     /// execute paste text
-    PasteText,
+    PasteTextBlock(String),
     /// execute copy text
     CopyText,
     /// execute cut text
@@ -361,7 +361,7 @@ impl<XMSG> WebEditor<XMSG> {
                 'x' if is_ctrl => Command::CutText,
                 'v' if is_ctrl => {
                     log::trace!("pasting is handled");
-                    Command::PasteText
+                    Command::PasteTextBlock(String::new())
                 }
                 'z' | 'Z' if is_ctrl => {
                     if is_shift {
@@ -411,7 +411,9 @@ impl<XMSG> WebEditor<XMSG> {
             Command::EditorCommand(ecommand) => {
                 self.editor.process_command(ecommand)
             }
-            Command::PasteText => todo!(),
+            Command::PasteTextBlock(text_block) => self
+                .editor
+                .process_command(editor::Command::PasteTextBlock(text_block)),
             Command::CopyText => todo!(),
             Command::CutText => todo!(),
         }
@@ -427,6 +429,10 @@ impl<XMSG> WebEditor<XMSG> {
 
     pub fn selected_text_block_mode(&self) -> Option<String> {
         self.editor.selected_text_block_mode()
+    }
+
+    pub fn cut_selected_text_block_mode(&mut self) -> Option<String> {
+        self.editor.cut_selected_text_block_mode()
     }
 
     pub fn set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {

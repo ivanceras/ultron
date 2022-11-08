@@ -32,6 +32,7 @@ pub enum Command {
     InsertChar(char),
     ReplaceChar(char),
     InsertText(String),
+    PasteTextBlock(String),
     /// set a new content to the editor, resetting to a new history for undo/redo
     SetContent(String),
     Undo,
@@ -174,6 +175,9 @@ impl<XMSG> Editor<XMSG> {
                 self.command_move_down();
                 vec![]
             }
+            Command::PasteTextBlock(text) => {
+                self.command_paste_text_block_mode(text)
+            }
             Command::MoveLeft => {
                 self.command_move_left();
                 vec![]
@@ -234,6 +238,11 @@ impl<XMSG> Editor<XMSG> {
 
     fn command_delete_forward(&mut self) -> Vec<XMSG> {
         let _ch = self.text_edit.command_delete_forward();
+        self.content_has_changed()
+    }
+
+    fn command_paste_text_block_mode(&mut self, text: String) -> Vec<XMSG> {
+        self.text_edit.paste_text_block_mode(text);
         self.content_has_changed()
     }
 
@@ -343,6 +352,10 @@ impl<XMSG> Editor<XMSG> {
 
     pub fn selected_text_block_mode(&self) -> Option<String> {
         self.text_edit.selected_text_block_mode()
+    }
+
+    pub fn cut_selected_text_block_mode(&mut self) -> Option<String> {
+        self.text_edit.cut_selected_text_block_mode()
     }
 
     /// Attach a callback to this editor where it is invoked when the content is changed.

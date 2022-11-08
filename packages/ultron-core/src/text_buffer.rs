@@ -178,6 +178,18 @@ impl TextBuffer {
             .collect::<Vec<_>>()
             .join("\n")
     }
+
+    pub fn paste_text_block_mode(&mut self, text_block: String) {
+        for (line_index, line) in text_block.lines().enumerate() {
+            let mut width = 0;
+            let y = self.cursor.y + line_index;
+            for ch in line.chars() {
+                let x = self.cursor.x + width;
+                self.replace_char(x, y, ch);
+                width += ch.width().unwrap_or(0);
+            }
+        }
+    }
 }
 
 /// text manipulation

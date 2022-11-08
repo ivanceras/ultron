@@ -223,6 +223,22 @@ impl TextEdit {
         }
     }
 
+    pub fn cut_selected_text_block_mode(&mut self) -> Option<String> {
+        match (self.selection.start, self.selection.end) {
+            (Some(start), Some(end)) => {
+                Some(self.text_buffer.cut_text_block_mode(
+                    util::cast_point(start),
+                    util::cast_point(end),
+                ))
+            }
+            _ => None,
+        }
+    }
+
+    pub fn paste_text_block_mode(&mut self, text_block: String) {
+        self.text_buffer.paste_text_block_mode(text_block);
+    }
+
     pub fn get_position(&self) -> Point2<usize> {
         self.text_buffer.get_position()
     }
