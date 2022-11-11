@@ -405,7 +405,9 @@ impl<XMSG> Editor<XMSG> {
     }
 
     async fn rehighlight_and_emit(&mut self) -> Vec<XMSG>{
-        self.rehighlight();
+        if self.options.use_syntax_highlighter{
+            self.rehighlight();
+        }
         self.emit_on_change_listeners()
     }
 
@@ -416,9 +418,8 @@ impl<XMSG> Editor<XMSG> {
     async fn throttled_content_has_changed(&mut self) -> Vec<XMSG> {
         if self.throttle.lock().expect("cant get lock").should_execute() {
             log::info!("executing the content changed");
-            //self.rehighlight();
             self.throttle.lock().expect("cant get lock").is_executing = true;
-            let msgs = self.emit_on_change_listeners();
+            let msgs = self.rehighlight_and_emit().await;
             self.throttle.lock().expect("cant get lock").executed();
             msgs
         } else if self.throttle.lock().expect("cant get lock").dirty {
@@ -428,9 +429,8 @@ impl<XMSG> Editor<XMSG> {
                 .expect("must have a remaining time");
             log::info!("remaining time for next execution: {}", remaining);
             async_delay::delay(remaining + 1.0).await;
-            //self.rehighlight();
             self.throttle.lock().expect("cant get lock").is_executing = true;
-            let msgs = self.emit_on_change_listeners();
+            let msgs = self.rehighlight_and_emit().await;
             self.throttle.lock().expect("cant get lock").executed();
             msgs
         } else {
