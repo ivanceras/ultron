@@ -52,6 +52,13 @@
     - The ultron is the bare minimum library, which relies on sauron
         - [X] Wrap the editor with sauron for the web
         - [ ] ultron-tui abstract terminal events into ultron events
+- [ ] Add a throttle
+    - record the last time the function is executed
+        - get the elapsed time since the function is executed.
+            - if lesser than the allowable, don't execute yet and mark it pending/dirty
+                - then make a delayed call to the function
+            - if the elapsed is more than the allowable, then execute the function, mark pending/dirty = false
+            - if the last record is not yet there, then execute the function and set it to now
 
 ## Features
 - [~] Smart edit blockmode

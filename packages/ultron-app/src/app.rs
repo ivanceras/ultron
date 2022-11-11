@@ -7,6 +7,7 @@ use ultron_web::{
     web_editor, Options, WebEditor, COMPONENT_NAME,
 };
 use web_sys::HtmlDocument;
+use async_trait::async_trait;
 
 pub enum Msg {
     TextareaMounted(web_sys::Node),
@@ -160,19 +161,20 @@ impl App {
         false
     }
 
-    fn process_command(
+    async fn process_command(
         &mut self,
         wcommand: impl Into<web_editor::Command>,
     ) -> Vec<Msg> {
         self.web_editor
-            .process_command(wcommand.into())
+            .process_command(wcommand.into()).await
             .into_iter()
             .collect()
     }
 }
 
+#[async_trait(?Send)]
 impl Component<Msg, ()> for App {
-    fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
+    async fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
         match msg {
             /*
             Msg::TextareaKeydown(ke) => {
@@ -185,7 +187,7 @@ impl Component<Msg, ()> for App {
             */
             Msg::Keydown(key_event) => {
                 let effects =
-                    self.web_editor.update(web_editor::Msg::Keydown(key_event));
+                    self.web_editor.update(web_editor::Msg::Keydown(key_event)).await;
                 effects.localize(Msg::EditorWebMsg)
             }
             Msg::TextareaMounted(target_node) => {
@@ -213,9 +215,9 @@ impl Component<Msg, ()> for App {
                     log::trace!("in textarea input char_count == 1..");
                     let c = input.chars().next().expect("must be only 1 chr");
                     let more_msgs = if c == '\n' {
-                        self.process_command(editor::Command::BreakLine)
+                        self.process_command(editor::Command::BreakLine).await
                     } else {
-                        self.process_command(editor::Command::InsertChar(c))
+                        self.process_command(editor::Command::InsertChar(c)).await
                     };
                     msgs.extend(more_msgs);
                 } else {
@@ -227,29 +229,29 @@ impl Component<Msg, ()> for App {
             }
             Msg::Paste(text_content) => {
                 let msgs = self
-                    .process_command(editor::Command::InsertText(text_content));
+                    .process_command(editor::Command::InsertText(text_content)).await;
                 Effects::new(msgs, vec![])
             }
             Msg::Mouseup(client_x, client_y) => {
                 let effects = self
                     .web_editor
-                    .update(web_editor::Msg::Mouseup(client_x, client_y));
+                    .update(web_editor::Msg::Mouseup(client_x, client_y)).await;
                 effects.localize(Msg::EditorWebMsg)
             }
             Msg::Mousedown(client_x, client_y) => {
                 let effects = self
                     .web_editor
-                    .update(web_editor::Msg::Mousedown(client_x, client_y));
+                    .update(web_editor::Msg::Mousedown(client_x, client_y)).await;
                 effects.localize(Msg::EditorWebMsg)
             }
             Msg::Mousemove(client_x, client_y) => {
                 let effects = self
                     .web_editor
-                    .update(web_editor::Msg::Mousemove(client_x, client_y));
+                    .update(web_editor::Msg::Mousemove(client_x, client_y)).await;
                 effects.localize(Msg::EditorWebMsg)
             }
             Msg::EditorWebMsg(emsg) => {
-                let effects = self.web_editor.update(emsg);
+                let effects = self.web_editor.update(emsg).await;
                 effects.localize(Msg::EditorWebMsg)
             }
         }
@@ -302,6 +304,7 @@ impl Component<Msg, ()> for App {
 
 /// Auto implementation of Application trait for Component that
 /// has no external MSG
+#[async_trait(?Send)]
 impl Application<Msg> for App {
     fn init(&mut self) -> Cmd<Self, Msg> {
         Cmd::batch([Window::add_event_listeners(vec![
@@ -316,8 +319,8 @@ impl Application<Msg> for App {
         ])])
     }
 
-    fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
-        let effects = <Self as crate::Component<Msg, ()>>::update(self, msg);
+    async fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
+        let effects = <Self as crate::Component<Msg, ()>>::update(self, msg).await;
         Cmd::from(effects)
     }
 

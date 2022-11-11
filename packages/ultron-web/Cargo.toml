@@ -20,6 +20,7 @@ log = "0.4"
 console_log = { version = "0.2", features = ["color"]}
 console_error_panic_hook = "0.1"
 css-colors = "1"
+async-trait = "0.1.58"
 
 [dependencies.web-sys]
 version = "0.3"
