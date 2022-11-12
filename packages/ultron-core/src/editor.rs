@@ -34,7 +34,7 @@ impl Throttle {
         Self {
             last_exec: None,
             dirty: false,
-            interval: 1000.0,
+            interval: 100.0,
             is_executing: false,
         }
     }
@@ -46,7 +46,7 @@ impl Throttle {
             let now = async_delay::now();
             if let Some(last_exec) = self.last_exec {
                 let elapsed = now - last_exec;
-                if elapsed <= self.interval {
+                if elapsed >= self.interval {
                     log::info!("will execute");
                     true
                 } else {
