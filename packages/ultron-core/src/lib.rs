@@ -4,7 +4,7 @@ pub use nalgebra::Point2;
 pub use options::Options;
 pub use text_buffer::{Ch, TextBuffer};
 pub use text_edit::{Selection, TextEdit};
-pub use ultron_syntaxes_themes::Color;
+pub use ultron_syntaxes_themes::{Color, Style, TextHighlighter};
 
 pub use nalgebra;
 

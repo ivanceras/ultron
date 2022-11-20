@@ -1,4 +1,4 @@
-#![allow(unused)]
+#![deny(unused)]
 pub use crate::Selection;
 use crate::{Options, TextBuffer, TextEdit};
 use nalgebra::Point2;
@@ -23,9 +23,10 @@ pub struct Editor<XMSG> {
 }
 
 struct Throttle {
-    last_exec: Option<f64>,
+    last_exec: Option<i32>,
     dirty: bool,
-    interval: f64,
+    /// interval in ms
+    interval: i32,
     is_executing: bool,
 }
 
@@ -34,7 +35,7 @@ impl Throttle {
         Self {
             last_exec: None,
             dirty: false,
-            interval: 100.0,
+            interval: 100,
             is_executing: false,
         }
     }
@@ -64,12 +65,12 @@ impl Throttle {
 
     /// calculate the time duration needed to be able execute the function from now.
     #[allow(unused)]
-    fn remaining_time(&self) -> Option<f64> {
+    fn remaining_time(&self) -> Option<i32> {
         let now = async_delay::now();
         if let Some(last_exec) = self.last_exec {
             let since = now - last_exec;
             let rem = self.interval - (since % self.interval);
-            if rem >= f64::EPSILON {
+            if rem >= 0 {
                 Some(rem)
             } else {
                 None
@@ -86,6 +87,8 @@ impl Throttle {
     }
 }
 
+
+#[derive(Debug)]
 pub enum Command {
     IndentForward,
     IndentBackward,
@@ -100,6 +103,7 @@ pub enum Command {
     ReplaceChar(char),
     InsertText(String),
     PasteTextBlock(String),
+    MergeText(String),
     /// set a new content to the editor, resetting to a new history for undo/redo
     SetContent(String),
     Undo,
@@ -223,95 +227,119 @@ impl<XMSG> Editor<XMSG> {
 }
 
 impl<XMSG> Editor<XMSG> {
-    pub async fn process_command(&mut self, command: Command) -> Vec<XMSG> {
-        match command {
-            Command::IndentForward => {
-                let indent = "    ";
-                self.command_insert_text(indent).await
-            }
-            Command::IndentBackward => {
-                todo!()
-            }
-            Command::BreakLine => self.command_break_line().await,
-            Command::DeleteBack => self.command_delete_back().await,
-            Command::DeleteForward => self.command_delete_forward().await,
-            Command::MoveUp => {
-                self.command_move_up();
-                vec![]
-            }
-            Command::MoveDown => {
-                self.command_move_down();
-                vec![]
-            }
-            Command::PasteTextBlock(text) => {
-                self.command_paste_text_block_mode(text).await
-            }
-            Command::MoveLeft => {
-                self.command_move_left();
-                vec![]
-            }
-            Command::MoveRight => {
-                self.command_move_right();
-                vec![]
-            }
-            Command::InsertChar(c) => self.command_insert_char(c).await,
-            Command::ReplaceChar(c) => self.command_replace_char(c).await,
-            Command::InsertText(text) => self.command_insert_text(&text).await,
-            Command::SetContent(content) => self.command_set_content(&content).await,
-            Command::Undo => self.command_undo().await,
-            Command::Redo => self.command_redo().await,
-            Command::BumpHistory => {
-                self.bump_history().await;
-                vec![]
-            }
-            Command::SetSelection(start, end) => {
-                self.command_set_selection(start, end).await;
-                vec![]
-            }
-            Command::SelectAll => {
-                self.command_select_all().await;
-                vec![]
-            }
-            Command::ClearSelection => {
-                self.clear_selection();
-                vec![]
-            }
-            Command::SetPosition(x, y) => {
-                self.command_set_position(x, y).await;
-                vec![]
-            }
+
+
+    pub async fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG>{
+        let results:Vec<bool> = commands.into_iter().map(|command|
+            self.process_command(command)
+        ).collect();
+        if  results.into_iter().any(|v|v){
+            self.content_has_changed().await
+        }else{
+            vec![]
         }
     }
 
-    /// recreate the text edit, this also clears the history
-    pub async fn command_set_content(&mut self, content: &str) -> Vec<XMSG> {
-        self.text_edit = TextEdit::from_str(content);
-        self.content_has_changed().await
-    }
-
-    async fn command_insert_char(&mut self, ch: char) -> Vec<XMSG> {
-        self.text_edit.command_insert_char(ch);
-        self.content_has_changed().await
-    }
-
-    async fn command_replace_char(&mut self, ch: char) -> Vec<XMSG> {
-        self.text_edit.command_replace_char(ch);
-        self.content_has_changed().await
-    }
-
-    async fn command_delete_back(&mut self) -> Vec<XMSG> {
-        self.text_edit.command_delete_back();
-        self.content_has_changed().await
-    }
-
-    async fn command_delete_forward(&mut self) -> Vec<XMSG> {
-        let _ch = self.text_edit.command_delete_forward();
-        self.content_has_changed().await
-    }
-
-    async fn command_paste_text_block_mode(&mut self, text: String) -> Vec<XMSG> {
-        self.text_edit.paste_text_block_mode(text);
-        self.content_has_changed().await
+    /// TODO: convert this into process_commands
+    /// where each command marks whether the content has changed or not
+    /// then once all of the commands have been executed,
+    /// the emit and rehighlight will commence
+    ///
+    /// TODO option2: have a boolean flag, for each of the command to determine
+    /// if the editor content changed or not
+    ///
+    pub fn process_command(&mut self, command: Command) -> bool {
+        match command {
+            Command::IndentForward => {
+                let indent = "    ";
+                self.text_edit.command_insert_text(indent);
+                true
+            }
+            Command::IndentBackward => {
+                true
+            }
+            Command::BreakLine => {
+                self.text_edit.command_break_line();
+                true
+            }
+            Command::DeleteBack => {
+                self.text_edit.command_delete_back();
+                true
+            }
+            Command::DeleteForward => {
+                self.text_edit.command_delete_forward();
+                true
+            }
+            Command::MoveUp => {
+                self.command_move_up();
+                false
+            }
+            Command::MoveDown => {
+                self.command_move_down();
+                false
+            }
+            Command::PasteTextBlock(text) => {
+                self.text_edit.paste_text_block_mode(text);
+                true
+            }
+            Command::MergeText(text) => {
+                self.text_edit.merge_text(text);
+                true
+            }
+            Command::MoveLeft => {
+                self.command_move_left();
+                false
+            }
+            Command::MoveRight => {
+                self.command_move_right();
+                false
+            }
+            Command::InsertChar(c) => {
+                self.text_edit.command_insert_char(c);
+                true
+            }
+            Command::ReplaceChar(c) => {
+                log::info!("replace char here..");
+                self.text_edit.command_replace_char(c);
+                true
+            }
+            Command::InsertText(text) => {
+                self.text_edit.command_insert_text(&text);
+                true
+            }
+            Command::SetContent(content) => {
+                self.text_edit = TextEdit::from_str(&content);
+                true
+            }
+            Command::Undo => {
+                self.text_edit.command_undo();
+                true
+            }
+            Command::Redo => {
+                self.text_edit.command_redo();
+                true
+            }
+            Command::BumpHistory => {
+                self.text_edit.bump_history();
+                false
+            }
+            Command::SetSelection(start, end) => {
+                self.text_edit.command_set_selection(start, end);
+                false
+            }
+            Command::SelectAll => {
+                self.text_edit.command_select_all();
+                false
+            }
+            Command::ClearSelection => {
+                self.text_edit.clear_selection();
+                false
+            }
+            Command::SetPosition(x, y) => {
+                self.command_set_position(x, y);
+                false
+            }
+        }
     }
 
     fn command_move_up(&mut self) {
@@ -342,23 +370,7 @@ impl<XMSG> Editor<XMSG> {
         }
     }
 
-    async fn command_break_line(&mut self) -> Vec<XMSG> {
-        self.text_edit.command_break_line();
-        self.content_has_changed().await
-    }
-
-    #[allow(unused)]
-    async fn command_join_line(&mut self) -> Vec<XMSG> {
-        self.text_edit.command_join_line();
-        self.content_has_changed().await
-    }
-
-    async fn command_insert_text(&mut self, text: &str) -> Vec<XMSG> {
-        self.text_edit.command_insert_text(text);
-        self.content_has_changed().await
-    }
-
-   async fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
+   fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
         if self.options.use_virtual_edit {
             self.text_edit
                 .command_set_position(cursor_x as usize, cursor_y as usize);
@@ -370,37 +382,31 @@ impl<XMSG> Editor<XMSG> {
         }
     }
 
-    async fn command_set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
-        self.set_selection(start, end)
+    pub fn selected_text(&self) -> Option<String> {
+        self.text_edit.selected_text()
     }
 
-    async fn command_select_all(&mut self) {
-        let start = Point2::new(0, 0);
-        let max = self.text_edit.max_position();
-        let end = Point2::new(max.x as i32, max.y as i32);
-        self.set_selection(start, end);
+    pub fn cut_selected_text(&mut self) -> Option<String> {
+        self.text_edit.cut_selected_text()
     }
 
-    /// Make a history separator for the undo/redo
-    /// This is used for breaking undo action list
-    async fn bump_history(&mut self) {
-        self.text_edit.bump_history();
+    pub fn selected_text_block_mode(&self) -> Option<String> {
+        self.text_edit.selected_text_block_mode()
     }
 
-    async fn command_undo(&mut self) -> Vec<XMSG> {
-        self.text_edit.command_undo();
-        self.content_has_changed().await
+    pub fn cut_selected_text_block_mode(&mut self) -> Option<String> {
+        self.text_edit.cut_selected_text_block_mode()
     }
 
-    async fn command_redo(&mut self) -> Vec<XMSG> {
-        self.text_edit.command_redo();
-        self.content_has_changed().await
-    }
 
     /// call this when a command changes the text_edit content
     /// This will rehighlight the content
     /// and emit the external XMSG in the event listeners
-    async fn content_has_changed(&mut self) -> Vec<XMSG> {
+    ///
+    /// TODO: create a flag to mark that the content has changed
+    /// for each command, then finally it will be used to determine
+    /// whether to execute rehilight and emit change listener
+    pub async fn content_has_changed(&mut self) -> Vec<XMSG> {
         self.throttled_content_has_changed().await
     }
 
@@ -428,7 +434,7 @@ impl<XMSG> Editor<XMSG> {
                 .remaining_time()
                 .expect("must have a remaining time");
             log::info!("remaining time for next execution: {}", remaining);
-            async_delay::delay(remaining + 1.0).await;
+            async_delay::delay(remaining + 1).await;
             self.throttle.lock().expect("cant get lock").is_executing = true;
             let msgs = self.rehighlight_and_emit().await;
             self.throttle.lock().expect("cant get lock").executed();
@@ -437,27 +443,6 @@ impl<XMSG> Editor<XMSG> {
             log::info!("no execution..");
             vec![]
         }
-    }
-
-    /// clear the text selection
-    fn clear_selection(&mut self) {
-        self.text_edit.clear_selection()
-    }
-
-    pub fn selected_text(&self) -> Option<String> {
-        self.text_edit.selected_text()
-    }
-
-    pub fn cut_selected_text(&mut self) -> Option<String> {
-        self.text_edit.cut_selected_text()
-    }
-
-    pub fn selected_text_block_mode(&self) -> Option<String> {
-        self.text_edit.selected_text_block_mode()
-    }
-
-    pub fn cut_selected_text_block_mode(&mut self) -> Option<String> {
-        self.text_edit.cut_selected_text_block_mode()
     }
 
     /// Attach a callback to this editor where it is invoked when the content is changed.

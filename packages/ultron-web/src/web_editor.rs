@@ -2,6 +2,7 @@ use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::{
     html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast,
+    Measurements,
 };
 pub use ultron_core;
 use ultron_core::{editor, nalgebra::Point2, Editor, Options};
@@ -11,10 +12,12 @@ pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
 pub const CH_HEIGHT: u32 = 16;
 
+#[derive(Debug)]
 pub enum Command {
     EditorCommand(editor::Command),
     /// execute paste text
     PasteTextBlock(String),
+    MergeText(String),
     /// execute copy text
     CopyText,
     /// execute cut text
@@ -59,6 +62,7 @@ pub enum Msg {
     Mouseup(i32, i32),
     Mousedown(i32, i32),
     Mousemove(i32, i32),
+    Measurements(Measurements),
 }
 
 /// rename this to WebEditor
@@ -67,6 +71,12 @@ pub struct WebEditor<XMSG> {
     editor: Editor<XMSG>,
     editor_element: Option<web_sys::Element>,
     mouse_cursor: MouseCursor,
+    measure: Measure,
+}
+
+#[derive(Default)]
+struct Measure{
+    average_dispatch: Option<f64>,
 }
 
 impl<XMSG> WebEditor<XMSG> {
@@ -77,6 +87,7 @@ impl<XMSG> WebEditor<XMSG> {
             editor,
             editor_element: None,
             mouse_cursor: MouseCursor::default(),
+            measure: Measure::default(),
         }
     }
 
@@ -281,16 +292,16 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             }
             Msg::Mouseup(client_x, client_y) => {
                 let cursor = self.client_to_cursor_clamped(client_x, client_y);
-                self.editor.process_command(editor::Command::SetPosition(
+                self.editor.process_commands([editor::Command::SetPosition(
                     cursor.x, cursor.y,
-                )).await;
+                )]).await;
                 self.editor.set_selection_end(cursor);
                 let selection = self.editor.selection();
                 if let (Some(start), Some(end)) =
                     (selection.start, selection.end)
                 {
-                    let msgs = self.editor.process_command(
-                        editor::Command::SetSelection(start, end),
+                    let msgs = self.editor.process_commands(
+                        [editor::Command::SetSelection(start, end)],
                     ).await;
                     Effects::new(vec![], msgs)
                 } else {
@@ -302,8 +313,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     let cursor =
                         self.client_to_cursor_clamped(client_x, client_y);
                     self.editor.set_selection_start(cursor);
-                    let msgs = self.editor.process_command(
-                        editor::Command::SetPosition(cursor.x, cursor.y),
+                    let msgs = self.editor.process_commands(
+                        [editor::Command::SetPosition(cursor.x, cursor.y)],
                     ).await;
                     Effects::new(vec![], msgs).measure()
                 } else {
@@ -318,8 +329,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 
                     let selection = self.editor.selection();
                     if let Some(start) = selection.start {
-                        let msgs = self.editor.process_command(
-                            editor::Command::SetSelection(start, cursor),
+                        let msgs = self.editor.process_commands(
+                            [editor::Command::SetSelection(start, cursor)],
                         ).await;
                         Effects::new(vec![], msgs).measure()
                     } else {
@@ -330,11 +341,25 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 }
             }
             Msg::Keydown(ke) => self.process_keypress(&ke).await,
+            Msg::Measurements(measure) => {
+                self.update_measure(measure);
+                Effects::none()
+            }
         }
     }
 }
 
 impl<XMSG> WebEditor<XMSG> {
+
+    fn update_measure(&mut self, measure: Measurements){
+        if let Some(average_dispatch) = self.measure.average_dispatch.as_mut(){
+            log::info!("existing average..");
+            *average_dispatch = (*average_dispatch + measure.total_time) / 2.0;
+        }else{
+            log::info!("first average..");
+            self.measure.average_dispatch = Some(measure.total_time);
+        }
+    }
     #[allow(unused)]
     pub fn set_mouse_cursor(&mut self, mouse_cursor: MouseCursor) {
         self.mouse_cursor = mouse_cursor;
@@ -401,21 +426,36 @@ impl<XMSG> WebEditor<XMSG> {
         ke: &web_sys::KeyboardEvent,
     ) -> Effects<Msg, XMSG> {
         if let Some(command) = Self::keyevent_to_command(ke) {
-            let msgs = self.process_command(command).await;
-            Effects::new(vec![], msgs)
+            let msgs = self.process_commands([command]).await;
+            Effects::new(vec![], msgs).measure()
         } else {
             Effects::none()
         }
     }
 
-    pub async fn process_command(&mut self, command: Command) -> Vec<XMSG> {
+    pub async fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG>{
+        let results:Vec<bool> =
+            commands.into_iter().map(|command|
+                self.process_command(command)
+            ).collect();
+        if results.into_iter().any(|v|v){
+            self.editor.content_has_changed().await
+        }else{
+            vec![]
+        }
+    }
+
+    pub fn process_command(&mut self, command: Command) -> bool {
         match command {
             Command::EditorCommand(ecommand) => {
-                self.editor.process_command(ecommand).await
+                self.editor.process_command(ecommand)
             }
             Command::PasteTextBlock(text_block) => self
                 .editor
-                .process_command(editor::Command::PasteTextBlock(text_block)).await,
+                .process_command(editor::Command::PasteTextBlock(text_block)),
+            Command::MergeText(text_block) => self
+                .editor
+                .process_command(editor::Command::MergeText(text_block)),
             Command::CopyText => todo!(),
             Command::CutText => todo!(),
         }
@@ -625,6 +665,11 @@ impl<XMSG> WebEditor<XMSG> {
                 text!("line: {}, col: {} ", cursor.y + 1, cursor.x + 1),
                 text!("| version:{}", env!("CARGO_PKG_VERSION")),
                 text!("| lines: {}", self.editor.total_lines()),
+                if let Some(average_dispatch) = self.measure.average_dispatch{
+                    text!("| average dispatch: {}ms", average_dispatch.round())
+                }else{
+                    text!("| ..")
+                },
             ],
         )
     }

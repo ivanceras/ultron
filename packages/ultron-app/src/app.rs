@@ -37,7 +37,7 @@ impl App {
         let options = Options {
             syntax_token: "rust".to_string(),
             theme_name: Some("solarized-light".to_string()),
-            use_syntax_highlighter: false,
+            use_syntax_highlighter: true,
             ..Default::default()
         };
         Self {
@@ -161,12 +161,12 @@ impl App {
         false
     }
 
-    async fn process_command(
+    async fn process_commands(
         &mut self,
-        wcommand: impl Into<web_editor::Command>,
+        wcommands: impl IntoIterator<Item = impl Into<web_editor::Command>>,
     ) -> Vec<Msg> {
         self.web_editor
-            .process_command(wcommand.into()).await
+            .process_commands(wcommands.into_iter().map(|wcommand|wcommand.into())).await
             .into_iter()
             .collect()
     }
@@ -176,15 +176,6 @@ impl App {
 impl Component<Msg, ()> for App {
     async fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
         match msg {
-            /*
-            Msg::TextareaKeydown(ke) => {
-                /*
-                let effects = self.web_editor.process_keypress(&ke);
-                effects.map_msg(Msg::EditorWebMsg)
-                */
-                Effects::none()
-            }
-            */
             Msg::Keydown(key_event) => {
                 let effects =
                     self.web_editor.update(web_editor::Msg::Keydown(key_event)).await;
@@ -215,9 +206,9 @@ impl Component<Msg, ()> for App {
                     log::trace!("in textarea input char_count == 1..");
                     let c = input.chars().next().expect("must be only 1 chr");
                     let more_msgs = if c == '\n' {
-                        self.process_command(editor::Command::BreakLine).await
+                        self.process_commands([editor::Command::BreakLine]).await
                     } else {
-                        self.process_command(editor::Command::InsertChar(c)).await
+                        self.process_commands([editor::Command::InsertChar(c)]).await
                     };
                     msgs.extend(more_msgs);
                 } else {
@@ -229,7 +220,7 @@ impl Component<Msg, ()> for App {
             }
             Msg::Paste(text_content) => {
                 let msgs = self
-                    .process_command(editor::Command::InsertText(text_content)).await;
+                    .process_commands([editor::Command::InsertText(text_content)]).await;
                 Effects::new(msgs, vec![])
             }
             Msg::Mouseup(client_x, client_y) => {
@@ -262,7 +253,6 @@ impl Component<Msg, ()> for App {
             [class("app")],
             [
                 self.web_editor.view().map_msg(Msg::EditorWebMsg),
-                //self.view_hidden_textarea(),
             ],
         )
     }
@@ -330,5 +320,11 @@ impl Application<Msg> for App {
 
     fn style(&self) -> String {
         <Self as crate::Component<Msg, ()>>::style(self)
+    }
+
+    fn measurements(&self, measurements: Measurements) -> Cmd<Self, Msg> {
+        Cmd::new(|program|{
+            program.dispatch(Msg::EditorWebMsg(web_editor::Msg::Measurements(measurements)))
+        })
     }
 }

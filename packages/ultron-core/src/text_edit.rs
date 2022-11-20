@@ -239,6 +239,10 @@ impl TextEdit {
         self.text_buffer.paste_text_block_mode(text_block);
     }
 
+    pub fn merge_text(&mut self, text_block: String) {
+        self.text_buffer.merge_text(text_block);
+    }
+
     pub fn get_position(&self) -> Point2<usize> {
         self.text_buffer.get_position()
     }
