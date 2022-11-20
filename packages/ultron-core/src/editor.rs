@@ -48,7 +48,7 @@ impl Throttle {
             if let Some(last_exec) = self.last_exec {
                 let elapsed = now - last_exec;
                 if elapsed >= self.interval {
-                    log::info!("will execute");
+                    //log::info!("will execute");
                     true
                 } else {
                     log::info!("will NOT execute but marked as dirty");
@@ -57,7 +57,7 @@ impl Throttle {
                     false
                 }
             } else {
-                log::info!("will execute since this is the first!");
+                //log::info!("will execute since this is the first!");
                 true
             }
         }
@@ -299,7 +299,6 @@ impl<XMSG> Editor<XMSG> {
                 true
             }
             Command::ReplaceChar(c) => {
-                log::info!("replace char here..");
                 self.text_edit.command_replace_char(c);
                 true
             }
@@ -423,7 +422,7 @@ impl<XMSG> Editor<XMSG> {
     /// if time since last executed is greater than execute the function
     async fn throttled_content_has_changed(&mut self) -> Vec<XMSG> {
         if self.throttle.lock().expect("cant get lock").should_execute() {
-            log::info!("executing the content changed");
+            //log::info!("executing the content changed");
             self.throttle.lock().expect("cant get lock").is_executing = true;
             let msgs = self.rehighlight_and_emit().await;
             self.throttle.lock().expect("cant get lock").executed();

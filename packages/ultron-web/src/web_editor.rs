@@ -353,10 +353,8 @@ impl<XMSG> WebEditor<XMSG> {
 
     fn update_measure(&mut self, measure: Measurements){
         if let Some(average_dispatch) = self.measure.average_dispatch.as_mut(){
-            log::info!("existing average..");
             *average_dispatch = (*average_dispatch + measure.total_time) / 2.0;
         }else{
-            log::info!("first average..");
             self.measure.average_dispatch = Some(measure.total_time);
         }
     }

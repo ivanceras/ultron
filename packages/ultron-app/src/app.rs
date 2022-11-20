@@ -12,7 +12,6 @@ use async_trait::async_trait;
 pub enum Msg {
     TextareaMounted(web_sys::Node),
     TextareaInput(String),
-    //TextareaKeydown(web_sys::KeyboardEvent),
     Paste(String),
     EditorWebMsg(web_editor::Msg),
     Keydown(web_sys::KeyboardEvent),
