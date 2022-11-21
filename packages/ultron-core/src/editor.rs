@@ -1,10 +1,10 @@
-#![deny(unused)]
+#![allow(unused)]
 pub use crate::Selection;
 use crate::{Options, TextBuffer, TextEdit};
 use nalgebra::Point2;
 use std::sync::Arc;
-use std::sync::Mutex;
 pub use ultron_syntaxes_themes::{Style, TextHighlighter};
+use async_delay::Throttle;
 
 /// An editor with core functionality platform specific UI
 pub struct Editor<XMSG> {
@@ -19,72 +19,7 @@ pub struct Editor<XMSG> {
     /// a cheaper listener which doesn't need to assemble the text content
     /// of the text editor everytime
     change_notify_listeners: Vec<Callback<(), XMSG>>,
-    throttle: Arc<Mutex<Throttle>>,
-}
-
-struct Throttle {
-    last_exec: Option<i32>,
-    dirty: bool,
-    /// interval in ms
-    interval: i32,
-    is_executing: bool,
-}
-
-impl Throttle {
-    fn new() -> Self {
-        Self {
-            last_exec: None,
-            dirty: false,
-            interval: 100,
-            is_executing: false,
-        }
-    }
-
-    fn should_execute(&mut self) -> bool {
-        if self.is_executing{
-            false
-        }else{
-            let now = async_delay::now();
-            if let Some(last_exec) = self.last_exec {
-                let elapsed = now - last_exec;
-                if elapsed >= self.interval {
-                    //log::info!("will execute");
-                    true
-                } else {
-                    log::info!("will NOT execute but marked as dirty");
-                    // will not execute but mark the throttle dirty to allow for cleanup call
-                    self.dirty = true;
-                    false
-                }
-            } else {
-                //log::info!("will execute since this is the first!");
-                true
-            }
-        }
-    }
-
-    /// calculate the time duration needed to be able execute the function from now.
-    #[allow(unused)]
-    fn remaining_time(&self) -> Option<i32> {
-        let now = async_delay::now();
-        if let Some(last_exec) = self.last_exec {
-            let since = now - last_exec;
-            let rem = self.interval - (since % self.interval);
-            if rem >= 0 {
-                Some(rem)
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-
-    fn executed(&mut self) {
-        self.last_exec = Some(async_delay::now());
-        self.dirty = false;
-        self.is_executing = false;
-    }
+    throttle: Throttle,
 }
 
 
@@ -156,7 +91,7 @@ impl<XMSG> Editor<XMSG> {
             highlighted_lines,
             change_listeners: vec![],
             change_notify_listeners: vec![],
-            throttle: Arc::new(Mutex::new(Throttle::new())),
+            throttle: Throttle::from_interval(100),
         }
     }
 
@@ -406,7 +341,8 @@ impl<XMSG> Editor<XMSG> {
     /// for each command, then finally it will be used to determine
     /// whether to execute rehilight and emit change listener
     pub async fn content_has_changed(&mut self) -> Vec<XMSG> {
-        self.throttled_content_has_changed().await
+        self.rehighlight_and_emit().await
+        //self.throttled_content_has_changed().await
     }
 
     async fn rehighlight_and_emit(&mut self) -> Vec<XMSG>{
@@ -421,22 +357,21 @@ impl<XMSG> Editor<XMSG> {
     /// allowed_duration - (now - last);
     /// if time since last executed is greater than execute the function
     async fn throttled_content_has_changed(&mut self) -> Vec<XMSG> {
-        if self.throttle.lock().expect("cant get lock").should_execute() {
+        if self.throttle.should_execute() {
             //log::info!("executing the content changed");
-            self.throttle.lock().expect("cant get lock").is_executing = true;
+            self.throttle.set_executing(true);
             let msgs = self.rehighlight_and_emit().await;
-            self.throttle.lock().expect("cant get lock").executed();
+            self.throttle.executed();
             msgs
-        } else if self.throttle.lock().expect("cant get lock").dirty {
+        } else if self.throttle.is_dirty() {
             log::info!("content is dirty");
-            let remaining = self.throttle.lock().expect("cant get lock")
-                .remaining_time()
+            let remaining = self.throttle.remaining_time()
                 .expect("must have a remaining time");
             log::info!("remaining time for next execution: {}", remaining);
             async_delay::delay(remaining + 1).await;
-            self.throttle.lock().expect("cant get lock").is_executing = true;
+            self.throttle.set_executing(true);
             let msgs = self.rehighlight_and_emit().await;
-            self.throttle.lock().expect("cant get lock").executed();
+            self.throttle.executed();
             msgs
         } else {
             log::info!("no execution..");
