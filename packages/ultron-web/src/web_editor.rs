@@ -779,7 +779,13 @@ pub fn view_text_buffer<MSG>(
                         options.show_line_numbers,
                         span([class_ns("number")], [text(line_number)]),
                     ),
-                    text(line),
+                    // Note: this is important since text node with empty
+                    // content seems to cause error when finding the dom in rust
+                    if line.is_empty(){
+                        span([],[])
+                    }else{
+                        text(line)
+                    },
                 ],
             )
         },

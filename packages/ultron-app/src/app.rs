@@ -36,7 +36,7 @@ impl App {
         let options = Options {
             syntax_token: "rust".to_string(),
             theme_name: Some("solarized-light".to_string()),
-            use_syntax_highlighter: true,
+            use_syntax_highlighter: false,
             ..Default::default()
         };
         Self {
