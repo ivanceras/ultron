@@ -15,7 +15,8 @@ crate-type = ["rlib","cdylib"]
 
 [dependencies]
 ultron-core = { path = "../ultron-core" }
-sauron = { path = "../../../sauron", features = ["with-measure"] }
+sauron = { path = "../../../sauron", features = ["with-measure", "with-debug", "with-ric"] }
+#sauron = { path = "../../../sauron", features = ["with-measure"] }
 log = "0.4"
 console_log = { version = "0.2", features = ["color"]}
 console_error_panic_hook = "0.1"

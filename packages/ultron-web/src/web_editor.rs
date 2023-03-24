@@ -781,11 +781,7 @@ pub fn view_text_buffer<MSG>(
                     ),
                     // Note: this is important since text node with empty
                     // content seems to cause error when finding the dom in rust
-                    if line.is_empty(){
-                        span([],[])
-                    }else{
-                        text(line)
-                    },
+                    span([],[text(line)])
                 ],
             )
         },
