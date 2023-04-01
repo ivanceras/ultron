@@ -10,14 +10,14 @@
     - [ ] Increase the selection when shift key is pressed
     - [ ] Pressing any key will delete the selected text.
 - [X] Move the cursor to the user clicked location
-- [ ] Redo/undo
+- [X] Redo/undo
     - [X] Undo/Redo on typing
     - [X] Undo/redo on cut/copy/paste
         - [X] Move to
         - [X] Add `join_line` to undo break line
     - [X] Select All
-    - [ ] Undo for deleted text selection
-    - [ ] Redo for deletex text selection
+    - [X] Undo for deleted text selection
+    - [X] Redo for deleted text selection
 - [ ] multi-layer buffer, so you can drag objects around
 - [X] Draggable separator
 - [ ] selection

@@ -91,7 +91,9 @@ impl TextEdit {
     }
 
     pub fn command_delete_forward(&mut self) {
-        let _ch = self.text_buffer.command_delete_forward();
+        let ch = self.text_buffer.command_delete_forward();
+        let cursor = self.text_buffer.get_position();
+        self.recorded.delete(cursor, ch);
     }
 
     pub fn command_move_up(&mut self) {
@@ -228,13 +230,34 @@ impl TextEdit {
         }
     }
 
+    //TODO: record cutting of text as delete
     pub fn cut_selected_text(&mut self) -> Option<String> {
         match (self.selection.start, self.selection.end) {
-            (Some(start), Some(end)) => Some(
-                self.text_buffer
-                    .cut_text(util::cast_point(start), util::cast_point(end)),
-            ),
+            (Some(start), Some(end)) => {
+                let start = util::cast_point(start);
+                let end = util::cast_point(end);
+                let cut_text = self.text_buffer.cut_text(start, end);
+                if !cut_text.is_empty() {
+                    self.record_deleted_text(start, end, &cut_text);
+                }
+                Some(cut_text)
+            }
             _ => None,
+        }
+    }
+
+    fn record_deleted_text(
+        &mut self,
+        _start: Point2<usize>,
+        _end: Point2<usize>,
+        cut_text: &str,
+    ) {
+        let lines = cut_text.lines();
+        for (y, line) in lines.enumerate() {
+            for (_x, ch) in line.chars().enumerate() {
+                let position = Point2::new(0, y);
+                self.recorded.delete(position, Some(ch));
+            }
         }
     }
 
