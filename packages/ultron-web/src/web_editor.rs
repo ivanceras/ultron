@@ -503,7 +503,7 @@ impl<XMSG> WebEditor<XMSG> {
     pub fn cut_selected_text_to_clipboard(&mut self) -> bool{
         log::warn!("Cutting text to clipboard");
         let ret = self.copy_selected_text_to_clipboard();
-        self.cut_selected_text_block_mode();
+        self.cut_selected_text();
         ret
     }
 
