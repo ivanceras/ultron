@@ -15,8 +15,7 @@ crate-type = ["rlib","cdylib"]
 
 [dependencies]
 ultron-core = { path = "../ultron-core" }
-sauron = { path = "../../../sauron", features = ["with-measure", "with-debug", "with-ric"] }
-#sauron = { path = "../../../sauron", features = ["with-measure"] }
+sauron = { path = "../../../sauron"}
 log = "0.4"
 console_log = { version = "0.2", features = ["color"]}
 console_error_panic_hook = "0.1"
@@ -37,5 +36,8 @@ features = [
 
 
 [features]
-default = ["with-navigator-clipboard"]
+default = ["with-navigator-clipboard", "with-measure"]
+with-ric = ["sauron/with-ric"]
+with-measure = ["sauron/with-measure"]
+with-debug = ["sauron/with-debug"]
 with-navigator-clipboard = [] # use this feature if only want to support latest browsers

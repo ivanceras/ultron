@@ -33,7 +33,9 @@ pub enum Command {
     MoveUp,
     MoveDown,
     MoveLeft,
+    MoveLeftStart,
     MoveRight,
+    MoveRightEnd,
     InsertChar(char),
     ReplaceChar(char),
     InsertText(String),
@@ -222,7 +224,15 @@ impl<XMSG> Editor<XMSG> {
                 true
             }
             Command::MoveLeft => {
-                self.command_move_left();
+                self.text_edit.command_move_left();
+                false
+            }
+            Command::MoveLeftStart => {
+                self.text_edit.command_move_left_start();
+                false
+            }
+            Command::MoveRightEnd => {
+                self.text_edit.command_move_right_end();
                 false
             }
             Command::MoveRight => {

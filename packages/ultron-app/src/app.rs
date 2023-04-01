@@ -178,7 +178,7 @@ impl Component<Msg, ()> for App {
             Msg::Keydown(key_event) => {
                 let effects =
                     self.web_editor.update(web_editor::Msg::Keydown(key_event)).await;
-                effects.localize(Msg::EditorWebMsg)
+                effects.localize(Msg::EditorWebMsg).measure()
             }
             Msg::TextareaMounted(target_node) => {
                 self.hidden_textarea = Some(target_node.unchecked_into());
@@ -322,6 +322,7 @@ impl Application<Msg> for App {
     }
 
     fn measurements(&self, measurements: Measurements) -> Cmd<Self, Msg> {
+        log::info!("measurements in ultron app");
         Cmd::new(|program|{
             program.dispatch(Msg::EditorWebMsg(web_editor::Msg::Measurements(measurements)))
         })

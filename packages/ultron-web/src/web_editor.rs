@@ -395,6 +395,9 @@ impl<XMSG> WebEditor<XMSG> {
                         Command::EditorCommand(editor::Command::Undo)
                     }
                 }
+                'r' if is_ctrl => {
+                    Command::EditorCommand(editor::Command::Redo)
+                }
                 'a' if is_ctrl => {
                     Command::EditorCommand(editor::Command::SelectAll)
                 }
@@ -412,6 +415,8 @@ impl<XMSG> WebEditor<XMSG> {
                 "ArrowDown" => Some(editor::Command::MoveDown),
                 "ArrowLeft" => Some(editor::Command::MoveLeft),
                 "ArrowRight" => Some(editor::Command::MoveRight),
+                "Home" => Some(editor::Command::MoveLeftStart),
+                "End" => Some(editor::Command::MoveRightEnd),
                 _ => None,
             };
             editor_command.map(Command::EditorCommand)

@@ -114,8 +114,16 @@ impl TextEdit {
         self.text_buffer.move_left();
     }
 
+    pub fn command_move_left_start(&mut self) {
+        self.text_buffer.move_left_start();
+    }
+
     pub fn command_move_right(&mut self) {
         self.text_buffer.move_right();
+    }
+
+    pub fn command_move_right_end(&mut self) {
+        self.text_buffer.move_right_end();
     }
 
     pub fn command_move_right_clamped(&mut self) {
