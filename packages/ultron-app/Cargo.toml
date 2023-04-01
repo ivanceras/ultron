@@ -9,6 +9,9 @@ documentation = "https://docs.rs/ultron-web"
 readme = "../../README.md"
 keywords = ["web", "editor", "monospace"]
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
 [lib]
 crate-type = ["rlib","cdylib"]
 

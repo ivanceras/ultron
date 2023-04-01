@@ -285,6 +285,12 @@ impl TextBuffer {
         Point2::new(max_column, last_line)
     }
 
+    pub fn last_char_position(&self) -> Point2<usize> {
+        let last_line = self.total_lines().saturating_sub(1);
+        let bottom_last_x = self.line_width(last_line).saturating_sub(1);
+        Point2::new(bottom_last_x, last_line)
+    }
+
     /// break at line y and put the characters after x on the next line
     pub fn break_line(&mut self, x: usize, y: usize) {
         self.ensure_before_cell_exist(x, y);

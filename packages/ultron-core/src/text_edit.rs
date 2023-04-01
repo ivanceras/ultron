@@ -170,6 +170,13 @@ impl TextEdit {
 
     pub fn command_select_all(&mut self) {
         let start = Point2::new(0, 0);
+        let max = self.text_buffer.last_char_position();
+        let end = Point2::new(max.x as i32, max.y as i32);
+        self.set_selection(start, end);
+    }
+
+    pub fn command_select_all_block_mode(&mut self) {
+        let start = Point2::new(0, 0);
         let max = self.text_buffer.max_position();
         let end = Point2::new(max.x as i32, max.y as i32);
         self.set_selection(start, end);

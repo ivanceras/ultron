@@ -3,6 +3,7 @@ use css_colors::{rgba, Color, RGBA};
 use sauron::{
     html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast,
     Measurements,
+    wasm_bindgen_futures::JsFuture,
 };
 pub use ultron_core;
 use ultron_core::{editor, nalgebra::Point2, Editor, Options};
@@ -449,6 +450,7 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     pub fn process_command(&mut self, command: Command) -> bool {
+        log::info!("Processing command: {:?}", command);
         match command {
             Command::EditorCommand(ecommand) => {
                 self.editor.process_command(ecommand)
@@ -459,8 +461,8 @@ impl<XMSG> WebEditor<XMSG> {
             Command::MergeText(text_block) => self
                 .editor
                 .process_command(editor::Command::MergeText(text_block)),
-            Command::CopyText => todo!(),
-            Command::CutText => todo!(),
+            Command::CopyText => self.copy_selected_text_to_clipboard(),
+            Command::CutText => self.cut_selected_text_to_clipboard(),
         }
     }
 
@@ -482,6 +484,27 @@ impl<XMSG> WebEditor<XMSG> {
 
     pub fn set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
         self.editor.set_selection(start, end);
+    }
+
+    pub fn copy_selected_text_to_clipboard(&self) -> bool{
+        log::warn!("Copying text to clipboard..");
+        if let Some(clipboard) = window().navigator().clipboard(){
+            if let Some(selected_text) = self.selected_text(){
+                let fut = JsFuture::from(clipboard.write_text(&selected_text));
+                spawn_local(async move{fut.await.expect("must not error");});
+                return true;
+            }
+        }else{
+            log::error!("Clipboard is not supported");
+        }
+        false
+    }
+
+    pub fn cut_selected_text_to_clipboard(&mut self) -> bool{
+        log::warn!("Cutting text to clipboard");
+        let ret = self.copy_selected_text_to_clipboard();
+        self.cut_selected_text_block_mode();
+        ret
     }
 
     /// calculate the bounding rect of the editor using a DOM call [getBoundingClientRect](https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect)

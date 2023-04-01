@@ -5,4 +5,4 @@ set -v
 
 . ./build.sh &&\
 
-basic-http-server  -a 0.0.0.0:4004 ./packages/ultron-app
+basic-http-server  -a 127.0.0.1:4004 ./packages/ultron-app
