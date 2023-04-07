@@ -482,6 +482,10 @@ impl<XMSG> WebEditor<XMSG> {
         self.editor.cut_selected_text_block_mode()
     }
 
+    pub fn clear(&mut self) {
+        self.editor.clear()
+    }
+
     pub fn set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
         self.editor.set_selection(start, end);
     }

@@ -342,6 +342,10 @@ impl<XMSG> Editor<XMSG> {
         self.text_edit.cut_selected_text_block_mode()
     }
 
+    pub fn clear(&mut self) {
+        self.text_edit.clear();
+    }
+
 
     /// call this when a command changes the text_edit content
     /// This will rehighlight the content

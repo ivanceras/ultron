@@ -81,6 +81,12 @@ impl Recorded {
         self.freeup_history();
     }
 
+    /// clear history
+    pub fn clear(&mut self) {
+        self.history.clear();
+        self.undone.clear();
+    }
+
     /// free up some history if there are more than allowable length
     fn freeup_history(&mut self) {
         while self.history.len() > HISTORY_SIZE {

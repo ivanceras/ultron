@@ -43,6 +43,12 @@ impl TextEdit {
         self.selection.start = Some(start);
     }
 
+    pub fn clear(&mut self) {
+        self.text_buffer.clear();
+        self.clear_selection();
+        self.recorded.clear();
+    }
+
     pub fn set_selection_end(&mut self, end: Point2<i32>) {
         self.selection.end = Some(end);
     }
