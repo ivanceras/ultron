@@ -4,7 +4,6 @@ use crate::{Options, TextBuffer, TextEdit};
 use nalgebra::Point2;
 use std::sync::Arc;
 pub use ultron_syntaxes_themes::{Style, TextHighlighter};
-use async_delay::Throttle;
 
 /// An editor with core functionality platform specific UI
 pub struct Editor<XMSG> {
@@ -19,7 +18,6 @@ pub struct Editor<XMSG> {
     /// a cheaper listener which doesn't need to assemble the text content
     /// of the text editor everytime
     change_notify_listeners: Vec<Callback<(), XMSG>>,
-    throttle: Throttle,
 }
 
 
@@ -93,7 +91,6 @@ impl<XMSG> Editor<XMSG> {
             highlighted_lines,
             change_listeners: vec![],
             change_notify_listeners: vec![],
-            throttle: Throttle::from_interval(100),
         }
     }
 
@@ -364,33 +361,6 @@ impl<XMSG> Editor<XMSG> {
             self.rehighlight();
         }
         self.emit_on_change_listeners()
-    }
-
-    /// check last executed, if elapsed time is lesser than the allowed duration
-    /// then make a delayed call to this function with a delayed of
-    /// allowed_duration - (now - last);
-    /// if time since last executed is greater than execute the function
-    async fn throttled_content_has_changed(&mut self) -> Vec<XMSG> {
-        if self.throttle.should_execute() {
-            //log::info!("executing the content changed");
-            self.throttle.set_executing(true);
-            let msgs = self.rehighlight_and_emit().await;
-            self.throttle.executed();
-            msgs
-        } else if self.throttle.is_dirty() {
-            log::info!("content is dirty");
-            let remaining = self.throttle.remaining_time()
-                .expect("must have a remaining time");
-            log::info!("remaining time for next execution: {}", remaining);
-            async_delay::delay(remaining + 1).await;
-            self.throttle.set_executing(true);
-            let msgs = self.rehighlight_and_emit().await;
-            self.throttle.executed();
-            msgs
-        } else {
-            log::info!("no execution..");
-            vec![]
-        }
     }
 
     /// Attach a callback to this editor where it is invoked when the content is changed.
