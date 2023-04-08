@@ -359,7 +359,7 @@ impl<XMSG> WebEditor<XMSG> {
             self.measure.average_dispatch = Some(measure.total_time);
         }
     }
-    #[allow(unused)]
+
     pub fn set_mouse_cursor(&mut self, mouse_cursor: MouseCursor) {
         self.mouse_cursor = mouse_cursor;
     }
@@ -545,7 +545,6 @@ impl<XMSG> WebEditor<XMSG> {
         }
     }
 
-    #[allow(unused)]
     /// calculate the points relative to the editor bounding box
     pub fn relative_client(&self, client_x: i32, client_y: i32) -> Point2<i32> {
         let editor = self.editor_offset().expect("must have an editor offset");
