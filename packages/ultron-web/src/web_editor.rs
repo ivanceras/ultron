@@ -212,10 +212,10 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 
 
             ".status": {
-                position: "sticky",
+                position: "fixed",
                 bottom: 0,
                 display: "flex",
-                flex_direction: "flex-end",
+                flex_direction: "row",
                 user_select: "none",
             },
 
@@ -657,6 +657,11 @@ impl<XMSG> WebEditor<XMSG> {
         )
     }
 
+    /// calculate the width of the numberline including the padding
+    fn number_line_with_padding_width(&self) -> f32 {
+        self.numberline_wide_with_padding() as f32  * CH_WIDTH as f32
+    }
+
     fn view_virtual_cursor(&self) -> Node<Msg> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
@@ -675,7 +680,7 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     /// the view for the status line
-    pub fn view_status_line<Msg>(&self) -> Node<Msg> {
+    pub fn view_status_line<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| {
             attributes::class_namespaced(COMPONENT_NAME, class_names)
         };
@@ -688,6 +693,7 @@ impl<XMSG> WebEditor<XMSG> {
                     background_color: self.gutter_background().to_css(),
                     color: self.gutter_foreground().to_css(),
                     height: px(self.status_line_height()),
+                    left: px(self.number_line_with_padding_width())
                 },
             ],
             [
