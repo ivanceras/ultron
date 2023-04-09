@@ -7,7 +7,6 @@ use sauron::{
 };
 pub use ultron_core;
 use ultron_core::{editor, nalgebra::Point2, Editor, Options};
-use async_trait::async_trait;
 
 pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
@@ -295,7 +294,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 let cursor = self.client_to_cursor_clamped(client_x, client_y);
                 self.editor.process_commands([editor::Command::SetPosition(
                     cursor.x, cursor.y,
-                )]).await;
+                )]);
                 self.editor.set_selection_end(cursor);
                 let selection = self.editor.selection();
                 if let (Some(start), Some(end)) =
@@ -303,7 +302,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 {
                     let msgs = self.editor.process_commands(
                         [editor::Command::SetSelection(start, end)],
-                    ).await;
+                    );
                     Effects::new(vec![], msgs)
                 } else {
                     Effects::none()
@@ -316,7 +315,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     self.editor.set_selection_start(cursor);
                     let msgs = self.editor.process_commands(
                         [editor::Command::SetPosition(cursor.x, cursor.y)],
-                    ).await;
+                    );
                     Effects::new(vec![], msgs).measure()
                 } else {
                     Effects::none()
@@ -332,7 +331,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     if let Some(start) = selection.start {
                         let msgs = self.editor.process_commands(
                             [editor::Command::SetSelection(start, cursor)],
-                        ).await;
+                        );
                         Effects::new(vec![], msgs).measure()
                     } else {
                         Effects::none()
@@ -341,7 +340,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     Effects::none()
                 }
             }
-            Msg::Keydown(ke) => self.process_keypress(&ke).await,
+            Msg::Keydown(ke) => self.process_keypress(&ke),
             Msg::Measurements(measure) => {
                 self.update_measure(measure);
                 Effects::none()
@@ -425,25 +424,25 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     /// make this into keypress to command
-    pub async fn process_keypress(
+    pub fn process_keypress(
         &mut self,
         ke: &web_sys::KeyboardEvent,
     ) -> Effects<Msg, XMSG> {
         if let Some(command) = Self::keyevent_to_command(ke) {
-            let msgs = self.process_commands([command]).await;
+            let msgs = self.process_commands([command]);
             Effects::new(vec![], msgs).measure()
         } else {
             Effects::none()
         }
     }
 
-    pub async fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG>{
+    pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG>{
         let results:Vec<bool> =
             commands.into_iter().map(|command|
                 self.process_command(command)
             ).collect();
         if results.into_iter().any(|v|v){
-            self.editor.content_has_changed().await
+            self.editor.content_has_changed()
         }else{
             vec![]
         }

@@ -20,7 +20,6 @@ pub struct Editor<XMSG> {
     change_notify_listeners: Vec<Callback<(), XMSG>>,
 }
 
-
 #[derive(Debug)]
 pub enum Command {
     IndentForward,
@@ -56,7 +55,7 @@ pub struct Callback<IN, OUT> {
 
 impl<IN, F, OUT> From<F> for Callback<IN, OUT>
 where
-    F: Fn(IN) -> OUT+ 'static ,
+    F: Fn(IN) -> OUT + 'static,
 {
     fn from(func: F) -> Self {
         Self {
@@ -161,15 +160,17 @@ impl<XMSG> Editor<XMSG> {
 }
 
 impl<XMSG> Editor<XMSG> {
-
-
-    pub async fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG>{
-        let results:Vec<bool> = commands.into_iter().map(|command|
-            self.process_command(command)
-        ).collect();
-        if  results.into_iter().any(|v|v){
-            self.content_has_changed().await
-        }else{
+    pub fn process_commands(
+        &mut self,
+        commands: impl IntoIterator<Item = Command>,
+    ) -> Vec<XMSG> {
+        let results: Vec<bool> = commands
+            .into_iter()
+            .map(|command| self.process_command(command))
+            .collect();
+        if results.into_iter().any(|v| v) {
+            self.content_has_changed()
+        } else {
             vec![]
         }
     }
@@ -189,9 +190,7 @@ impl<XMSG> Editor<XMSG> {
                 self.text_edit.command_insert_text(indent);
                 true
             }
-            Command::IndentBackward => {
-                true
-            }
+            Command::IndentBackward => true,
             Command::BreakLine => {
                 self.text_edit.command_break_line();
                 true
@@ -303,7 +302,7 @@ impl<XMSG> Editor<XMSG> {
         self.text_edit.command_move_left();
     }
 
-   fn command_move_right(&mut self) {
+    fn command_move_right(&mut self) {
         if self.options.use_virtual_edit {
             self.text_edit.command_move_right();
         } else {
@@ -311,7 +310,7 @@ impl<XMSG> Editor<XMSG> {
         }
     }
 
-   fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
+    fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
         if self.options.use_virtual_edit {
             self.text_edit
                 .command_set_position(cursor_x as usize, cursor_y as usize);
@@ -343,7 +342,6 @@ impl<XMSG> Editor<XMSG> {
         self.text_edit.clear();
     }
 
-
     /// call this when a command changes the text_edit content
     /// This will rehighlight the content
     /// and emit the external XMSG in the event listeners
@@ -351,13 +349,12 @@ impl<XMSG> Editor<XMSG> {
     /// TODO: create a flag to mark that the content has changed
     /// for each command, then finally it will be used to determine
     /// whether to execute rehilight and emit change listener
-    pub async fn content_has_changed(&mut self) -> Vec<XMSG> {
-        self.rehighlight_and_emit().await
-        //self.throttled_content_has_changed().await
+    pub fn content_has_changed(&mut self) -> Vec<XMSG> {
+        self.rehighlight_and_emit()
     }
 
-    async fn rehighlight_and_emit(&mut self) -> Vec<XMSG>{
-        if self.options.use_syntax_highlighter{
+    fn rehighlight_and_emit(&mut self) -> Vec<XMSG> {
+        if self.options.use_syntax_highlighter {
             self.rehighlight();
         }
         self.emit_on_change_listeners()
