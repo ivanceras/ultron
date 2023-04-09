@@ -2,7 +2,7 @@
 
 set -ev
 
-dest="../ivanceras.github.io/ultron/"
+dest="../ivanceras.github.io/ultron.beta/"
 src_dir="packages/ultron-app"
 
 . ./build.sh
