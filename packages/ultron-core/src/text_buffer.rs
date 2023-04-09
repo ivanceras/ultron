@@ -2,7 +2,7 @@ use nalgebra::Point2;
 use std::iter::FromIterator;
 use unicode_width::UnicodeWidthChar;
 
-const BLANK_CH: char = ' ';
+pub const BLANK_CH: char = ' ';
 
 /// A text buffer where characters are manipulated visually with
 /// consideration on the unicode width of characters.
@@ -187,22 +187,6 @@ impl TextBuffer {
             for ch in line.chars() {
                 let x = self.cursor.x + width;
                 self.replace_char(x, y, ch);
-                width += ch.width().unwrap_or(0);
-            }
-        }
-    }
-
-    /// paste the text block overlaying on the text content of the buffer
-    /// excluding the whitespace
-    pub fn merge_text(&mut self, text_block: String) {
-        for (line_index, line) in text_block.lines().enumerate() {
-            let mut width = 0;
-            let y = line_index;
-            for ch in line.chars() {
-                if ch != BLANK_CH {
-                    let x = width;
-                    self.replace_char(x, y, ch);
-                }
                 width += ch.width().unwrap_or(0);
             }
         }

@@ -2,6 +2,7 @@ use crate::{util, TextBuffer};
 pub use action::Action;
 pub use history::Recorded;
 use nalgebra::Point2;
+use unicode_width::UnicodeWidthChar;
 
 mod action;
 mod history;
@@ -283,8 +284,21 @@ impl TextEdit {
         self.text_buffer.paste_text_block_mode(text_block);
     }
 
-    pub fn merge_text(&mut self, text_block: String) {
-        self.text_buffer.merge_text(text_block);
+    /// paste the text block overlaying on the text content of the buffer
+    /// excluding the whitespace
+    pub fn command_merge_text(&mut self, text_block: String) {
+        for (line_index, line) in text_block.lines().enumerate() {
+            let mut width = 0;
+            let y = line_index;
+            for ch in line.chars() {
+                if ch != crate::BLANK_CH {
+                    let x = width;
+                    self.command_set_position(x, y);
+                    self.command_replace_char(ch);
+                }
+                width += ch.width().unwrap_or(0);
+            }
+        }
     }
 
     pub fn get_position(&self) -> Point2<usize> {

@@ -217,7 +217,7 @@ impl<XMSG> Editor<XMSG> {
                 true
             }
             Command::MergeText(text) => {
-                self.text_edit.merge_text(text);
+                self.text_edit.command_merge_text(text);
                 true
             }
             Command::MoveLeft => {
