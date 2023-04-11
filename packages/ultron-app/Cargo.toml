@@ -14,8 +14,16 @@ crate-type = ["rlib","cdylib"]
 
 
 [dependencies]
-ultron-web = { path = "../ultron-web" }
+ultron-web = { path = "../ultron-web", default-features = false }
 log = "0.4"
 console_log = { version = "0.2", features = ["color"]}
 console_error_panic_hook = "0.1"
 async-trait = "0.1.58"
+
+[features]
+default = ["with-ric", "with-raf", "with-measure", "with-navigator-clipboard"]
+with-ric = ["ultron-web/with-ric"]
+with-raf = ["ultron-web/with-raf"]
+with-measure = ["ultron-web/with-measure"]
+with-debug = ["ultron-web/with-debug"]
+with-navigator-clipboard = ["ultron-web/with-navigator-clipboard"]

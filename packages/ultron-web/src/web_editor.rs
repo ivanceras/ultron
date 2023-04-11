@@ -77,6 +77,7 @@ pub struct WebEditor<XMSG> {
 #[derive(Default)]
 struct Measure{
     average_dispatch: Option<f64>,
+    last_dispatch: Option<f64>,
 }
 
 impl<XMSG> WebEditor<XMSG> {
@@ -357,6 +358,7 @@ impl<XMSG> WebEditor<XMSG> {
         }else{
             self.measure.average_dispatch = Some(measure.total_time);
         }
+        self.measure.last_dispatch = Some(measure.total_time);
     }
 
     pub fn set_mouse_cursor(&mut self, mouse_cursor: MouseCursor) {
@@ -696,13 +698,19 @@ impl<XMSG> WebEditor<XMSG> {
                 },
             ],
             [
-                text!("line: {}, col: {} ", cursor.y + 1, cursor.x + 1),
-                text!("| version:{}", env!("CARGO_PKG_VERSION")),
-                text!("| lines: {}", self.editor.total_lines()),
+                text!(" |> line: {}, col: {} ", cursor.y + 1, cursor.x + 1),
+                text!(" |> version:{}", env!("CARGO_PKG_VERSION")),
+                text!(" |> lines: {}", self.editor.total_lines()),
                 if let Some(average_dispatch) = self.measure.average_dispatch{
-                    text!("| average dispatch: {}ms", average_dispatch.round())
+                    text!(" |> average dispatch: {}ms", average_dispatch.round())
                 }else{
-                    text!("| ..")
+                    text!("")
+                },
+
+                if let Some(last_dispatch) = self.measure.last_dispatch{
+                    text!(" |> latest: {}ms", last_dispatch.round())
+                }else{
+                    text!("")
                 },
             ],
         )
