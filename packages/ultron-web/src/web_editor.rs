@@ -111,7 +111,6 @@ impl<XMSG> WebEditor<XMSG> {
     }
 }
 
-#[async_trait(?Send)]
 impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
     fn style(&self) -> String {
         let user_select = if self.options.allow_text_selection {
@@ -283,7 +282,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
         )
     }
 
-    async fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
+    fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
             Msg::EditorMounted(mount_event) => {
                 let mount_element: web_sys::Element =
