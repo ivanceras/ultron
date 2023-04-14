@@ -23,7 +23,8 @@
 - [ ] selection
     - select parts of the text buffer
     - [ ] Show selected text
-    - [ ] Block selection
+    - [X] Block selection
+    - [ ] Use different background color for selected text
 - [ ] Scroll the view to when the cursor is not visible on the screen
     - This is done automatically due the textarea being always on the cursor, which is focused all the time
         and the browser automatically scroll it to view
