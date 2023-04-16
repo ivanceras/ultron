@@ -60,6 +60,7 @@
                 - then make a delayed call to the function
             - if the elapsed is more than the allowable, then execute the function, mark pending/dirty = false
             - if the last record is not yet there, then execute the function and set it to now
+- [ ] Always make the cursor visible, by scrolling to where the cursor is located
 
 ## Features
 - [~] Smart edit blockmode
