@@ -25,6 +25,12 @@
     - [ ] Show selected text
     - [X] Block selection
     - [ ] Use different background color for selected text
+        - block mode
+            - if the point is inside the rectangular selection
+        - normal mode
+            - if the point in in between lines - true
+            - if the point is after start in the first line - true
+            - if the point is before the end in the last line - true
 - [ ] Scroll the view to when the cursor is not visible on the screen
     - This is done automatically due the textarea being always on the cursor, which is focused all the time
         and the browser automatically scroll it to view
