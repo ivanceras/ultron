@@ -22,10 +22,8 @@ fn dump_sublime(syntaxset: &SyntaxSet, themeset: &ThemeSet) -> io::Result<()> {
     let themeset_pack_path = "./dump/themes.themedump";
     create_parent_dir(syntaxset_pack_path)?;
     create_parent_dir(themeset_pack_path)?;
-    dumps::dump_to_file(&syntaxset, syntaxset_pack_path)
-        .expect("must dump to file");
-    dumps::dump_to_file(&themeset, themeset_pack_path)
-        .expect("must dump to file");
+    dumps::dump_to_file(&syntaxset, syntaxset_pack_path).expect("must dump to file");
+    dumps::dump_to_file(&themeset, themeset_pack_path).expect("must dump to file");
 
     Ok(())
 }

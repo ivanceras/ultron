@@ -1,6 +1,4 @@
-use crate::{
-    Color, HighlightLines, Style, SyntaxReference, SyntaxSet, Theme, ThemeSet,
-};
+use crate::{Color, HighlightLines, Style, SyntaxReference, SyntaxSet, Theme, ThemeSet};
 
 const DEFAULT_THEME: &str = "solarized-light";
 
@@ -50,8 +48,7 @@ impl TextHighlighter {
             .syntax_ref
             .as_ref()
             .expect("must have syntax_ref already");
-        self.highlight_lines =
-            Some(HighlightLines::new(syntax_ref, self.active_theme()));
+        self.highlight_lines = Some(HighlightLines::new(syntax_ref, self.active_theme()));
     }
 
     /// reset syntect parse state by resetting highlight lines
@@ -65,10 +62,7 @@ impl TextHighlighter {
             self.theme_name = Some(theme_name.to_string());
         } else {
             format!("The valid theme names are: {:?}", self.get_theme_names());
-            log::trace!(
-                "The valid theme names are: {:?}",
-                self.get_theme_names()
-            );
+            log::trace!("The valid theme names are: {:?}", self.get_theme_names());
             panic!("theme name: {} doesn't match", theme_name);
         }
     }

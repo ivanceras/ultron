@@ -10,10 +10,8 @@ pub use text_highlighter::TextHighlighter;
 
 mod text_highlighter;
 
-pub static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(|| {
-    dumps::from_binary(include_bytes!("../dump/syntaxes.packdump"))
-});
+pub static SYNTAX_SET: Lazy<SyntaxSet> =
+    Lazy::new(|| dumps::from_binary(include_bytes!("../dump/syntaxes.packdump")));
 
-pub static THEME_SET: Lazy<ThemeSet> = Lazy::new(|| {
-    dumps::from_binary(include_bytes!("../dump/themes.themedump"))
-});
+pub static THEME_SET: Lazy<ThemeSet> =
+    Lazy::new(|| dumps::from_binary(include_bytes!("../dump/themes.themedump")));

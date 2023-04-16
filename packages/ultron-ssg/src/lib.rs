@@ -5,11 +5,7 @@ use ultron_web::{
     Options, WebEditor,
 };
 
-pub fn render<MSG>(
-    content: &str,
-    syntax_token: &str,
-    theme_name: Option<&str>,
-) -> Node<MSG> {
+pub fn render<MSG>(content: &str, syntax_token: &str, theme_name: Option<&str>) -> Node<MSG> {
     let options = Options {
         show_line_numbers: true,
         show_status_line: false,
@@ -24,11 +20,7 @@ pub fn render<MSG>(
     page(web_editor)
 }
 
-pub fn render_to_string(
-    content: &str,
-    syntax_token: &str,
-    theme_name: Option<&str>,
-) -> String {
+pub fn render_to_string(content: &str, syntax_token: &str, theme_name: Option<&str>) -> String {
     let node = render::<()>(content, syntax_token, theme_name);
     node.render_to_string()
 }

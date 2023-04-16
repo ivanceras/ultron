@@ -95,10 +95,7 @@ impl Recorded {
     }
 
     /// undo the history and return the location of the last occurence
-    pub(crate) fn undo(
-        &mut self,
-        text_buffer: &mut TextBuffer,
-    ) -> Option<Point2<usize>> {
+    pub(crate) fn undo(&mut self, text_buffer: &mut TextBuffer) -> Option<Point2<usize>> {
         let mut last_location = None;
         if let Some(to_undo) = self.history.pop_front() {
             self.undone.push_front(to_undo.clone());
@@ -119,10 +116,7 @@ impl Recorded {
         }
     }
 
-    pub(crate) fn redo(
-        &mut self,
-        text_buffer: &mut TextBuffer,
-    ) -> Option<Point2<usize>> {
+    pub(crate) fn redo(&mut self, text_buffer: &mut TextBuffer) -> Option<Point2<usize>> {
         let mut last_location = None;
         if let Some(to_redo) = self.undone.pop_front() {
             to_redo.actions.iter().for_each(|tr| {
@@ -138,20 +132,11 @@ impl Recorded {
         self.record(Action::Insert(cursor, ch));
     }
 
-    pub(crate) fn replace_char(
-        &mut self,
-        cursor: Point2<usize>,
-        old_ch: char,
-        ch: char,
-    ) {
+    pub(crate) fn replace_char(&mut self, cursor: Point2<usize>, old_ch: char, ch: char) {
         self.record(Action::Replace(cursor, old_ch, ch));
     }
 
-    pub(crate) fn delete(
-        &mut self,
-        cursor: Point2<usize>,
-        ch: Option<char>,
-    ) -> Option<char> {
+    pub(crate) fn delete(&mut self, cursor: Point2<usize>, ch: Option<char>) -> Option<char> {
         if let Some(ch) = ch {
             self.record(Action::Delete(cursor, ch));
         }

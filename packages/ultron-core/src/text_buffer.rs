@@ -55,21 +55,15 @@ impl TextBuffer {
     }
 
     /// Remove the text within the start and end position then return the deleted text
-    pub fn cut_text(
-        &mut self,
-        start: Point2<usize>,
-        end: Point2<usize>,
-    ) -> String {
+    pub fn cut_text(&mut self, start: Point2<usize>, end: Point2<usize>) -> String {
         let start = self.point_to_index(start);
         let end = self.point_to_index(end);
         let is_one_line = start.y == end.y;
         if is_one_line {
-            let selection: Vec<Ch> =
-                self.chars[start.y].drain(start.x..=end.x).collect();
+            let selection: Vec<Ch> = self.chars[start.y].drain(start.x..=end.x).collect();
             String::from_iter(selection.iter().map(|ch| ch.ch))
         } else {
-            let end_text: Vec<Ch> =
-                self.chars[end.y].drain(0..=end.x).collect();
+            let end_text: Vec<Ch> = self.chars[end.y].drain(0..=end.x).collect();
 
             let mid_text_range = start.y + 1..end.y;
             let mid_text: Option<Vec<Vec<Ch>>> = if !mid_text_range.is_empty() {
@@ -77,14 +71,11 @@ impl TextBuffer {
             } else {
                 None
             };
-            let start_text: Vec<Ch> =
-                self.chars[start.y].drain(start.x..).collect();
+            let start_text: Vec<Ch> = self.chars[start.y].drain(start.x..).collect();
 
-            let start_text_str: String =
-                String::from_iter(start_text.iter().map(|ch| ch.ch));
+            let start_text_str: String = String::from_iter(start_text.iter().map(|ch| ch.ch));
 
-            let end_text_str: String =
-                String::from_iter(end_text.iter().map(|ch| ch.ch));
+            let end_text_str: String = String::from_iter(end_text.iter().map(|ch| ch.ch));
 
             if let Some(mid_text) = mid_text {
                 let mid_text_str: String = mid_text
@@ -120,11 +111,9 @@ impl TextBuffer {
             };
 
             let end_text: &[Ch] = &self.chars[end.y][0..=end.x];
-            let start_text_str: String =
-                String::from_iter(start_text.iter().map(|ch| ch.ch));
+            let start_text_str: String = String::from_iter(start_text.iter().map(|ch| ch.ch));
 
-            let end_text_str: String =
-                String::from_iter(end_text.iter().map(|ch| ch.ch));
+            let end_text_str: String = String::from_iter(end_text.iter().map(|ch| ch.ch));
 
             if let Some(mid_text) = mid_text {
                 let mid_text_str: String = mid_text
@@ -140,20 +129,15 @@ impl TextBuffer {
         }
     }
 
-    pub fn get_text_block_mode(
-        &self,
-        start: Point2<usize>,
-        end: Point2<usize>,
-    ) -> String {
+    pub fn get_text_block_mode(&self, start: Point2<usize>, end: Point2<usize>) -> String {
         let start = self.point_to_index(start);
         let end = self.point_to_index(end);
         log::info!("here: {} {}", start, end);
         (start.y..=end.y)
             .map(|y| {
                 if let Some(chars) = &self.chars.get(y) {
-                    let text = (start.x..=end.x).map(|x| {
-                        chars.get(x).map(|ch| ch.ch).unwrap_or(BLANK_CH)
-                    });
+                    let text =
+                        (start.x..=end.x).map(|x| chars.get(x).map(|ch| ch.ch).unwrap_or(BLANK_CH));
                     String::from_iter(text)
                 } else {
                     String::new()
@@ -163,11 +147,7 @@ impl TextBuffer {
             .join("\n")
     }
 
-    pub fn cut_text_block_mode(
-        &mut self,
-        start: Point2<usize>,
-        end: Point2<usize>,
-    ) -> String {
+    pub fn cut_text_block_mode(&mut self, start: Point2<usize>, end: Point2<usize>) -> String {
         let start = self.point_to_index(start);
         let end = self.point_to_index(end);
         (start.y..=end.y)
@@ -285,10 +265,8 @@ impl TextBuffer {
                 .enumerate()
                 .partition(|(i, _ch)| *i < break_point);
 
-            let break1: Vec<Ch> =
-                break1.into_iter().map(|(_, ch)| *ch).collect();
-            let break2: Vec<Ch> =
-                break2.into_iter().map(|(_, ch)| *ch).collect();
+            let break1: Vec<Ch> = break1.into_iter().map(|(_, ch)| *ch).collect();
+            let break2: Vec<Ch> = break2.into_iter().map(|(_, ch)| *ch).collect();
             self.chars.remove(y);
             self.chars.insert(y, break2);
             self.chars.insert(y, break1);
@@ -395,15 +373,9 @@ impl TextBuffer {
     }
 
     /// replace the character at this location
-    pub fn replace_char(
-        &mut self,
-        x: usize,
-        y: usize,
-        ch: char,
-    ) -> Option<char> {
+    pub fn replace_char(&mut self, x: usize, y: usize, ch: char) -> Option<char> {
         self.ensure_cell_exist(x, y);
-        let column_index =
-            self.column_index(x, y).expect("must have a column index");
+        let column_index = self.column_index(x, y).expect("must have a column index");
         let ex_ch = self.chars[y].remove(column_index);
         self.chars[y].insert(column_index, Ch::new(ch));
         Some(ex_ch.ch)
@@ -559,8 +531,7 @@ impl TextBuffer {
 
     pub fn command_delete_back(&mut self) -> Option<char> {
         if self.cursor.x > 0 {
-            let c = self
-                .delete_char(self.cursor.x.saturating_sub(1), self.cursor.y);
+            let c = self.delete_char(self.cursor.x.saturating_sub(1), self.cursor.y);
             self.move_left();
             c
         } else {

@@ -47,9 +47,7 @@ impl Action {
         match *self {
             Action::Insert(cursor, ch) => Action::Delete(cursor, ch),
             Action::Delete(cursor, ch) => Action::Insert(cursor, ch),
-            Action::Replace(cursor, old_ch, ch) => {
-                Action::Replace(cursor, ch, old_ch)
-            }
+            Action::Replace(cursor, old_ch, ch) => Action::Replace(cursor, ch, old_ch),
             Action::BreakLine(loc) => Action::JoinLine(loc),
             Action::JoinLine(loc) => Action::BreakLine(loc),
         }

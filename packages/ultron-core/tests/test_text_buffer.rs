@@ -355,7 +355,10 @@ fn replace_char_on_next_page() {
     let raw = "Hello";
     let mut buffer = TextBuffer::from_str(raw);
     buffer.replace_char(4, 30, 'Y');
-    assert_eq!(buffer.to_string(), "Hello\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    Y");
+    assert_eq!(
+        buffer.to_string(),
+        "Hello\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    Y"
+    );
 }
 
 #[test]
@@ -465,22 +468,18 @@ fn test_insert_multi_line_text_to_multi_line_text() {
 
 #[test]
 fn test_get_text_block_mode() {
-    let raw =
-        "0000\n01234 Hello 5678\n01234 world 5678\n01234 wazup 5678\n0000";
+    let raw = "0000\n01234 Hello 5678\n01234 world 5678\n01234 wazup 5678\n0000";
     let buffer = TextBuffer::from_str(raw);
-    let selection =
-        buffer.get_text_block_mode(Point2::new(6, 1), Point2::new(10, 3));
+    let selection = buffer.get_text_block_mode(Point2::new(6, 1), Point2::new(10, 3));
     assert_eq!(selection, "Hello\nworld\nwazup");
     assert_eq!(raw, buffer.to_string());
 }
 
 #[test]
 fn test_cut_text_block_mode() {
-    let raw =
-        "0000\n01234 Hello 5678\n01234 world 5678\n01234 wazup 5678\n0000";
+    let raw = "0000\n01234 Hello 5678\n01234 world 5678\n01234 wazup 5678\n0000";
     let mut buffer = TextBuffer::from_str(raw);
-    let selection =
-        buffer.cut_text_block_mode(Point2::new(6, 1), Point2::new(10, 3));
+    let selection = buffer.cut_text_block_mode(Point2::new(6, 1), Point2::new(10, 3));
     assert_eq!(selection, "Hello\nworld\nwazup");
     assert_eq!(
         buffer.to_string(),

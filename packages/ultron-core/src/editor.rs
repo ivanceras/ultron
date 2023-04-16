@@ -80,8 +80,7 @@ impl<XMSG> Editor<XMSG> {
         text_highlighter.set_syntax_token(&options.syntax_token);
 
         let text_edit = TextEdit::from_str(content);
-        let highlighted_lines =
-            Self::highlight_lines(&text_edit, &mut text_highlighter);
+        let highlighted_lines = Self::highlight_lines(&text_edit, &mut text_highlighter);
 
         Editor {
             options,
@@ -150,8 +149,7 @@ impl<XMSG> Editor<XMSG> {
     /// rehighlight the texts
     pub fn rehighlight(&mut self) {
         self.text_highlighter.reset();
-        self.highlighted_lines =
-            Self::highlight_lines(&self.text_edit, &mut self.text_highlighter);
+        self.highlighted_lines = Self::highlight_lines(&self.text_edit, &mut self.text_highlighter);
     }
 
     pub fn text_highlighter(&self) -> &TextHighlighter {
@@ -160,10 +158,7 @@ impl<XMSG> Editor<XMSG> {
 }
 
 impl<XMSG> Editor<XMSG> {
-    pub fn process_commands(
-        &mut self,
-        commands: impl IntoIterator<Item = Command>,
-    ) -> Vec<XMSG> {
+    pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG> {
         let results: Vec<bool> = commands
             .into_iter()
             .map(|command| self.process_command(command))
@@ -315,10 +310,8 @@ impl<XMSG> Editor<XMSG> {
             self.text_edit
                 .command_set_position(cursor_x as usize, cursor_y as usize);
         } else {
-            self.text_edit.command_set_position_clamped(
-                cursor_x as usize,
-                cursor_y as usize,
-            );
+            self.text_edit
+                .command_set_position_clamped(cursor_x as usize, cursor_y as usize);
         }
     }
 

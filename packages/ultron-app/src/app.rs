@@ -1,9 +1,7 @@
 #![allow(unused)]
 use ultron_web::{
     editor, sauron,
-    sauron::{
-        html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast,
-    },
+    sauron::{html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast},
     web_editor, Options, WebEditor, COMPONENT_NAME,
 };
 use web_sys::HtmlDocument;
@@ -46,9 +44,7 @@ impl App {
     }
 
     fn view_hidden_textarea(&self) -> Node<Msg> {
-        let class_ns = |class_names| {
-            attributes::class_namespaced(COMPONENT_NAME, class_names)
-        };
+        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let cursor = self.web_editor.cursor_to_client();
         div(
             [
@@ -70,10 +66,7 @@ impl App {
                             .expect("must have data transfer")
                             .get_data("text/plain")
                             .expect("must be text data");
-                        log::trace!(
-                            "paste triggered from textarea: {}",
-                            pasted_text
-                        );
+                        log::trace!("paste triggered from textarea: {}", pasted_text);
                         Msg::Paste(pasted_text)
                     }),
                     // for listening to CTRL+C, CTRL+V, CTRL+X
@@ -128,8 +121,7 @@ impl App {
             if let Some(ref hidden_textarea) = self.hidden_textarea {
                 hidden_textarea.set_value(&selected_text);
                 hidden_textarea.select();
-                let html_document: HtmlDocument =
-                    sauron::document().unchecked_into();
+                let html_document: HtmlDocument = sauron::document().unchecked_into();
                 if let Ok(ret) = html_document.exec_command("copy") {
                     hidden_textarea.set_value("");
                     log::trace!("exec_copy ret: {}", ret);
@@ -148,8 +140,7 @@ impl App {
                 hidden_textarea.set_value(&selected_text);
 
                 hidden_textarea.select();
-                let html_document: HtmlDocument =
-                    sauron::document().unchecked_into();
+                let html_document: HtmlDocument = sauron::document().unchecked_into();
                 if let Ok(ret) = html_document.exec_command("cut") {
                     hidden_textarea.set_value("");
                     return ret;
@@ -164,9 +155,7 @@ impl App {
         wcommands: impl IntoIterator<Item = impl Into<web_editor::Command>>,
     ) -> Vec<Msg> {
         self.web_editor
-            .process_commands(
-                wcommands.into_iter().map(|wcommand| wcommand.into()),
-            )
+            .process_commands(wcommands.into_iter().map(|wcommand| wcommand.into()))
             .into_iter()
             .collect()
     }
@@ -176,8 +165,7 @@ impl Component<Msg, ()> for App {
     fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
         match msg {
             Msg::Keydown(key_event) => {
-                let effects =
-                    self.web_editor.update(web_editor::Msg::Keydown(key_event));
+                let effects = self.web_editor.update(web_editor::Msg::Keydown(key_event));
                 effects.localize(Msg::EditorWebMsg).measure()
             }
             Msg::TextareaMounted(target_node) => {
@@ -189,12 +177,11 @@ impl Component<Msg, ()> for App {
                 let char_count = input.chars().count();
                 // for chrome:
                 // detect if the typed in character was a composed and becomes 1 unicode character
-                let char_count_decreased =
-                    if let Some(last_char_count) = self.last_char_count {
-                        last_char_count > 1
-                    } else {
-                        false
-                    };
+                let char_count_decreased = if let Some(last_char_count) = self.last_char_count {
+                    last_char_count > 1
+                } else {
+                    false
+                };
                 // firefox doesn't register compose key strokes as input
                 // if there were 1 char then it was cleared
                 let was_cleared = self.last_char_count == Some(0);
@@ -218,10 +205,7 @@ impl Component<Msg, ()> for App {
                 Effects::new(msgs, vec![]).measure()
             }
             Msg::Paste(text_content) => {
-                let msgs =
-                    self.process_commands([editor::Command::InsertText(
-                        text_content,
-                    )]);
+                let msgs = self.process_commands([editor::Command::InsertText(text_content)]);
                 Effects::new(msgs, vec![])
             }
             Msg::Mouseup(client_x, client_y) => {

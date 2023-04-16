@@ -70,12 +70,11 @@ impl TextEdit {
 
     pub fn command_smart_replace_insert_char(&mut self, ch: char) {
         let cursor = self.text_buffer.get_position();
-        let has_right_char =
-            if let Some(ch) = self.get_char(cursor.x + 1, cursor.y) {
-                !ch.is_whitespace()
-            } else {
-                false
-            };
+        let has_right_char = if let Some(ch) = self.get_char(cursor.x + 1, cursor.y) {
+            !ch.is_whitespace()
+        } else {
+            false
+        };
         if has_right_char {
             self.command_insert_char(ch);
         } else {
@@ -161,19 +160,11 @@ impl TextEdit {
     }
 
     //TODO: use Point2<usize>
-    pub fn command_set_position_clamped(
-        &mut self,
-        cursor_x: usize,
-        cursor_y: usize,
-    ) {
+    pub fn command_set_position_clamped(&mut self, cursor_x: usize, cursor_y: usize) {
         self.text_buffer.set_position_clamped(cursor_x, cursor_y);
     }
 
-    pub fn command_set_selection(
-        &mut self,
-        start: Point2<i32>,
-        end: Point2<i32>,
-    ) {
+    pub fn command_set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
         self.set_selection(start, end)
     }
 
@@ -227,12 +218,10 @@ impl TextEdit {
 
     pub fn selected_text_block_mode(&self) -> Option<String> {
         match (self.selection.start, self.selection.end) {
-            (Some(start), Some(end)) => {
-                Some(self.text_buffer.get_text_block_mode(
-                    util::cast_point(start),
-                    util::cast_point(end),
-                ))
-            }
+            (Some(start), Some(end)) => Some(
+                self.text_buffer
+                    .get_text_block_mode(util::cast_point(start), util::cast_point(end)),
+            ),
             _ => None,
         }
     }
@@ -253,12 +242,7 @@ impl TextEdit {
         }
     }
 
-    fn record_deleted_text(
-        &mut self,
-        _start: Point2<usize>,
-        _end: Point2<usize>,
-        cut_text: &str,
-    ) {
+    fn record_deleted_text(&mut self, _start: Point2<usize>, _end: Point2<usize>, cut_text: &str) {
         let lines = cut_text.lines();
         for (y, line) in lines.enumerate() {
             for (_x, ch) in line.chars().enumerate() {
@@ -270,12 +254,10 @@ impl TextEdit {
 
     pub fn cut_selected_text_block_mode(&mut self) -> Option<String> {
         match (self.selection.start, self.selection.end) {
-            (Some(start), Some(end)) => {
-                Some(self.text_buffer.cut_text_block_mode(
-                    util::cast_point(start),
-                    util::cast_point(end),
-                ))
-            }
+            (Some(start), Some(end)) => Some(
+                self.text_buffer
+                    .cut_text_block_mode(util::cast_point(start), util::cast_point(end)),
+            ),
             _ => None,
         }
     }
