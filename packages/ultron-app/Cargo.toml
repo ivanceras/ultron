@@ -21,7 +21,7 @@ console_error_panic_hook = "0.1"
 async-trait = "0.1.58"
 
 [features]
-default = ["with-ric", "with-raf", "with-measure", "with-navigator-clipboard"]
+default = ["with-ric", "with-raf", "with-measure", "with-navigator-clipboard", "ultron-web/with-interning"]
 with-ric = ["ultron-web/with-ric"]
 with-raf = ["ultron-web/with-raf"]
 with-measure = ["ultron-web/with-measure"]

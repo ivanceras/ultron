@@ -151,6 +151,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 min_width: "max-content",
                 user_select: user_select,
                 "-webkit-user-select": user_select,
+                font_family: "Iosevka Fixed",
             },
 
             ".line_block": {
@@ -215,6 +216,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 display: "flex",
                 flex_direction: "row",
                 user_select: "none",
+                font_family: "Iosevka Fixed",
             },
 
             ".virtual_cursor": {
@@ -599,6 +601,10 @@ impl<XMSG> WebEditor<XMSG> {
         } else {
             0
         }
+    }
+
+    pub fn total_lines(&self) -> usize{
+        self.editor.total_lines()
     }
 
     /// convert screen coordinate to cursor position

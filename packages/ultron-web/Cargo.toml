@@ -38,9 +38,10 @@ features = [
 
 
 [features]
-default = ["with-navigator-clipboard", "with-measure", "with-ric", "with-raf"]
+default = ["with-navigator-clipboard", "with-measure", "with-ric", "with-raf", "with-interning"]
 with-ric = ["sauron/with-ric"]
 with-raf = ["sauron/with-raf"]
 with-measure = ["sauron/with-measure"]
 with-debug = ["sauron/with-debug"]
+with-interning = ["sauron/with-interning"]
 with-navigator-clipboard = [] # use this feature if only want to support latest browsers
