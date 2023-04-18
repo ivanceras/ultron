@@ -217,6 +217,52 @@ impl TextEdit {
         self.selection.mode = mode;
     }
 
+    pub fn is_selected(&self, loc: Point2<i32>) -> bool {
+        match self.selection.mode {
+            SelectionMode::Linear => self.is_selected_in_linear_mode(loc),
+            SelectionMode::Block => self.is_selected_in_block_mode(loc),
+        }
+    }
+
+    pub fn is_selected_in_linear_mode(&self, loc: Point2<i32>) -> bool {
+        match (self.selection.start, self.selection.end) {
+            (Some(start), Some(end)) => {
+                let only_one_line = start.y == end.y;
+                let in_first_line = loc.y == start.y;
+                let in_inner_line = loc.y > start.y && loc.y < end.y;
+                let in_last_line = loc.y == end.y;
+                if in_first_line {
+                    if only_one_line {
+                        loc.x >= start.x && loc.x <= end.x
+                    } else {
+                        loc.x >= start.x
+                    }
+                } else if in_inner_line {
+                    true
+                } else if in_last_line {
+                    if only_one_line {
+                        loc.x >= start.x && loc.x <= end.x
+                    } else {
+                        loc.x <= end.x
+                    }
+                } else {
+                    // outside line
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
+
+    pub fn is_selected_in_block_mode(&self, loc: Point2<i32>) -> bool {
+        match (self.selection.start, self.selection.end) {
+            (Some(start), Some(end)) => {
+                loc.x >= start.x && loc.x <= end.x && loc.y >= start.y && loc.y <= end.y
+            }
+            _ => false,
+        }
+    }
+
     /// clear the text selection
     pub fn clear_selection(&mut self) {
         self.selection.start = None;

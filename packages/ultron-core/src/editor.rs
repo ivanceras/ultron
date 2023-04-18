@@ -1,6 +1,6 @@
 #![allow(unused)]
 pub use crate::Selection;
-use crate::{Options, TextBuffer, TextEdit};
+use crate::{Options, SelectionMode, TextBuffer, TextEdit};
 use nalgebra::Point2;
 use std::sync::Arc;
 pub use ultron_syntaxes_themes::{Style, TextHighlighter};
@@ -317,6 +317,14 @@ impl<XMSG> Editor<XMSG> {
 
     pub fn selected_text(&self) -> Option<String> {
         self.text_edit.selected_text()
+    }
+
+    pub fn is_selected(&self, loc: Point2<i32>) -> bool {
+        self.text_edit.is_selected(loc)
+    }
+
+    pub fn set_selection_mode(&mut self, mode: SelectionMode) {
+        self.text_edit.set_selection_mode(mode)
     }
 
     pub fn cut_selected_text(&mut self) -> Option<String> {
