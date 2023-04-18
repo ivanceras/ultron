@@ -291,7 +291,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 Effects::none()
             }
             Msg::Mouseup(client_x, client_y) => {
-                let cursor = self.client_to_cursor_clamped(client_x, client_y);
+                let cursor = self.client_to_grid_clamped(client_x, client_y);
                 self.editor
                     .process_commands([editor::Command::SetPosition(cursor.x, cursor.y)]);
                 self.editor.set_selection_end(cursor);
@@ -307,7 +307,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             }
             Msg::Mousedown(client_x, client_y) => {
                 if self.in_bounds(client_x as f32, client_y as f32) {
-                    let cursor = self.client_to_cursor_clamped(client_x, client_y);
+                    let cursor = self.client_to_grid_clamped(client_x, client_y);
                     self.editor.set_selection_start(cursor);
                     let msgs = self
                         .editor
@@ -319,7 +319,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             }
             Msg::Mousemove(client_x, client_y) => {
                 if self.in_bounds(client_x as f32, client_y as f32) {
-                    let cursor = self.client_to_cursor_clamped(client_x, client_y);
+                    let cursor = self.client_to_grid_clamped(client_x, client_y);
                     self.editor.set_selection_end(cursor);
 
                     let selection = self.editor.selection();
@@ -607,8 +607,8 @@ impl<XMSG> WebEditor<XMSG> {
         self.editor.total_lines()
     }
 
-    /// convert screen coordinate to cursor position
-    pub fn client_to_cursor(&self, client_x: i32, client_y: i32) -> Point2<i32> {
+    /// convert screen coordinate to grid coordinate taking into account the editor element
+    pub fn client_to_grid(&self, client_x: i32, client_y: i32) -> Point2<i32> {
         let numberline_wide_with_padding = self.numberline_wide_with_padding() as f32;
         let editor = self.editor_offset().expect("must have an editor offset");
         let col = (client_x as f32 - editor.x) / CH_WIDTH as f32 - numberline_wide_with_padding;
@@ -618,9 +618,10 @@ impl<XMSG> WebEditor<XMSG> {
         Point2::new(x, y)
     }
 
-    /// clamped negative cursor values due to padding in the line number
-    pub fn client_to_cursor_clamped(&self, client_x: i32, client_y: i32) -> Point2<i32> {
-        let cursor = self.client_to_cursor(client_x, client_y);
+    /// convert screen coordinate to grid coordinate
+    /// clamped negative values due to padding in the line number
+    pub fn client_to_grid_clamped(&self, client_x: i32, client_y: i32) -> Point2<i32> {
+        let cursor = self.client_to_grid(client_x, client_y);
         util::clamp_to_edge(cursor)
     }
 
