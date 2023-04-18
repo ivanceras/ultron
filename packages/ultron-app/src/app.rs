@@ -12,9 +12,6 @@ pub enum Msg {
     Paste(String),
     EditorWebMsg(web_editor::Msg),
     Keydown(web_sys::KeyboardEvent),
-    Mouseup(i32, i32),
-    Mousedown(i32, i32),
-    Mousemove(i32, i32),
 }
 
 /// The web editor with text area hacks for listening to typing events
@@ -165,9 +162,9 @@ impl App {
 impl Component<Msg, ()> for App {
     fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
         match msg {
-            Msg::Keydown(key_event) => {
-                let effects = self.web_editor.update(web_editor::Msg::Keydown(key_event));
-                effects.localize(Msg::EditorWebMsg).measure()
+            Msg::Keydown(ke) => {
+                let effects = self.web_editor.update(web_editor::Msg::Keydown(ke));
+                effects.localize(Msg::EditorWebMsg)
             }
             Msg::TextareaMounted(target_node) => {
                 self.hidden_textarea = Some(target_node.unchecked_into());
@@ -208,24 +205,6 @@ impl Component<Msg, ()> for App {
             Msg::Paste(text_content) => {
                 let msgs = self.process_commands([editor::Command::InsertText(text_content)]);
                 Effects::new(msgs, vec![])
-            }
-            Msg::Mouseup(client_x, client_y) => {
-                let effects = self
-                    .web_editor
-                    .update(web_editor::Msg::Mouseup(client_x, client_y));
-                effects.localize(Msg::EditorWebMsg)
-            }
-            Msg::Mousedown(client_x, client_y) => {
-                let effects = self
-                    .web_editor
-                    .update(web_editor::Msg::Mousedown(client_x, client_y));
-                effects.localize(Msg::EditorWebMsg)
-            }
-            Msg::Mousemove(client_x, client_y) => {
-                let effects = self
-                    .web_editor
-                    .update(web_editor::Msg::Mousemove(client_x, client_y));
-                effects.localize(Msg::EditorWebMsg)
             }
             Msg::EditorWebMsg(emsg) => {
                 let effects = self.web_editor.update(emsg);
@@ -281,9 +260,9 @@ impl Component<Msg, ()> for App {
 impl Application<Msg> for App {
     fn init(&mut self) -> Cmd<Self, Msg> {
         Cmd::batch([Window::add_event_listeners(vec![
-            on_mousemove(|me| Msg::Mousemove(me.client_x(), me.client_y())),
-            on_mousedown(|me| Msg::Mousedown(me.client_x(), me.client_y())),
-            on_mouseup(|me| Msg::Mouseup(me.client_x(), me.client_y())),
+            on_mousemove(|me| Msg::EditorWebMsg(web_editor::Msg::Mousemove(me))),
+            on_mousedown(|me| Msg::EditorWebMsg(web_editor::Msg::Mousedown(me))),
+            on_mouseup(|me| Msg::EditorWebMsg(web_editor::Msg::Mouseup(me))),
             on_keydown(|ke| {
                 ke.prevent_default();
                 ke.stop_propagation();

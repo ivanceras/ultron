@@ -104,6 +104,10 @@ impl<XMSG> Editor<XMSG> {
         self.text_edit.selection()
     }
 
+    pub fn clear_selection(&mut self) {
+        self.text_edit.clear_selection()
+    }
+
     pub fn set_selection_start(&mut self, start: Point2<i32>) {
         self.text_edit.set_selection_start(start);
     }

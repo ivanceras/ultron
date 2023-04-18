@@ -57,11 +57,10 @@ impl MouseCursor {
 #[derive(Debug, Clone)]
 pub enum Msg {
     EditorMounted(MountEvent),
-    //TODO: Turn this into a generic keyboard event
     Keydown(web_sys::KeyboardEvent),
-    Mouseup(i32, i32),
-    Mousedown(i32, i32),
-    Mousemove(i32, i32),
+    Mouseup(web_sys::MouseEvent),
+    Mousedown(web_sys::MouseEvent),
+    Mousemove(web_sys::MouseEvent),
     Measurements(Measurements),
 }
 
@@ -293,9 +292,13 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 self.editor_element = Some(mount_element);
                 Effects::none()
             }
-            Msg::Mousedown(client_x, client_y) => {
-                self.is_selecting = true;
-                if self.in_bounds(client_x as f32, client_y as f32) {
+            Msg::Mousedown(me) => {
+                let client_x = me.client_x();
+                let client_y = me.client_y();
+                let is_primary_btn = me.button() == 0;
+                if is_primary_btn && self.in_bounds(client_x as f32, client_y as f32) {
+                    self.editor.clear_selection();
+                    self.is_selecting = true;
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
                     self.editor.set_selection_start(cursor);
                     let msgs = self
@@ -306,29 +309,30 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     Effects::none()
                 }
             }
-            Msg::Mousemove(client_x, client_y) => {
-                if self.is_selecting {
-                    if self.in_bounds(client_x as f32, client_y as f32) {
-                        let cursor = self.client_to_grid_clamped(client_x, client_y);
-                        let selection = self.editor.selection();
-                        if let Some(start) = selection.start {
-                            self.editor.set_selection_end(cursor);
-                            let msgs = self
-                                .editor
-                                .process_commands([editor::Command::SetSelection(start, cursor)]);
-                            Effects::new(vec![], msgs).measure()
-                        } else {
-                            Effects::none()
-                        }
+            Msg::Mousemove(me) => {
+                let client_x = me.client_x();
+                let client_y = me.client_y();
+                if self.is_selecting && self.in_bounds(client_x as f32, client_y as f32) {
+                    let cursor = self.client_to_grid_clamped(client_x, client_y);
+                    let selection = self.editor.selection();
+                    if let Some(start) = selection.start {
+                        self.editor.set_selection_end(cursor);
+                        let msgs = self
+                            .editor
+                            .process_commands([editor::Command::SetSelection(start, cursor)]);
+                        Effects::new(vec![], msgs).measure()
                     } else {
                         Effects::none()
                     }
-                }else{
+                } else {
                     Effects::none()
                 }
             }
-            Msg::Mouseup(client_x, client_y) => {
-                if self.is_selecting{
+            Msg::Mouseup(me) => {
+                let client_x = me.client_x();
+                let client_y = me.client_y();
+                let is_primary_btn = me.button() == 0;
+                if self.is_selecting && is_primary_btn{
                     self.is_selecting = false;
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
                     self.editor
@@ -789,6 +793,9 @@ impl<XMSG> WebEditor<XMSG> {
             .into_iter()
             .enumerate()
             .map(|(line_index, line)| {
+
+                //TODO: deal with the partial parts of the highlighted line here
+
                 let line_number = line_index + 1;
                 let y = line_index as i32;
                 let line_start = Point2::new(0, y);
