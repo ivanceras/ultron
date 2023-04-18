@@ -278,7 +278,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     self.plain_view()
                 },
                 view_if(self.options.show_status_line, self.view_status_line()),
-                view_if(self.options.show_cursor, self.view_virtual_cursor()),
+                view_if(self.options.show_cursor, self.view_cursor()),
             ],
         )
     }
@@ -639,7 +639,7 @@ impl<XMSG> WebEditor<XMSG> {
         self.numberline_wide_with_padding() as f32 * CH_WIDTH as f32
     }
 
-    fn view_virtual_cursor(&self) -> Node<Msg> {
+    fn view_cursor(&self) -> Node<Msg> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let cursor = self.cursor_to_client();
         div(
