@@ -6,6 +6,7 @@ use sauron::{
 };
 pub use ultron_core;
 use ultron_core::{editor, nalgebra::Point2, Editor, Options};
+use ultron_core::unicode_width::UnicodeWidthStr;
 
 pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
@@ -71,6 +72,7 @@ pub struct WebEditor<XMSG> {
     editor_element: Option<web_sys::Element>,
     mouse_cursor: MouseCursor,
     measure: Measure,
+    is_selecting: bool,
 }
 
 #[derive(Default)]
@@ -88,6 +90,7 @@ impl<XMSG> WebEditor<XMSG> {
             editor_element: None,
             mouse_cursor: MouseCursor::default(),
             measure: Measure::default(),
+            is_selecting: false,
         }
     }
 
@@ -290,22 +293,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 self.editor_element = Some(mount_element);
                 Effects::none()
             }
-            Msg::Mouseup(client_x, client_y) => {
-                let cursor = self.client_to_grid_clamped(client_x, client_y);
-                self.editor
-                    .process_commands([editor::Command::SetPosition(cursor.x, cursor.y)]);
-                self.editor.set_selection_end(cursor);
-                let selection = self.editor.selection();
-                if let (Some(start), Some(end)) = (selection.start, selection.end) {
-                    let msgs = self
-                        .editor
-                        .process_commands([editor::Command::SetSelection(start, end)]);
-                    Effects::new(vec![], msgs)
-                } else {
-                    Effects::none()
-                }
-            }
             Msg::Mousedown(client_x, client_y) => {
+                self.is_selecting = true;
                 if self.in_bounds(client_x as f32, client_y as f32) {
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
                     self.editor.set_selection_start(cursor);
@@ -318,20 +307,43 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 }
             }
             Msg::Mousemove(client_x, client_y) => {
-                if self.in_bounds(client_x as f32, client_y as f32) {
-                    let cursor = self.client_to_grid_clamped(client_x, client_y);
-                    self.editor.set_selection_end(cursor);
-
-                    let selection = self.editor.selection();
-                    if let Some(start) = selection.start {
-                        let msgs = self
-                            .editor
-                            .process_commands([editor::Command::SetSelection(start, cursor)]);
-                        Effects::new(vec![], msgs).measure()
+                if self.is_selecting {
+                    if self.in_bounds(client_x as f32, client_y as f32) {
+                        let cursor = self.client_to_grid_clamped(client_x, client_y);
+                        let selection = self.editor.selection();
+                        if let Some(start) = selection.start {
+                            self.editor.set_selection_end(cursor);
+                            let msgs = self
+                                .editor
+                                .process_commands([editor::Command::SetSelection(start, cursor)]);
+                            Effects::new(vec![], msgs).measure()
+                        } else {
+                            Effects::none()
+                        }
                     } else {
                         Effects::none()
                     }
-                } else {
+                }else{
+                    Effects::none()
+                }
+            }
+            Msg::Mouseup(client_x, client_y) => {
+                if self.is_selecting{
+                    self.is_selecting = false;
+                    let cursor = self.client_to_grid_clamped(client_x, client_y);
+                    self.editor
+                        .process_commands([editor::Command::SetPosition(cursor.x, cursor.y)]);
+                    self.editor.set_selection_end(cursor);
+                    let selection = self.editor.selection();
+                    if let (Some(start), Some(end)) = (selection.start, selection.end) {
+                        let msgs = self
+                            .editor
+                            .process_commands([editor::Command::SetSelection(start, end)]);
+                        Effects::new(vec![], msgs)
+                    } else {
+                        Effects::none()
+                    }
+                }else{
                     Effects::none()
                 }
             }
@@ -673,6 +685,7 @@ impl<XMSG> WebEditor<XMSG> {
                 text!(" |> line: {}, col: {} ", cursor.y + 1, cursor.x + 1),
                 text!(" |> version:{}", env!("CARGO_PKG_VERSION")),
                 text!(" |> lines: {}", self.editor.total_lines()),
+                text!(" |> selection: {:?}", self.editor.selection()),
                 if let Some(average_dispatch) = self.measure.average_dispatch {
                     text!(" |> average dispatch: {}ms", average_dispatch.round())
                 } else {
@@ -756,52 +769,71 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     pub fn plain_view<MSG>(&self) -> Node<MSG> {
-        view_text_buffer(self.editor.text_buffer(), &self.options)
+        self.view_text_edit()
     }
 
     /// height of the status line which displays editor infor such as cursor location
     pub fn status_line_height(&self) -> i32 {
         30
     }
-}
 
-pub fn view_text_buffer<MSG>(text_buffer: &crate::TextBuffer, options: &Options) -> Node<MSG> {
-    let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+    pub fn view_text_edit<MSG>(&self) -> Node<MSG> {
+        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let text_edit = &self.editor.text_edit;
 
-    let class_number_wide = format!("number_wide{}", text_buffer.numberline_wide());
+        let class_number_wide = format!("number_wide{}", text_edit.numberline_wide());
 
-    let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
-    let rendered_lines = text_buffer
-        .lines()
-        .into_iter()
-        .enumerate()
-        .map(|(line_index, line)| {
-            let line_number = line_index + 1;
-            div(
-                [class_ns("line")],
-                [
-                    view_if(
-                        options.show_line_numbers,
-                        span([class_ns("number")], [text(line_number)]),
-                    ),
-                    // Note: this is important since text node with empty
-                    // content seems to cause error when finding the dom in rust
-                    span([], [text(line)]),
-                ],
+        let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
+        let rendered_lines = text_edit
+            .lines()
+            .into_iter()
+            .enumerate()
+            .map(|(line_index, line)| {
+                let line_number = line_index + 1;
+                let y = line_index as i32;
+                let line_start = Point2::new(0, y);
+                let line_width = line.width() as i32;
+                let line_end = Point2::new(line_width, y);
+
+                let bg = if text_edit.is_selected(line_start)
+                    && text_edit.is_selected(line_end){
+                     Some(self.selection_background().to_css())
+                }else{
+                    None
+                };
+
+                div(
+                    [class_ns("line")],
+                    [
+                        view_if(
+                            self.options.show_line_numbers,
+                            span([class_ns("number")], [text(line_number)]),
+                        ),
+                        // Note: this is important since text node with empty
+                        // content seems to cause error when finding the dom in rust
+                        span([if let Some(bg) = bg {
+                                style!{background_color: bg}
+                            }else{
+                                empty_attr()
+                            }
+                        ], [text(line)]),
+                    ],
+                )
+            });
+
+        if self.options.use_for_ssg {
+            // using div works well when select-copying for both chrome and firefox
+            // this is ideal for static site generation highlighting
+            div(code_attributes, rendered_lines)
+        } else {
+            // using <pre><code> works well when copying in chrome
+            // but in firefox, it creates a double line when select-copying the text
+            // whe need to use <pre><code> in order for typing whitespace works.
+            pre(
+                [class_ns("code_wrapper")],
+                [code(code_attributes, rendered_lines)],
             )
-        });
-
-    if options.use_for_ssg {
-        // using div works well when select-copying for both chrome and firefox
-        // this is ideal for static site generation highlighting
-        div(code_attributes, rendered_lines)
-    } else {
-        // using <pre><code> works well when copying in chrome
-        // but in firefox, it creates a double line when select-copying the text
-        // whe need to use <pre><code> in order for typing whitespace works.
-        pre(
-            [class_ns("code_wrapper")],
-            [code(code_attributes, rendered_lines)],
-        )
+        }
     }
 }
+

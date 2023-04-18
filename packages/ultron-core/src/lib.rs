@@ -7,6 +7,7 @@ pub use text_edit::{Selection, SelectionMode, TextEdit};
 pub use ultron_syntaxes_themes::{Color, Style, TextHighlighter};
 
 pub use nalgebra;
+pub use unicode_width;
 
 pub mod editor;
 mod options;

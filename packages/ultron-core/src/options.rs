@@ -35,7 +35,7 @@ pub struct Options {
     /// a flag to do replace mode when there is no characters to the right
     /// and switch to insert mode when there is characters to the right
     pub use_smart_replace_insert: bool,
-    /// allow the user to select text via native text selection
+    /// allow the user to select text via browser native text selection
     pub allow_text_selection: bool,
 }
 

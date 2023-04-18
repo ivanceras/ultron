@@ -8,7 +8,7 @@ pub use ultron_syntaxes_themes::{Style, TextHighlighter};
 /// An editor with core functionality platform specific UI
 pub struct Editor<XMSG> {
     options: Options,
-    text_edit: TextEdit,
+    pub text_edit: TextEdit,
     text_highlighter: TextHighlighter,
     /// lines of highlighted ranges
     highlighted_lines: Vec<Vec<(Style, String)>>,

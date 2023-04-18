@@ -34,6 +34,7 @@ impl App {
             syntax_token: "rust".to_string(),
             theme_name: Some("solarized-light".to_string()),
             use_syntax_highlighter: false,
+            allow_text_selection: false,
             ..Default::default()
         };
         Self {

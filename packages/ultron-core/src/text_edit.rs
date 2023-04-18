@@ -2,6 +2,7 @@ use crate::{util, TextBuffer};
 pub use action::Action;
 pub use history::Recorded;
 use nalgebra::Point2;
+use std::fmt;
 use unicode_width::UnicodeWidthChar;
 
 mod action;
@@ -22,7 +23,24 @@ pub struct Selection {
     pub mode: SelectionMode,
 }
 
-#[derive(Clone, Copy)]
+impl fmt::Debug for Selection {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let start = if let Some(start) = self.start {
+            format!("({},{})", start.x, start.y)
+        } else {
+            format!("..")
+        };
+        let end = if let Some(end) = self.end {
+            format!("({},{})", end.x, end.y)
+        } else {
+            format!("..")
+        };
+
+        write!(f, "{:?}: {} -> {}", self.mode, start, end)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum SelectionMode {
     Linear,
     Block,
@@ -227,6 +245,7 @@ impl TextEdit {
     pub fn is_selected_in_linear_mode(&self, loc: Point2<i32>) -> bool {
         match (self.selection.start, self.selection.end) {
             (Some(start), Some(end)) => {
+                let (start, end) = util::normalize_points(start, end);
                 let only_one_line = start.y == end.y;
                 let in_first_line = loc.y == start.y;
                 let in_inner_line = loc.y > start.y && loc.y < end.y;
@@ -257,6 +276,7 @@ impl TextEdit {
     pub fn is_selected_in_block_mode(&self, loc: Point2<i32>) -> bool {
         match (self.selection.start, self.selection.end) {
             (Some(start), Some(end)) => {
+                let (start, end) = util::normalize_points(start, end);
                 loc.x >= start.x && loc.x <= end.x && loc.y >= start.y && loc.y <= end.y
             }
             _ => false,
