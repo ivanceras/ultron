@@ -55,7 +55,7 @@ impl TextBuffer {
     }
 
     /// Remove the text within the start and end position then return the deleted text
-    pub fn cut_text(&mut self, start: Point2<usize>, end: Point2<usize>) -> String {
+    pub fn cut_text_in_linear_mode(&mut self, start: Point2<usize>, end: Point2<usize>) -> String {
         let start = self.point_to_index(start);
         let end = self.point_to_index(end);
         let is_one_line = start.y == end.y;
@@ -91,7 +91,8 @@ impl TextBuffer {
         }
     }
 
-    pub fn get_text(&self, start: Point2<usize>, end: Point2<usize>) -> String {
+    /// get the text in between start and end if selected in linear mode
+    pub fn get_text_in_linear_mode(&self, start: Point2<usize>, end: Point2<usize>) -> String {
         println!("original : {}, {}", start, end);
         let start = self.point_to_index(start);
         let end = self.point_to_index(end);
@@ -129,7 +130,8 @@ impl TextBuffer {
         }
     }
 
-    pub fn get_text_block_mode(&self, start: Point2<usize>, end: Point2<usize>) -> String {
+    /// get the text in between start and end if selected in block mode
+    pub fn get_text_in_block_mode(&self, start: Point2<usize>, end: Point2<usize>) -> String {
         let start = self.point_to_index(start);
         let end = self.point_to_index(end);
         log::info!("here: {} {}", start, end);
@@ -147,7 +149,7 @@ impl TextBuffer {
             .join("\n")
     }
 
-    pub fn cut_text_block_mode(&mut self, start: Point2<usize>, end: Point2<usize>) -> String {
+    pub fn cut_text_in_block_mode(&mut self, start: Point2<usize>, end: Point2<usize>) -> String {
         let start = self.point_to_index(start);
         let end = self.point_to_index(end);
         (start.y..=end.y)
@@ -160,7 +162,7 @@ impl TextBuffer {
     }
 
     /// paste the text block in the cursor location
-    pub fn paste_text_block_mode(&mut self, text_block: String) {
+    pub fn paste_text_in_block_mode(&mut self, text_block: String) {
         for (line_index, line) in text_block.lines().enumerate() {
             let mut width = 0;
             let y = self.cursor.y + line_index;

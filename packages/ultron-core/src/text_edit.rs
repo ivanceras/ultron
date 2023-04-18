@@ -19,6 +19,19 @@ pub struct TextEdit {
 pub struct Selection {
     pub start: Option<Point2<i32>>,
     pub end: Option<Point2<i32>>,
+    pub mode: SelectionMode,
+}
+
+#[derive(Clone, Copy)]
+pub enum SelectionMode {
+    Linear,
+    Block,
+}
+
+impl Default for SelectionMode {
+    fn default() -> Self {
+        Self::Linear
+    }
 }
 
 impl TextEdit {
@@ -200,6 +213,10 @@ impl TextEdit {
         }
     }
 
+    pub fn set_selection_mode(&mut self, mode: SelectionMode) {
+        self.selection.mode = mode;
+    }
+
     /// clear the text selection
     pub fn clear_selection(&mut self) {
         self.selection.start = None;
@@ -207,32 +224,45 @@ impl TextEdit {
     }
 
     pub fn selected_text(&self) -> Option<String> {
+        match self.selection.mode {
+            SelectionMode::Linear => self.selected_text_in_linear_mode(),
+            SelectionMode::Block => self.selected_text_in_block_mode(),
+        }
+    }
+
+    pub fn selected_text_in_linear_mode(&self) -> Option<String> {
         match (self.selection.start, self.selection.end) {
             (Some(start), Some(end)) => Some(
                 self.text_buffer
-                    .get_text(util::cast_point(start), util::cast_point(end)),
+                    .get_text_in_linear_mode(util::cast_point(start), util::cast_point(end)),
             ),
             _ => None,
         }
     }
 
-    pub fn selected_text_block_mode(&self) -> Option<String> {
+    pub fn selected_text_in_block_mode(&self) -> Option<String> {
         match (self.selection.start, self.selection.end) {
             (Some(start), Some(end)) => Some(
                 self.text_buffer
-                    .get_text_block_mode(util::cast_point(start), util::cast_point(end)),
+                    .get_text_in_block_mode(util::cast_point(start), util::cast_point(end)),
             ),
             _ => None,
         }
     }
 
-    //TODO: record cutting of text as delete
     pub fn cut_selected_text(&mut self) -> Option<String> {
+        match self.selection.mode {
+            SelectionMode::Linear => self.cut_selected_text_in_linear_mode(),
+            SelectionMode::Block => self.cut_selected_text_in_block_mode(),
+        }
+    }
+
+    pub fn cut_selected_text_in_linear_mode(&mut self) -> Option<String> {
         match (self.selection.start, self.selection.end) {
             (Some(start), Some(end)) => {
                 let start = util::cast_point(start);
                 let end = util::cast_point(end);
-                let cut_text = self.text_buffer.cut_text(start, end);
+                let cut_text = self.text_buffer.cut_text_in_linear_mode(start, end);
                 if !cut_text.is_empty() {
                     self.record_deleted_text(start, end, &cut_text);
                 }
@@ -252,18 +282,18 @@ impl TextEdit {
         }
     }
 
-    pub fn cut_selected_text_block_mode(&mut self) -> Option<String> {
+    pub fn cut_selected_text_in_block_mode(&mut self) -> Option<String> {
         match (self.selection.start, self.selection.end) {
             (Some(start), Some(end)) => Some(
                 self.text_buffer
-                    .cut_text_block_mode(util::cast_point(start), util::cast_point(end)),
+                    .cut_text_in_block_mode(util::cast_point(start), util::cast_point(end)),
             ),
             _ => None,
         }
     }
 
-    pub fn paste_text_block_mode(&mut self, text_block: String) {
-        self.text_buffer.paste_text_block_mode(text_block);
+    pub fn paste_text_in_block_mode(&mut self, text_block: String) {
+        self.text_buffer.paste_text_in_block_mode(text_block);
     }
 
     /// paste the text block overlaying on the text content of the buffer

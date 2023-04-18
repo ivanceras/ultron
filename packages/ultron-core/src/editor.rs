@@ -207,7 +207,7 @@ impl<XMSG> Editor<XMSG> {
                 false
             }
             Command::PasteTextBlock(text) => {
-                self.text_edit.paste_text_block_mode(text);
+                self.text_edit.paste_text_in_block_mode(text);
                 true
             }
             Command::MergeText(text) => {
@@ -323,12 +323,12 @@ impl<XMSG> Editor<XMSG> {
         self.text_edit.cut_selected_text()
     }
 
-    pub fn selected_text_block_mode(&self) -> Option<String> {
-        self.text_edit.selected_text_block_mode()
+    pub fn selected_text_in_block_mode(&self) -> Option<String> {
+        self.text_edit.selected_text_in_block_mode()
     }
 
-    pub fn cut_selected_text_block_mode(&mut self) -> Option<String> {
-        self.text_edit.cut_selected_text_block_mode()
+    pub fn cut_selected_text_in_block_mode(&mut self) -> Option<String> {
+        self.text_edit.cut_selected_text_in_block_mode()
     }
 
     pub fn clear(&mut self) {

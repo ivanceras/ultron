@@ -459,12 +459,12 @@ impl<XMSG> WebEditor<XMSG> {
         self.editor.cut_selected_text()
     }
 
-    pub fn selected_text_block_mode(&self) -> Option<String> {
-        self.editor.selected_text_block_mode()
+    pub fn selected_text_in_block_mode(&self) -> Option<String> {
+        self.editor.selected_text_in_block_mode()
     }
 
-    pub fn cut_selected_text_block_mode(&mut self) -> Option<String> {
-        self.editor.cut_selected_text_block_mode()
+    pub fn cut_selected_text_in_block_mode(&mut self) -> Option<String> {
+        self.editor.cut_selected_text_in_block_mode()
     }
 
     pub fn clear(&mut self) {
