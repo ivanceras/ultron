@@ -13,7 +13,7 @@ pub struct TextEdit {
     pub text_buffer: TextBuffer,
     /// for undo and redo
     recorded: Recorded,
-    selection: Selection,
+    pub selection: Selection,
 }
 
 #[derive(Default)]

@@ -783,14 +783,13 @@ impl<XMSG> WebEditor<XMSG> {
     #[allow(unused)]
     fn view_line<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let selection = self.editor.selection();
-        let start = selection.start;
-        let end = selection.end;
+        let start = self.editor.text_edit.selection.start;
+        let end = self.editor.text_edit.selection.end;
 
         let line_number = line_index + 1;
         let y = line_index;
         let line_start = Point2::new(0, y);
-        let line_width = self.editor.text_buffer().line_width(line_index);
+        let line_width = self.editor.text_edit.text_buffer.line_width(line_index);
         let line_end = Point2::new(line_width, y);
         let line_node = match (start, end) {
             (Some(start), Some(end)) => {
@@ -923,5 +922,47 @@ impl<XMSG> WebEditor<XMSG> {
                 [code(code_attributes, rendered_lines)],
             )
         }
+    }
+
+}
+
+pub fn view_text_buffer<MSG>(text_buffer: &crate::TextBuffer, options: &Options) -> Node<MSG> {
+    let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+
+    let class_number_wide = format!("number_wide{}", text_buffer.numberline_wide());
+
+    let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
+    let rendered_lines = text_buffer
+        .lines()
+        .into_iter()
+        .enumerate()
+        .map(|(line_index, line)| {
+            let line_number = line_index + 1;
+            div(
+                [class_ns("line")],
+                [
+                    view_if(
+                        options.show_line_numbers,
+                        span([class_ns("number")], [text(line_number)]),
+                    ),
+                    // Note: this is important since text node with empty
+                    // content seems to cause error when finding the dom in rust
+                    span([], [text(line)]),
+                ],
+            )
+        });
+
+    if options.use_for_ssg {
+        // using div works well when select-copying for both chrome and firefox
+        // this is ideal for static site generation highlighting
+        div(code_attributes, rendered_lines)
+    } else {
+        // using <pre><code> works well when copying in chrome
+        // but in firefox, it creates a double line when select-copying the text
+        // whe need to use <pre><code> in order for typing whitespace works.
+        pre(
+            [class_ns("code_wrapper")],
+            [code(code_attributes, rendered_lines)],
+        )
     }
 }
