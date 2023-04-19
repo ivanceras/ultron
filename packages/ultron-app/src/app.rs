@@ -12,6 +12,7 @@ pub enum Msg {
     Paste(String),
     EditorWebMsg(web_editor::Msg),
     Keydown(web_sys::KeyboardEvent),
+    ContextMenu(web_sys::MouseEvent),
 }
 
 /// The web editor with text area hacks for listening to typing events
@@ -210,6 +211,10 @@ impl Component<Msg, ()> for App {
                 let effects = self.web_editor.update(emsg);
                 effects.localize(Msg::EditorWebMsg)
             }
+            Msg::ContextMenu(me) => {
+                log::debug!("Right clicked!");
+                Effects::none()
+            }
         }
     }
 
@@ -267,6 +272,11 @@ impl Application<Msg> for App {
                 ke.prevent_default();
                 ke.stop_propagation();
                 Msg::Keydown(ke)
+            }),
+            on_contextmenu(|me| {
+                me.prevent_default();
+                me.stop_propagation();
+                Msg::ContextMenu(me)
             }),
         ])])
     }
