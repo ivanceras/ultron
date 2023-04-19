@@ -55,10 +55,7 @@ impl Recorded {
     /// returns true if the action `act` is added to history.
     fn try_merge(&mut self, act: Action) -> Result<(), bool> {
         if let Some(a) = self.history.front_mut() {
-            if a.actions.is_empty() {
-                a.actions.push(act);
-                return Ok(());
-            } else if a.same_variant_to_last(&act) {
+            if a.actions.is_empty() || a.same_variant_to_last(&act) {
                 a.actions.push(act);
                 return Ok(());
             }

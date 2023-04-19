@@ -120,10 +120,8 @@ impl TextBuffer {
 
     /// get the text in between start and end if selected in linear mode
     pub fn get_text_in_linear_mode(&self, start: Point2<usize>, end: Point2<usize>) -> String {
-        println!("original : {}, {}", start, end);
         let start = self.point_to_index(start);
         let end = self.point_to_index(end);
-        println!("corrected : {}, {}", start, end);
         let is_one_line = start.y == end.y;
         if is_one_line {
             let selection: &[Ch] = &self.chars[start.y][start.x..=end.x];

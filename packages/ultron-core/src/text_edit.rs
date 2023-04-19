@@ -28,12 +28,12 @@ impl fmt::Debug for Selection {
         let start = if let Some(start) = self.start {
             format!("({},{})", start.x, start.y)
         } else {
-            format!("..")
+            "..".to_string()
         };
         let end = if let Some(end) = self.end {
             format!("({},{})", end.x, end.y)
         } else {
-            format!("..")
+            "..".to_string()
         };
 
         write!(f, "{:?}: {} -> {}", self.mode, start, end)

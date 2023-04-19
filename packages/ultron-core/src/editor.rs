@@ -93,7 +93,7 @@ impl<XMSG> Editor<XMSG> {
     }
 
     pub fn text_buffer(&self) -> &TextBuffer {
-        &self.text_edit.text_buffer()
+        self.text_edit.text_buffer()
     }
 
     pub fn set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
