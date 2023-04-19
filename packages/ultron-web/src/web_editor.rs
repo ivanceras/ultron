@@ -331,7 +331,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 let client_x = me.client_x();
                 let client_y = me.client_y();
                 let is_primary_btn = me.button() == 0;
-                if self.is_selecting && is_primary_btn{
+                if self.is_selecting && is_primary_btn {
                     self.is_selecting = false;
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
                     self.editor
@@ -346,7 +346,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     } else {
                         Effects::none()
                     }
-                }else{
+                } else {
                     Effects::none()
                 }
             }
@@ -618,7 +618,7 @@ impl<XMSG> WebEditor<XMSG> {
         }
     }
 
-    pub fn total_lines(&self) -> usize{
+    pub fn total_lines(&self) -> usize {
         self.editor.total_lines()
     }
 
@@ -780,12 +780,11 @@ impl<XMSG> WebEditor<XMSG> {
         30
     }
 
-
     #[allow(unused)]
-    fn view_line<MSG>(&self, line_index: usize, line: String) -> Node<MSG>{
+    fn view_line<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let selection = self.editor.selection();
-        let start =  selection.start;
+        let start = selection.start;
         let end = selection.end;
 
         let line_number = line_index + 1;
@@ -797,7 +796,7 @@ impl<XMSG> WebEditor<XMSG> {
             (Some(start), Some(end)) => {
                 let (start, end) = ultron_core::util::normalize_points(start, end);
                 let start = ultron_core::util::cast_point(start);
-                let end  = ultron_core::util::cast_point(end);
+                let end = ultron_core::util::cast_point(end);
 
                 // selection end points is only on the same line
                 let only_one_line = start.y == end.y;
@@ -810,49 +809,80 @@ impl<XMSG> WebEditor<XMSG> {
 
                 let selection_bg = self.selection_background().to_css();
 
-                if in_inner_line{
-                    span([style!{background_color: selection_bg}], [text(line)])
-                }else{
-                    if in_first_line{
+                if in_inner_line {
+                    span([style! {background_color: selection_bg}], [text(line)])
+                } else {
+                    if in_first_line {
                         // the first part is the plain
                         // the second part is the highlighted
                         let break_point = Point2::new(start.x, line_start.y);
-                        let break_point = self.editor.text_edit.text_buffer.clamp_position(break_point);
-                        let (first, second) = self.editor.text_edit.text_buffer.split_line_at_point(break_point);
-                        if only_one_line{
+                        let break_point = self
+                            .editor
+                            .text_edit
+                            .text_buffer
+                            .clamp_position(break_point);
+                        let (first, second) = self
+                            .editor
+                            .text_edit
+                            .text_buffer
+                            .split_line_at_point(break_point);
+                        if only_one_line {
                             // the third part will be in plain
                             let break_point2 = Point2::new(end.x, line_end.y);
-                            let break_point2 = self.editor.text_edit.text_buffer.clamp_position(break_point2);
-                            let (first, second, third) = self.editor.text_edit.text_buffer.split_line_at_2_points(break_point, break_point2);
-                            span([],[
-                                span([], [text(first)]),
-                                span([style!{background_color: selection_bg}], [text(second)]),
-                                span([], [text(third)]),
-                            ])
-                        }else{
-                            span([],[
-                                span([], [text(first)]),
-                                span([style!{background_color: selection_bg}], [text(second)]),
-                            ])
+                            let break_point2 = self
+                                .editor
+                                .text_edit
+                                .text_buffer
+                                .clamp_position(break_point2);
+                            let (first, second, third) = self
+                                .editor
+                                .text_edit
+                                .text_buffer
+                                .split_line_at_2_points(break_point, break_point2);
+                            span(
+                                [],
+                                [
+                                    span([], [text(first)]),
+                                    span([style! {background_color: selection_bg}], [text(second)]),
+                                    span([], [text(third)]),
+                                ],
+                            )
+                        } else {
+                            span(
+                                [],
+                                [
+                                    span([], [text(first)]),
+                                    span([style! {background_color: selection_bg}], [text(second)]),
+                                ],
+                            )
                         }
-                    }else if in_last_line{
+                    } else if in_last_line {
                         // the first part is the highlighted
                         // the second part is plain
                         let break_point = Point2::new(end.x, line_start.y);
-                        let break_point = self.editor.text_edit.text_buffer.clamp_position(break_point);
-                        let (first, second) = self.editor.text_edit.text_buffer.split_line_at_point(break_point);
-                        span([],[
-                            span([style!{background_color: selection_bg}], [text(first)]),
-                            span([], [text(second)]),
-                        ])
-                    }else{
+                        let break_point = self
+                            .editor
+                            .text_edit
+                            .text_buffer
+                            .clamp_position(break_point);
+                        let (first, second) = self
+                            .editor
+                            .text_edit
+                            .text_buffer
+                            .split_line_at_point(break_point);
+                        span(
+                            [],
+                            [
+                                span([style! {background_color: selection_bg}], [text(first)]),
+                                span([], [text(second)]),
+                            ],
+                        )
+                    } else {
                         span([], [text(line)])
                     }
                 }
             }
-            _ => {
-                   span([], [text(line)])
-            },
+            _ => span([], [text(line)]),
         };
 
         div(
@@ -862,7 +892,7 @@ impl<XMSG> WebEditor<XMSG> {
                     self.options.show_line_numbers,
                     span([class_ns("number")], [text(line_number)]),
                 ),
-                line_node
+                line_node,
             ],
         )
     }
@@ -873,15 +903,12 @@ impl<XMSG> WebEditor<XMSG> {
 
         let class_number_wide = format!("number_wide{}", text_edit.numberline_wide());
 
-
         let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
         let rendered_lines = text_edit
             .lines()
             .into_iter()
             .enumerate()
-            .map(|(line_index, line)| {
-                self.view_line(line_index, line)
-            });
+            .map(|(line_index, line)| self.view_line(line_index, line));
 
         if self.options.use_for_ssg {
             // using div works well when select-copying for both chrome and firefox
@@ -898,4 +925,3 @@ impl<XMSG> WebEditor<XMSG> {
         }
     }
 }
-
