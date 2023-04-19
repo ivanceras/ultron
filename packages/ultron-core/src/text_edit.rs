@@ -10,7 +10,7 @@ mod history;
 
 /// A struct with text_buffer, selection commands, and history recording for undo and redo editing
 pub struct TextEdit {
-    text_buffer: TextBuffer,
+    pub text_buffer: TextBuffer,
     /// for undo and redo
     recorded: Recorded,
     selection: Selection,

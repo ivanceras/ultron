@@ -54,6 +54,33 @@ impl TextBuffer {
         self.chars.iter().map(|line| line.len()).sum()
     }
 
+    pub fn split_line_at_point(&self, loc: Point2<usize>) -> (String, String) {
+        let loc = self.point_to_index(loc);
+        let first = &self.chars[loc.y][0..loc.x];
+        let first_str = String::from_iter(first.iter().map(|ch| ch.ch));
+        let second = &self.chars[loc.y][loc.x..];
+        let second_str = String::from_iter(second.iter().map(|ch| ch.ch));
+        (first_str, second_str)
+    }
+
+    pub fn split_line_at_2_points(
+        &self,
+        loc: Point2<usize>,
+        loc2: Point2<usize>,
+    ) -> (String, String, String) {
+        let loc = self.point_to_index(loc);
+        let loc2 = self.point_to_index(loc2);
+
+        let first = &self.chars[loc.y][0..loc.x];
+        let first_str = String::from_iter(first.iter().map(|ch| ch.ch));
+        let second = &self.chars[loc.y][loc.x..loc2.x];
+        let second_str = String::from_iter(second.iter().map(|ch| ch.ch));
+        let third = &self.chars[loc.y][loc2.x..];
+        let third_str = String::from_iter(third.iter().map(|ch| ch.ch));
+
+        (first_str, second_str, third_str)
+    }
+
     /// Remove the text within the start and end position then return the deleted text
     pub fn cut_text_in_linear_mode(&mut self, start: Point2<usize>, end: Point2<usize>) -> String {
         let start = self.point_to_index(start);
@@ -488,6 +515,17 @@ impl TextBuffer {
             }
             self.move_up()
         }
+    }
+
+    pub fn clamp_position(&self, loc: Point2<usize>) -> Point2<usize> {
+        let line = loc.y;
+        let line_max_column = self.line_max_column(line);
+        let loc_x = if loc.x > line_max_column {
+            line_max_column
+        } else {
+            loc.x
+        };
+        Point2::new(loc_x, loc.y)
     }
 
     pub fn move_down_clamped(&mut self) {

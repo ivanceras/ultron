@@ -1,11 +1,11 @@
 use nalgebra::Point2;
 use std::fmt;
 
-pub(crate) fn cast_point(point: Point2<i32>) -> Point2<usize> {
+pub fn cast_point(point: Point2<i32>) -> Point2<usize> {
     Point2::new(point.x.try_into().unwrap(), point.y.try_into().unwrap())
 }
 
-pub(crate) fn normalize_points<T>(p1: Point2<T>, p2: Point2<T>) -> (Point2<T>, Point2<T>)
+pub fn normalize_points<T>(p1: Point2<T>, p2: Point2<T>) -> (Point2<T>, Point2<T>)
 where
     T: Copy + Clone + PartialEq + fmt::Debug + Ord + 'static,
 {

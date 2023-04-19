@@ -6,7 +6,6 @@ use sauron::{
 };
 pub use ultron_core;
 use ultron_core::{editor, nalgebra::Point2, Editor, Options};
-use ultron_core::unicode_width::UnicodeWidthStr;
 
 pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
@@ -781,11 +780,99 @@ impl<XMSG> WebEditor<XMSG> {
         30
     }
 
+
+    #[allow(unused)]
+    fn view_line<MSG>(&self, line_index: usize, line: String) -> Node<MSG>{
+        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let selection = self.editor.selection();
+        let start =  selection.start;
+        let end = selection.end;
+
+        let line_number = line_index + 1;
+        let y = line_index;
+        let line_start = Point2::new(0, y);
+        let line_width = self.editor.text_buffer().line_width(line_index);
+        let line_end = Point2::new(line_width, y);
+        let line_node = match (start, end) {
+            (Some(start), Some(end)) => {
+                let (start, end) = ultron_core::util::normalize_points(start, end);
+                let start = ultron_core::util::cast_point(start);
+                let end  = ultron_core::util::cast_point(end);
+
+                // selection end points is only on the same line
+                let only_one_line = start.y == end.y;
+                // this line is on the first line of selection
+                let in_first_line = line_start.y == start.y;
+                // this line is on the last line of selection
+                let in_last_line = line_start.y == end.y;
+                // this line is in between the selection end points
+                let in_inner_line = line_start.y > start.y && line_start.y < end.y;
+
+                let selection_bg = self.selection_background().to_css();
+
+                if in_inner_line{
+                    span([style!{background_color: selection_bg}], [text(line)])
+                }else{
+                    if in_first_line{
+                        // the first part is the plain
+                        // the second part is the highlighted
+                        let break_point = Point2::new(start.x, line_start.y);
+                        let break_point = self.editor.text_edit.text_buffer.clamp_position(break_point);
+                        let (first, second) = self.editor.text_edit.text_buffer.split_line_at_point(break_point);
+                        if only_one_line{
+                            // the third part will be in plain
+                            let break_point2 = Point2::new(end.x, line_end.y);
+                            let break_point2 = self.editor.text_edit.text_buffer.clamp_position(break_point2);
+                            let (first, second, third) = self.editor.text_edit.text_buffer.split_line_at_2_points(break_point, break_point2);
+                            span([],[
+                                span([], [text(first)]),
+                                span([style!{background_color: selection_bg}], [text(second)]),
+                                span([], [text(third)]),
+                            ])
+                        }else{
+                            span([],[
+                                span([], [text(first)]),
+                                span([style!{background_color: selection_bg}], [text(second)]),
+                            ])
+                        }
+                    }else if in_last_line{
+                        // the first part is the highlighted
+                        // the second part is plain
+                        let break_point = Point2::new(end.x, line_start.y);
+                        let break_point = self.editor.text_edit.text_buffer.clamp_position(break_point);
+                        let (first, second) = self.editor.text_edit.text_buffer.split_line_at_point(break_point);
+                        span([],[
+                            span([style!{background_color: selection_bg}], [text(first)]),
+                            span([], [text(second)]),
+                        ])
+                    }else{
+                        span([], [text(line)])
+                    }
+                }
+            }
+            _ => {
+                   span([], [text(line)])
+            },
+        };
+
+        div(
+            [class_ns("line")],
+            [
+                view_if(
+                    self.options.show_line_numbers,
+                    span([class_ns("number")], [text(line_number)]),
+                ),
+                line_node
+            ],
+        )
+    }
+
     pub fn view_text_edit<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let text_edit = &self.editor.text_edit;
 
         let class_number_wide = format!("number_wide{}", text_edit.numberline_wide());
+
 
         let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
         let rendered_lines = text_edit
@@ -793,39 +880,7 @@ impl<XMSG> WebEditor<XMSG> {
             .into_iter()
             .enumerate()
             .map(|(line_index, line)| {
-
-                //TODO: deal with the partial parts of the highlighted line here
-
-                let line_number = line_index + 1;
-                let y = line_index as i32;
-                let line_start = Point2::new(0, y);
-                let line_width = line.width() as i32;
-                let line_end = Point2::new(line_width, y);
-
-                let bg = if text_edit.is_selected(line_start)
-                    && text_edit.is_selected(line_end){
-                     Some(self.selection_background().to_css())
-                }else{
-                    None
-                };
-
-                div(
-                    [class_ns("line")],
-                    [
-                        view_if(
-                            self.options.show_line_numbers,
-                            span([class_ns("number")], [text(line_number)]),
-                        ),
-                        // Note: this is important since text node with empty
-                        // content seems to cause error when finding the dom in rust
-                        span([if let Some(bg) = bg {
-                                style!{background_color: bg}
-                            }else{
-                                empty_attr()
-                            }
-                        ], [text(line)]),
-                    ],
-                )
+                self.view_line(line_index, line)
             });
 
         if self.options.use_for_ssg {
