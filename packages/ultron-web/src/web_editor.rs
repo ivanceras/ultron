@@ -923,7 +923,6 @@ impl<XMSG> WebEditor<XMSG> {
             )
         }
     }
-
 }
 
 pub fn view_text_buffer<MSG>(text_buffer: &crate::TextBuffer, options: &Options) -> Node<MSG> {
