@@ -10,7 +10,7 @@ pub enum Msg {
     TextareaMounted(web_sys::Node),
     TextareaInput(String),
     Paste(String),
-    EditorWebMsg(web_editor::Msg),
+    WebEditorMsg(web_editor::Msg),
     Keydown(web_sys::KeyboardEvent),
     ContextMenu(web_sys::MouseEvent),
 }
@@ -165,7 +165,7 @@ impl Component<Msg, ()> for App {
         match msg {
             Msg::Keydown(ke) => {
                 let effects = self.web_editor.update(web_editor::Msg::Keydown(ke));
-                effects.localize(Msg::EditorWebMsg)
+                effects.localize(Msg::WebEditorMsg)
             }
             Msg::TextareaMounted(target_node) => {
                 self.hidden_textarea = Some(target_node.unchecked_into());
@@ -207,9 +207,9 @@ impl Component<Msg, ()> for App {
                 let msgs = self.process_commands([editor::Command::InsertText(text_content)]);
                 Effects::new(msgs, vec![])
             }
-            Msg::EditorWebMsg(emsg) => {
+            Msg::WebEditorMsg(emsg) => {
                 let effects = self.web_editor.update(emsg);
-                effects.localize(Msg::EditorWebMsg)
+                effects.localize(Msg::WebEditorMsg)
             }
             Msg::ContextMenu(me) => {
                 log::debug!("Right clicked!");
@@ -221,7 +221,7 @@ impl Component<Msg, ()> for App {
     fn view(&self) -> Node<Msg> {
         div(
             [class("app")],
-            [self.web_editor.view().map_msg(Msg::EditorWebMsg)],
+            [self.web_editor.view().map_msg(Msg::WebEditorMsg)],
         )
     }
 
@@ -265,9 +265,9 @@ impl Component<Msg, ()> for App {
 impl Application<Msg> for App {
     fn init(&mut self) -> Cmd<Self, Msg> {
         Cmd::batch([Window::add_event_listeners(vec![
-            on_mousemove(|me| Msg::EditorWebMsg(web_editor::Msg::Mousemove(me))),
-            on_mousedown(|me| Msg::EditorWebMsg(web_editor::Msg::Mousedown(me))),
-            on_mouseup(|me| Msg::EditorWebMsg(web_editor::Msg::Mouseup(me))),
+            on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
+            on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
+            on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
             on_keydown(|ke| {
                 ke.prevent_default();
                 ke.stop_propagation();
@@ -297,7 +297,7 @@ impl Application<Msg> for App {
     fn measurements(&self, measurements: Measurements) -> Cmd<Self, Msg> {
         log::info!("measurements in ultron app");
         Cmd::new(|program| {
-            program.dispatch(Msg::EditorWebMsg(web_editor::Msg::Measurements(
+            program.dispatch(Msg::WebEditorMsg(web_editor::Msg::Measurements(
                 measurements,
             )))
         })
