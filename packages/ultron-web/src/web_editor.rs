@@ -780,7 +780,6 @@ impl<XMSG> WebEditor<XMSG> {
         30
     }
 
-    #[allow(unused)]
     fn view_line<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let start = self.editor.text_edit.selection.start;
