@@ -210,6 +210,9 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 background_color: self.selection_background().to_css(),
             },
 
+            ".line .selected": {
+                background_color: self.selection_background().to_css(),
+            },
 
             ".status": {
                 position: "fixed",
@@ -805,10 +808,9 @@ impl<XMSG> WebEditor<XMSG> {
                 // this line is in between the selection end points
                 let in_inner_line = line_start.y > start.y && line_start.y < end.y;
 
-                let selection_bg = self.selection_background().to_css();
 
                 if in_inner_line {
-                    span([style! {background_color: selection_bg}], [text(line)])
+                    span([class_ns("selected")], [text(line)])
                 } else {
                     if in_first_line {
                         // the first part is the plain
@@ -841,7 +843,7 @@ impl<XMSG> WebEditor<XMSG> {
                                 [],
                                 [
                                     span([], [text(first)]),
-                                    span([style! {background_color: selection_bg}], [text(second)]),
+                                    span([class_ns("selected")], [text(second)]),
                                     span([], [text(third)]),
                                 ],
                             )
@@ -850,7 +852,7 @@ impl<XMSG> WebEditor<XMSG> {
                                 [],
                                 [
                                     span([], [text(first)]),
-                                    span([style! {background_color: selection_bg}], [text(second)]),
+                                    span([class_ns("selected")], [text(second)]),
                                 ],
                             )
                         }
@@ -871,7 +873,7 @@ impl<XMSG> WebEditor<XMSG> {
                         span(
                             [],
                             [
-                                span([style! {background_color: selection_bg}], [text(first)]),
+                                span([class_ns("selected")], [text(first)]),
                                 span([], [text(second)]),
                             ],
                         )
