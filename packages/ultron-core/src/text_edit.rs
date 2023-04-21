@@ -304,11 +304,11 @@ impl TextEdit {
         }
     }
 
-    fn record_deleted_text(&mut self, _start: Point2<usize>, _end: Point2<usize>, cut_text: &str) {
+    fn record_deleted_text(&mut self, start: Point2<usize>, _end: Point2<usize>, cut_text: &str) {
         let lines = cut_text.lines();
         for (y, line) in lines.enumerate() {
             for (_x, ch) in line.chars().enumerate() {
-                let position = Point2::new(0, y);
+                let position = Point2::new(start.x, start.y + y);
                 self.recorded.delete(position, Some(ch));
             }
         }
@@ -331,7 +331,13 @@ impl TextEdit {
 
     pub fn cut_selected_text_in_block_mode(&mut self) -> Option<String> {
         match self.selection_normalized_casted() {
-            Some((start, end)) => Some(self.text_buffer.cut_text_in_block_mode(start, end)),
+            Some((start, end)) => {
+                let cut_text = self.text_buffer.cut_text_in_block_mode(start, end);
+                if !cut_text.is_empty() {
+                    self.record_deleted_text(start, end, &cut_text);
+                }
+                Some(cut_text)
+            }
             _ => None,
         }
     }
