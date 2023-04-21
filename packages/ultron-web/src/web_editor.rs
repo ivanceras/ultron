@@ -471,20 +471,26 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     pub fn selected_text(&self) -> Option<String> {
-        self.editor.selected_text()
+        match self.options.selection_mode {
+            SelectionMode::Linear => self.editor.text_edit.selected_text_in_linear_mode(),
+            SelectionMode::Block => self.editor.text_edit.selected_text_in_block_mode(),
+        }
+    }
+
+    pub fn is_selected(&self, loc: Point2<i32>) -> bool {
+        match self.options.selection_mode {
+            SelectionMode::Linear => self.editor.text_edit.is_selected_in_linear_mode(loc),
+            SelectionMode::Block => self.editor.text_edit.is_selected_in_block_mode(loc),
+        }
     }
 
     pub fn cut_selected_text(&mut self) -> Option<String> {
-        self.editor.cut_selected_text()
+        match self.options.selection_mode {
+            SelectionMode::Linear => self.editor.text_edit.cut_selected_text_in_linear_mode(),
+            SelectionMode::Block => self.editor.text_edit.cut_selected_text_in_block_mode(),
+        }
     }
 
-    pub fn selected_text_in_block_mode(&self) -> Option<String> {
-        self.editor.selected_text_in_block_mode()
-    }
-
-    pub fn cut_selected_text_in_block_mode(&mut self) -> Option<String> {
-        self.editor.cut_selected_text_in_block_mode()
-    }
 
     pub fn clear(&mut self) {
         self.editor.clear()
@@ -786,19 +792,14 @@ impl<XMSG> WebEditor<XMSG> {
 
     fn view_line_with_linear_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let start = self.editor.text_edit.selection.start;
-        let end = self.editor.text_edit.selection.end;
 
         let line_width = self.editor.text_edit.text_buffer.line_width(line_index);
         let line_end = Point2::new(line_width, line_index);
 
         let default_view = span([], [text(&line)]);
 
-        match (start, end) {
-            (Some(start), Some(end)) => {
-                let (start, end) = ultron_core::util::normalize_points(start, end);
-                let start = ultron_core::util::cast_point(start);
-                let end = ultron_core::util::cast_point(end);
+        match self.editor.text_edit.selection_normalized_casted() {
+            Some((start, end)) => {
 
                 // selection end points is only on the same line
                 let only_one_line = start.y == end.y;
@@ -889,21 +890,14 @@ impl<XMSG> WebEditor<XMSG> {
 
     fn view_line_with_block_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let start = self.editor.text_edit.selection.start;
-        let end = self.editor.text_edit.selection.end;
 
        let default_view  = span([], [text(&line)]);
-        match (start, end) {
-            (Some(start), Some(end)) => {
-
-
+        match self.editor.text_edit.selection_normalized_casted(){
+            Some((start, end)) => {
                 // there will be 3 parts
                 // the first one is plain
                 // the second one is highlighted
                 // the first one is plain
-                let (start, end) = ultron_core::util::normalize_points(start, end);
-                let start = ultron_core::util::cast_point(start);
-                let end = ultron_core::util::cast_point(end);
                 let break_point1 = Point2::new(start.x, line_index);
                 let break_point1 = self
                     .editor

@@ -20,7 +20,6 @@ pub struct TextEdit {
 pub struct Selection {
     pub start: Option<Point2<i32>>,
     pub end: Option<Point2<i32>>,
-    pub mode: SelectionMode,
 }
 
 impl fmt::Debug for Selection {
@@ -36,7 +35,7 @@ impl fmt::Debug for Selection {
             "..".to_string()
         };
 
-        write!(f, "{:?}: {} -> {}", self.mode, start, end)
+        write!(f, "{} -> {}", start, end)
     }
 }
 
@@ -231,17 +230,6 @@ impl TextEdit {
         }
     }
 
-    pub fn set_selection_mode(&mut self, mode: SelectionMode) {
-        self.selection.mode = mode;
-    }
-
-    pub fn is_selected(&self, loc: Point2<i32>) -> bool {
-        match self.selection.mode {
-            SelectionMode::Linear => self.is_selected_in_linear_mode(loc),
-            SelectionMode::Block => self.is_selected_in_block_mode(loc),
-        }
-    }
-
     pub fn is_selected_in_linear_mode(&self, loc: Point2<i32>) -> bool {
         match (self.selection.start, self.selection.end) {
             (Some(start), Some(end)) => {
@@ -289,45 +277,23 @@ impl TextEdit {
         self.selection.end = None;
     }
 
-    pub fn selected_text(&self) -> Option<String> {
-        match self.selection.mode {
-            SelectionMode::Linear => self.selected_text_in_linear_mode(),
-            SelectionMode::Block => self.selected_text_in_block_mode(),
-        }
-    }
-
     pub fn selected_text_in_linear_mode(&self) -> Option<String> {
-        match (self.selection.start, self.selection.end) {
-            (Some(start), Some(end)) => Some(
-                self.text_buffer
-                    .get_text_in_linear_mode(util::cast_point(start), util::cast_point(end)),
-            ),
+        match self.selection_normalized_casted() {
+            Some((start, end)) => Some(self.text_buffer.get_text_in_linear_mode(start, end)),
             _ => None,
         }
     }
 
     pub fn selected_text_in_block_mode(&self) -> Option<String> {
-        match (self.selection.start, self.selection.end) {
-            (Some(start), Some(end)) => Some(
-                self.text_buffer
-                    .get_text_in_block_mode(util::cast_point(start), util::cast_point(end)),
-            ),
+        match self.selection_normalized_casted() {
+            Some((start, end)) => Some(self.text_buffer.get_text_in_block_mode(start, end)),
             _ => None,
         }
     }
 
-    pub fn cut_selected_text(&mut self) -> Option<String> {
-        match self.selection.mode {
-            SelectionMode::Linear => self.cut_selected_text_in_linear_mode(),
-            SelectionMode::Block => self.cut_selected_text_in_block_mode(),
-        }
-    }
-
     pub fn cut_selected_text_in_linear_mode(&mut self) -> Option<String> {
-        match (self.selection.start, self.selection.end) {
-            (Some(start), Some(end)) => {
-                let start = util::cast_point(start);
-                let end = util::cast_point(end);
+        match self.selection_normalized_casted() {
+            Some((start, end)) => {
                 let cut_text = self.text_buffer.cut_text_in_linear_mode(start, end);
                 if !cut_text.is_empty() {
                     self.record_deleted_text(start, end, &cut_text);
@@ -348,12 +314,24 @@ impl TextEdit {
         }
     }
 
-    pub fn cut_selected_text_in_block_mode(&mut self) -> Option<String> {
+    /// return the selection points which is normalized and casted into usize
+    pub fn selection_normalized_casted(&self) -> Option<(Point2<usize>, Point2<usize>)> {
         match (self.selection.start, self.selection.end) {
-            (Some(start), Some(end)) => Some(
-                self.text_buffer
-                    .cut_text_in_block_mode(util::cast_point(start), util::cast_point(end)),
-            ),
+            (Some(start), Some(end)) => {
+                let (start, end) = util::normalize_points(start, end);
+                let start = util::cast_point(start);
+                let end = util::cast_point(end);
+                let start = self.text_buffer.clamp_position(start);
+                let end = self.text_buffer.clamp_position(end);
+                Some((start, end))
+            }
+            _ => None,
+        }
+    }
+
+    pub fn cut_selected_text_in_block_mode(&mut self) -> Option<String> {
+        match self.selection_normalized_casted() {
+            Some((start, end)) => Some(self.text_buffer.cut_text_in_block_mode(start, end)),
             _ => None,
         }
     }

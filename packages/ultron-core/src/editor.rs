@@ -319,30 +319,6 @@ impl<XMSG> Editor<XMSG> {
         }
     }
 
-    pub fn selected_text(&self) -> Option<String> {
-        self.text_edit.selected_text()
-    }
-
-    pub fn is_selected(&self, loc: Point2<i32>) -> bool {
-        self.text_edit.is_selected(loc)
-    }
-
-    pub fn set_selection_mode(&mut self, mode: SelectionMode) {
-        self.text_edit.set_selection_mode(mode)
-    }
-
-    pub fn cut_selected_text(&mut self) -> Option<String> {
-        self.text_edit.cut_selected_text()
-    }
-
-    pub fn selected_text_in_block_mode(&self) -> Option<String> {
-        self.text_edit.selected_text_in_block_mode()
-    }
-
-    pub fn cut_selected_text_in_block_mode(&mut self) -> Option<String> {
-        self.text_edit.cut_selected_text_in_block_mode()
-    }
-
     pub fn clear(&mut self) {
         self.text_edit.clear();
     }
