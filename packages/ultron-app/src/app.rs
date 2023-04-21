@@ -2,7 +2,7 @@
 use ultron_web::{
     editor, sauron,
     sauron::{html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast},
-    web_editor, Options, WebEditor, COMPONENT_NAME,
+    web_editor, Options, SelectionMode, WebEditor, COMPONENT_NAME,
 };
 use web_sys::HtmlDocument;
 
@@ -33,6 +33,7 @@ impl App {
             theme_name: Some("solarized-light".to_string()),
             use_syntax_highlighter: false,
             allow_text_selection: false,
+            selection_mode: SelectionMode::Block,
             ..Default::default()
         };
         Self {

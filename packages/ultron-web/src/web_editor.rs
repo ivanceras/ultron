@@ -789,10 +789,11 @@ impl<XMSG> WebEditor<XMSG> {
         let start = self.editor.text_edit.selection.start;
         let end = self.editor.text_edit.selection.end;
 
-        let y = line_index;
-        let line_start = Point2::new(0, y);
         let line_width = self.editor.text_edit.text_buffer.line_width(line_index);
-        let line_end = Point2::new(line_width, y);
+        let line_end = Point2::new(line_width, line_index);
+
+        let default_view = span([], [text(&line)]);
+
         match (start, end) {
             (Some(start), Some(end)) => {
                 let (start, end) = ultron_core::util::normalize_points(start, end);
@@ -802,11 +803,11 @@ impl<XMSG> WebEditor<XMSG> {
                 // selection end points is only on the same line
                 let only_one_line = start.y == end.y;
                 // this line is on the first line of selection
-                let in_first_line = line_start.y == start.y;
+                let in_first_line = line_index == start.y;
                 // this line is on the last line of selection
-                let in_last_line = line_start.y == end.y;
+                let in_last_line = line_index == end.y;
                 // this line is in between the selection end points
-                let in_inner_line = line_start.y > start.y && line_start.y < end.y;
+                let in_inner_line = line_index > start.y && line_index < end.y;
 
 
                 if in_inner_line {
@@ -815,7 +816,7 @@ impl<XMSG> WebEditor<XMSG> {
                     if in_first_line {
                         // the first part is the plain
                         // the second part is the highlighted
-                        let break_point = Point2::new(start.x, line_start.y);
+                        let break_point = Point2::new(start.x, line_index);
                         let break_point = self
                             .editor
                             .text_edit
@@ -859,7 +860,7 @@ impl<XMSG> WebEditor<XMSG> {
                     } else if in_last_line {
                         // the first part is the highlighted
                         // the second part is plain
-                        let break_point = Point2::new(end.x, line_start.y);
+                        let break_point = Point2::new(end.x, line_index);
                         let break_point = self
                             .editor
                             .text_edit
@@ -878,17 +879,61 @@ impl<XMSG> WebEditor<XMSG> {
                             ],
                         )
                     } else {
-                        span([], [text(line)])
+                        default_view
                     }
                 }
             }
-            _ => span([], [text(line)]),
+            _ => default_view
         }
     }
 
-    #[allow(unused)]
     fn view_line_with_block_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
-       span([], [text(line)])
+        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let start = self.editor.text_edit.selection.start;
+        let end = self.editor.text_edit.selection.end;
+
+       let default_view  = span([], [text(&line)]);
+        match (start, end) {
+            (Some(start), Some(end)) => {
+
+
+                // there will be 3 parts
+                // the first one is plain
+                // the second one is highlighted
+                // the first one is plain
+                let (start, end) = ultron_core::util::normalize_points(start, end);
+                let start = ultron_core::util::cast_point(start);
+                let end = ultron_core::util::cast_point(end);
+                let break_point1 = Point2::new(start.x, line_index);
+                let break_point1 = self
+                    .editor
+                    .text_edit
+                    .text_buffer
+                    .clamp_position(break_point1);
+
+                let break_point2 = Point2::new(end.x, line_index);
+                let break_point2 = self
+                    .editor
+                    .text_edit
+                    .text_buffer
+                    .clamp_position(break_point2);
+                let (first, second, third) = self.editor.text_edit.text_buffer.split_line_at_2_points(break_point1, break_point2);
+
+                if line_index >= start.y && line_index <= end.y{
+                    span(
+                        [],
+                        [
+                            span([], [text(first)]),
+                            span([class_ns("selected")], [text(second)]),
+                            span([], [text(third)]),
+                        ],
+                    )
+                }else{
+                    default_view
+                }
+            }
+            _ => default_view,
+        }
     }
 
     pub fn view_text_edit<MSG>(&self) -> Node<MSG> {
