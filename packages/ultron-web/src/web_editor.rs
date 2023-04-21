@@ -5,7 +5,7 @@ use sauron::{
     wasm_bindgen_futures::JsFuture, Measurements,
 };
 pub use ultron_core;
-use ultron_core::{editor, nalgebra::Point2, Editor, Options};
+use ultron_core::{editor, nalgebra::Point2, Editor, Options, SelectionMode};
 
 pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
@@ -211,7 +211,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             },
 
             ".line .selected": {
-                background_color: self.selection_background().to_css(),
+               // background_color: self.selection_background().to_css(),
+               background_color: rgba(221, 72, 20, 1.0).to_css(),
             },
 
             ".status": {
@@ -783,17 +784,16 @@ impl<XMSG> WebEditor<XMSG> {
         30
     }
 
-    fn view_line<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
+    fn view_line_with_linear_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let start = self.editor.text_edit.selection.start;
         let end = self.editor.text_edit.selection.end;
 
-        let line_number = line_index + 1;
         let y = line_index;
         let line_start = Point2::new(0, y);
         let line_width = self.editor.text_edit.text_buffer.line_width(line_index);
         let line_end = Point2::new(line_width, y);
-        let line_node = match (start, end) {
+        match (start, end) {
             (Some(start), Some(end)) => {
                 let (start, end) = ultron_core::util::normalize_points(start, end);
                 let start = ultron_core::util::cast_point(start);
@@ -883,18 +883,12 @@ impl<XMSG> WebEditor<XMSG> {
                 }
             }
             _ => span([], [text(line)]),
-        };
+        }
+    }
 
-        div(
-            [class_ns("line")],
-            [
-                view_if(
-                    self.options.show_line_numbers,
-                    span([class_ns("number")], [text(line_number)]),
-                ),
-                line_node,
-            ],
-        )
+    #[allow(unused)]
+    fn view_line_with_block_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
+       span([], [text(line)])
     }
 
     pub fn view_text_edit<MSG>(&self) -> Node<MSG> {
@@ -908,7 +902,23 @@ impl<XMSG> WebEditor<XMSG> {
             .lines()
             .into_iter()
             .enumerate()
-            .map(|(line_index, line)| self.view_line(line_index, line));
+            .map(|(line_index, line)|{
+                let line_number = line_index + 1;
+                div(
+                    [class_ns("line")],
+                    [
+                        view_if(
+                            self.options.show_line_numbers,
+                            span([class_ns("number")], [text(line_number)]),
+                        ),
+                        match self.options.selection_mode{
+                            SelectionMode::Linear =>
+                                self.view_line_with_linear_selection(line_index, line),
+                            SelectionMode::Block => self.view_line_with_block_selection(line_index, line),
+                        }
+                    ],
+                )
+            });
 
         if self.options.use_for_ssg {
             // using div works well when select-copying for both chrome and firefox

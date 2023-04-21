@@ -1,7 +1,10 @@
+use crate::SelectionMode;
+
 #[derive(Clone, Debug)]
 pub struct Options {
-    /// block mode is when the selection is rectangular
-    pub use_block_mode: bool,
+    /// block selection uses rectangular text selection
+    /// linear selection select lines as most text editors
+    pub selection_mode: SelectionMode,
     /// allow the click outside of the bounds of the text content editor
     pub use_virtual_edit: bool,
     /// allow the editor to show or hide pages for optimization
@@ -42,7 +45,7 @@ pub struct Options {
 impl Default for Options {
     fn default() -> Self {
         Self {
-            use_block_mode: false,
+            selection_mode: SelectionMode::Linear,
             use_virtual_edit: false,
             use_paging_optimization: true,
             show_line_numbers: true,
