@@ -66,7 +66,7 @@ pub enum Msg {
 /// rename this to WebEditor
 pub struct WebEditor<XMSG> {
     options: Options,
-    editor: Editor<XMSG>,
+    pub editor: Editor<XMSG>,
     editor_element: Option<web_sys::Element>,
     mouse_cursor: MouseCursor,
     measure: Measure,
