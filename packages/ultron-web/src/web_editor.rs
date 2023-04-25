@@ -698,6 +698,21 @@ impl<XMSG> WebEditor<XMSG> {
                 text!(" |> line: {}, col: {} ", cursor.y + 1, cursor.x + 1),
                 text!(" |> version:{}", env!("CARGO_PKG_VERSION")),
                 text!(" |> lines: {}", self.editor.total_lines()),
+                if let Some((start, end)) = self.bounding_rect(){
+                    text!(" |> bounding rect: {}->{}", start, end)
+                }else{
+                    text!("")
+                },
+                if let Some(visible_lines)  = self.max_visible_lines(){
+                    text!(" |> visible lines: {}", visible_lines)
+                }else{
+                    text!("")
+                },
+                if let Some((start, end)) = self.visible_lines(){
+                    text!(" |> lines: ({},{})", start, end)
+                }else{
+                    text!("")
+                },
                 text!(" |> selection: {:?}", self.editor.selection()),
                 if let Some(average_dispatch) = self.measure.average_dispatch {
                     text!(" |> average dispatch: {}ms", average_dispatch.round())
@@ -728,6 +743,26 @@ impl<XMSG> WebEditor<XMSG> {
                 [text(line_number)],
             ),
         )
+    }
+
+    /// calculate the maximum number of visible lines
+    fn max_visible_lines(&self) -> Option<usize>{
+        if let Some((start, end)) = self.bounding_rect(){
+            Some(((end.y - start.y)/ CH_HEIGHT as f32).round() as usize)
+        }else{
+            None
+        }
+    }
+
+    fn visible_lines(&self) -> Option<(usize, usize)>{
+        if let Some((start, end)) = self.bounding_rect(){
+            let ch_height = CH_HEIGHT as f32;
+            let top = ((0.0 - start.y) / ch_height) as usize;
+            let bottom = ((end.y - 2.0 * start.y) / ch_height) as usize;
+            Some((top, bottom))
+        }else{
+            None
+        }
     }
 
     // highlighted view
