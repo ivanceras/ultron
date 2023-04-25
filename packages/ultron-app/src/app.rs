@@ -220,8 +220,9 @@ impl Component<Msg, ()> for App {
     }
 
     fn view(&self) -> Node<Msg> {
+        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         div(
-            [class("app")],
+            [class_ns("app")],
             [self.web_editor.view().map_msg(Msg::WebEditorMsg)],
         )
     }
@@ -275,8 +276,8 @@ impl Application<Msg> for App {
                 Msg::Keydown(ke)
             }),
             on_contextmenu(|me| {
-                me.prevent_default();
-                me.stop_propagation();
+                //me.prevent_default();
+                //me.stop_propagation();
                 Msg::ContextMenu(me)
             }),
         ])])
