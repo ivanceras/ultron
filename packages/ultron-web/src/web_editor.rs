@@ -211,8 +211,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             },
 
             ".line .selected": {
-               // background_color: self.selection_background().to_css(),
-               background_color: rgba(221, 72, 20, 1.0).to_css(),
+               background_color: self.selection_background().to_css(),
+               //background_color: rgba(221, 72, 20, 1.0).to_css(),
             },
 
             ".status": {
