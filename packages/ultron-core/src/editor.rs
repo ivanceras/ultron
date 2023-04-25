@@ -150,10 +150,48 @@ impl<XMSG> Editor<XMSG> {
             .collect()
     }
 
+    pub fn highlight_lines_from_to(
+        text_edit: &TextEdit,
+        text_highlighter: &mut TextHighlighter,
+        start: usize,
+        end: usize,
+    ) -> Vec<Vec<(Style, String)>> {
+        text_edit
+            .lines()
+            .iter()
+            .skip(start)
+            .take(end - start)
+            .map(|line| {
+                text_highlighter
+                    .highlight_line(line)
+                    .expect("must highlight")
+                    .into_iter()
+                    .map(|(style, line)| (style, line.to_owned()))
+                    .collect()
+            })
+            .collect()
+    }
+
     /// rehighlight the texts
     pub fn rehighlight(&mut self) {
         self.text_highlighter.reset();
         self.highlighted_lines = Self::highlight_lines(&self.text_edit, &mut self.text_highlighter);
+    }
+
+    /// TODO: for now we rehighlight from 0 to end
+    pub fn rehighlight_lines(&mut self, _start: usize, end: usize) {
+        self.text_highlighter.reset();
+        let start = 0; // TODO use the actual start
+        let new_highlighted_lines =
+            Self::highlight_lines_from_to(&self.text_edit, &mut self.text_highlighter, start, end);
+        self.highlighted_lines
+            .iter_mut()
+            .skip(start)
+            .zip(new_highlighted_lines)
+            .map(|(mut line, new_highlight)| {
+                *line = new_highlight;
+            })
+            .collect::<Vec<_>>();
     }
 
     pub fn text_highlighter(&self) -> &TextHighlighter {

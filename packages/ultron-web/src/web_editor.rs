@@ -386,7 +386,9 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     pub fn rehighlight(&mut self) {
-        self.editor.rehighlight()
+        if let Some((top, end)) = self.visible_lines(){
+            self.editor.rehighlight_lines(top, end);
+        }
     }
 
     pub fn keyevent_to_command(ke: &web_sys::KeyboardEvent) -> Option<Command> {
