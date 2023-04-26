@@ -6,6 +6,8 @@ use sauron::{
 };
 pub use ultron_core;
 use ultron_core::{editor, nalgebra::Point2, Editor, Options, SelectionMode, TextEdit, TextHighlighter, Style};
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
@@ -71,9 +73,10 @@ pub struct WebEditor<XMSG> {
     mouse_cursor: MouseCursor,
     measure: Measure,
     is_selecting: bool,
-    text_highlighter: TextHighlighter,
+    text_highlighter: Rc<RefCell<TextHighlighter>>,
     /// lines of highlighted ranges
-    highlighted_lines: Vec<Vec<(Style, String)>>,
+    highlighted_lines: Rc<RefCell<Vec<Vec<(Style, String)>>>>,
+    current_handle: Option<i32>,
 }
 
 #[derive(Default)]
@@ -90,7 +93,7 @@ impl<XMSG> WebEditor<XMSG> {
             text_highlighter.select_theme(theme_name);
         }
         text_highlighter.set_syntax_token(&options.syntax_token);
-        let highlighted_lines = Self::highlight_lines(&editor.text_edit, &mut text_highlighter);
+        let highlighted_lines = Rc::new(RefCell::new(Self::highlight_lines(&editor.text_edit, &mut text_highlighter)));
         WebEditor {
             options,
             editor,
@@ -98,8 +101,9 @@ impl<XMSG> WebEditor<XMSG> {
             mouse_cursor: MouseCursor::default(),
             measure: Measure::default(),
             is_selecting: false,
-            text_highlighter,
+            text_highlighter: Rc::new(RefCell::new(text_highlighter)),
             highlighted_lines,
+            current_handle: None,
         }
     }
 
@@ -289,7 +293,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             ],
             [
                 if self.options.use_syntax_highlighter {
-                    self.view_highlighted_lines(&self.highlighted_lines)
+                    self.view_highlighted_lines()
                 } else {
                     self.plain_view()
                 },
@@ -397,8 +401,38 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     pub fn rehighlight_visible_lines(&mut self) {
-        if let Some((top, end)) = self.visible_lines(){
-            self.rehighlight_lines(top, end);
+        if let Some((_top, end)) = self.visible_lines(){
+            let text_highlighter = self.text_highlighter.clone();
+            let highlighted_lines = self.highlighted_lines.clone();
+            let lines = self.editor.text_edit.lines();
+            if let Some(current_handle) = self.current_handle{
+                sauron::window().cancel_animation_frame(current_handle).expect("must cancel");
+            }
+            let handle = sauron::request_animation_frame(move||{
+                let mut text_highlighter = text_highlighter.borrow_mut();
+                text_highlighter.reset();
+                let start = 0; // TODO use the actual start
+
+                let new_highlighted_lines = lines
+                        .iter()
+                        .skip(start)
+                        .take(end - start)
+                        .map(|line| {
+                            text_highlighter
+                                .highlight_line(line)
+                                .expect("must highlight")
+                                .into_iter()
+                                .map(|(style, line)| (style, line.to_owned()))
+                                .collect()
+                        });
+
+                for (line, new_highlight) in highlighted_lines.borrow_mut().iter_mut().skip(start).zip(new_highlighted_lines){
+                        *line = new_highlight;
+                }
+                log::debug!("It did complete");
+
+            }).expect("must have a handle");
+            self.current_handle = Some(handle);
         }
     }
 
@@ -462,8 +496,9 @@ impl<XMSG> WebEditor<XMSG> {
             .map(|command| self.process_command(command))
             .collect();
         if results.into_iter().any(|v| v) {
+            let xmsgs = self.editor.emit_on_change_listeners();
             self.rehighlight_visible_lines();
-            self.editor.emit_on_change_listeners()
+            xmsgs
         } else {
             vec![]
         }
@@ -487,48 +522,11 @@ impl<XMSG> WebEditor<XMSG> {
             .collect()
     }
 
-    pub fn highlight_lines_from_to(
-        text_edit: &TextEdit,
-        text_highlighter: &mut TextHighlighter,
-        start: usize,
-        end: usize,
-    ) -> Vec<Vec<(Style, String)>> {
-        text_edit
-            .lines()
-            .iter()
-            .skip(start)
-            .take(end - start)
-            .map(|line| {
-                text_highlighter
-                    .highlight_line(line)
-                    .expect("must highlight")
-                    .into_iter()
-                    .map(|(style, line)| (style, line.to_owned()))
-                    .collect()
-            })
-            .collect()
-    }
 
     /// rehighlight the texts
     pub fn rehighlight(&mut self) {
-        self.text_highlighter.reset();
-        self.highlighted_lines = Self::highlight_lines(&self.editor.text_edit, &mut self.text_highlighter);
-    }
-
-    /// TODO: for now we rehighlight from 0 to end
-    pub fn rehighlight_lines(&mut self, _start: usize, end: usize) {
-        self.text_highlighter.reset();
-        let start = 0; // TODO use the actual start
-        let new_highlighted_lines =
-            Self::highlight_lines_from_to(&self.editor.text_edit, &mut self.text_highlighter, start, end);
-        let _ = self.highlighted_lines
-            .iter_mut()
-            .skip(start)
-            .zip(new_highlighted_lines)
-            .map(|(line, new_highlight)| {
-                *line = new_highlight;
-            })
-            .collect::<Vec<_>>();
+        self.text_highlighter.borrow_mut().reset();
+        *self.highlighted_lines.borrow_mut() = Self::highlight_lines(&self.editor.text_edit, &mut self.text_highlighter.borrow_mut());
     }
 
 
@@ -648,6 +646,7 @@ impl<XMSG> WebEditor<XMSG> {
         let default = rgba(255, 255, 255, 1.0);
         self
             .text_highlighter
+            .borrow()
             .active_theme()
             .settings
             .background
@@ -659,6 +658,7 @@ impl<XMSG> WebEditor<XMSG> {
         let default = rgba(0, 0, 0, 1.0);
         self
             .text_highlighter
+            .borrow()
             .active_theme()
             .settings
             .gutter
@@ -670,6 +670,7 @@ impl<XMSG> WebEditor<XMSG> {
         let default = rgba(0, 0, 0, 1.0);
         self
             .text_highlighter
+            .borrow()
             .active_theme()
             .settings
             .gutter_foreground
@@ -681,6 +682,7 @@ impl<XMSG> WebEditor<XMSG> {
         let default = rgba(0, 0, 255, 1.0);
         self
             .text_highlighter
+            .borrow()
             .active_theme()
             .settings
             .selection
@@ -845,7 +847,6 @@ impl<XMSG> WebEditor<XMSG> {
     // highlighted view
     pub fn view_highlighted_lines<MSG>(
         &self,
-        highlighted_lines: &[Vec<(editor::Style, String)>],
     ) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let class_number_wide = format!("number_wide{}", self.editor.numberline_wide());
@@ -856,8 +857,8 @@ impl<XMSG> WebEditor<XMSG> {
             style! {background: self.theme_background().to_css()},
         ];
 
-        let rendered_lines = highlighted_lines
-            .iter()
+        let highlighted_lines = self.highlighted_lines.borrow();
+        let rendered_lines =  highlighted_lines.iter()
             .enumerate()
             .map(|(line_index, line)| {
                 div([class_ns("line")], {
