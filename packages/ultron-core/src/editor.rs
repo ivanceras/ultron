@@ -9,9 +9,6 @@ pub use ultron_syntaxes_themes::{Style, TextHighlighter};
 pub struct Editor<XMSG> {
     options: Options,
     pub text_edit: TextEdit,
-    text_highlighter: TextHighlighter,
-    /// lines of highlighted ranges
-    highlighted_lines: Vec<Vec<(Style, String)>>,
     /// Other components can listen to the an event.
     /// When the content of the text editor changes, the change listener will be emitted
     change_listeners: Vec<Callback<String, XMSG>>,
@@ -73,20 +70,11 @@ impl<IN, OUT> Callback<IN, OUT> {
 
 impl<XMSG> Editor<XMSG> {
     pub fn from_str(options: Options, content: &str) -> Self {
-        let mut text_highlighter = TextHighlighter::default();
-        if let Some(theme_name) = &options.theme_name {
-            text_highlighter.select_theme(theme_name);
-        }
-        text_highlighter.set_syntax_token(&options.syntax_token);
-
         let text_edit = TextEdit::from_str(content);
-        let highlighted_lines = Self::highlight_lines(&text_edit, &mut text_highlighter);
 
         Editor {
             options,
             text_edit,
-            text_highlighter,
-            highlighted_lines,
             change_listeners: vec![],
             change_notify_listeners: vec![],
         }
@@ -131,72 +119,6 @@ impl<XMSG> Editor<XMSG> {
     pub fn total_lines(&self) -> usize {
         self.text_edit.total_lines()
     }
-
-    pub fn highlight_lines(
-        text_edit: &TextEdit,
-        text_highlighter: &mut TextHighlighter,
-    ) -> Vec<Vec<(Style, String)>> {
-        text_edit
-            .lines()
-            .iter()
-            .map(|line| {
-                text_highlighter
-                    .highlight_line(line)
-                    .expect("must highlight")
-                    .into_iter()
-                    .map(|(style, line)| (style, line.to_owned()))
-                    .collect()
-            })
-            .collect()
-    }
-
-    pub fn highlight_lines_from_to(
-        text_edit: &TextEdit,
-        text_highlighter: &mut TextHighlighter,
-        start: usize,
-        end: usize,
-    ) -> Vec<Vec<(Style, String)>> {
-        text_edit
-            .lines()
-            .iter()
-            .skip(start)
-            .take(end - start)
-            .map(|line| {
-                text_highlighter
-                    .highlight_line(line)
-                    .expect("must highlight")
-                    .into_iter()
-                    .map(|(style, line)| (style, line.to_owned()))
-                    .collect()
-            })
-            .collect()
-    }
-
-    /// rehighlight the texts
-    pub fn rehighlight(&mut self) {
-        self.text_highlighter.reset();
-        self.highlighted_lines = Self::highlight_lines(&self.text_edit, &mut self.text_highlighter);
-    }
-
-    /// TODO: for now we rehighlight from 0 to end
-    pub fn rehighlight_lines(&mut self, _start: usize, end: usize) {
-        self.text_highlighter.reset();
-        let start = 0; // TODO use the actual start
-        let new_highlighted_lines =
-            Self::highlight_lines_from_to(&self.text_edit, &mut self.text_highlighter, start, end);
-        self.highlighted_lines
-            .iter_mut()
-            .skip(start)
-            .zip(new_highlighted_lines)
-            .map(|(mut line, new_highlight)| {
-                *line = new_highlight;
-            })
-            .collect::<Vec<_>>();
-    }
-
-    pub fn text_highlighter(&self) -> &TextHighlighter {
-        &self.text_highlighter
-    }
 }
 
 impl<XMSG> Editor<XMSG> {
@@ -206,7 +128,7 @@ impl<XMSG> Editor<XMSG> {
             .map(|command| self.process_command(command))
             .collect();
         if results.into_iter().any(|v| v) {
-            self.content_has_changed()
+            self.emit_on_change_listeners()
         } else {
             vec![]
         }
@@ -361,24 +283,6 @@ impl<XMSG> Editor<XMSG> {
         self.text_edit.clear();
     }
 
-    /// call this when a command changes the text_edit content
-    /// This will rehighlight the content
-    /// and emit the external XMSG in the event listeners
-    ///
-    /// TODO: create a flag to mark that the content has changed
-    /// for each command, then finally it will be used to determine
-    /// whether to execute rehilight and emit change listener
-    pub fn content_has_changed(&mut self) -> Vec<XMSG> {
-        self.rehighlight_and_emit()
-    }
-
-    fn rehighlight_and_emit(&mut self) -> Vec<XMSG> {
-        if self.options.use_syntax_highlighter {
-            self.rehighlight();
-        }
-        self.emit_on_change_listeners()
-    }
-
     /// Attach a callback to this editor where it is invoked when the content is changed.
     ///
     /// Note:The content is extracted into string and used as a parameter to the function.
@@ -425,7 +329,7 @@ impl<XMSG> Editor<XMSG> {
         self.change_notify_listeners.push(cb);
     }
 
-    fn emit_on_change_listeners(&self) -> Vec<XMSG> {
+    pub fn emit_on_change_listeners(&self) -> Vec<XMSG> {
         let mut extern_msgs: Vec<XMSG> = vec![];
         if !self.change_listeners.is_empty() {
             let content = self.text_edit.get_content();
@@ -451,9 +355,5 @@ impl<XMSG> Editor<XMSG> {
 
     pub fn numberline_wide(&self) -> usize {
         self.text_edit.numberline_wide()
-    }
-
-    pub fn highlighted_lines(&self) -> &[Vec<(Style, String)>] {
-        &self.highlighted_lines
     }
 }
