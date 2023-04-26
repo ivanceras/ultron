@@ -7,9 +7,6 @@ use ultron_web::{
 use web_sys::HtmlDocument;
 
 pub enum Msg {
-    TextareaMounted(web_sys::Node),
-    TextareaInput(String),
-    Paste(String),
     WebEditorMsg(web_editor::Msg),
     Keydown(web_sys::KeyboardEvent),
     ContextMenu(web_sys::MouseEvent),
@@ -18,8 +15,6 @@ pub enum Msg {
 /// The web editor with text area hacks for listening to typing events
 pub struct App {
     web_editor: WebEditor<Msg>,
-    hidden_textarea: Option<web_sys::HtmlTextAreaElement>,
-    last_char_count: Option<usize>,
 }
 
 impl App {
@@ -38,116 +33,7 @@ impl App {
         };
         Self {
             web_editor: WebEditor::from_str(options, content),
-            hidden_textarea: None,
-            last_char_count: None,
         }
-    }
-
-    fn view_hidden_textarea(&self) -> Node<Msg> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let cursor = self.web_editor.cursor_to_client();
-        div(
-            [
-                class_ns("hidden_textarea_wrapper"),
-                style! {
-                    top: px(cursor.y),
-                    left: px(cursor.x),
-                    z_index: 99,
-                },
-            ],
-            [textarea(
-                [
-                    class_ns("hidden_textarea"),
-                    on_mount(|mount| Msg::TextareaMounted(mount.target_node)),
-                    #[cfg(web_sys_unstable_apis)]
-                    on_paste(|ce| {
-                        let pasted_text = ce
-                            .clipboard_data()
-                            .expect("must have data transfer")
-                            .get_data("text/plain")
-                            .expect("must be text data");
-                        log::trace!("paste triggered from textarea: {}", pasted_text);
-                        Msg::Paste(pasted_text)
-                    }),
-                    // for listening to CTRL+C, CTRL+V, CTRL+X
-                    //on_keydown(Msg::TextareaKeydown),
-                    focus(true),
-                    autofocus(true),
-                    attr("autocorrect", "off"),
-                    autocapitalize("none"),
-                    autocomplete("off"),
-                    spellcheck("off"),
-                    // for processing unicode characters typed via: CTRL+U<unicode number> (linux),
-                    on_input(|input| Msg::TextareaInput(input.value)),
-                ],
-                [],
-            )],
-        )
-    }
-
-    fn clear_hidden_textarea(&self) {
-        if let Some(element) = &self.hidden_textarea {
-            element.set_value("");
-        } else {
-            panic!("there should always be hidden textarea");
-        }
-    }
-
-    fn refocus_hidden_textarea(&self) {
-        if let Some(element) = &self.hidden_textarea {
-            element.focus().expect("must focus the textarea");
-        }
-    }
-
-    /// set the content of the textarea to selection
-    ///
-    /// Note: This is necessary for webkit2.
-    /// webkit2 doesn't seem to allow to fire the setting of textarea value, select and copy
-    /// in the same animation frame.
-    #[allow(unused)]
-    fn set_hidden_textarea_with_selection(&self) {
-        if let Some(selected_text) = self.web_editor.selected_text() {
-            if let Some(ref hidden_textarea) = self.hidden_textarea {
-                hidden_textarea.set_value(&selected_text);
-                hidden_textarea.select();
-            }
-        }
-    }
-
-    /// execute copy on the selected textarea
-    /// this works even on older browser
-    fn textarea_exec_copy(&self) -> bool {
-        if let Some(selected_text) = self.web_editor.selected_text() {
-            if let Some(ref hidden_textarea) = self.hidden_textarea {
-                hidden_textarea.set_value(&selected_text);
-                hidden_textarea.select();
-                let html_document: HtmlDocument = sauron::document().unchecked_into();
-                if let Ok(ret) = html_document.exec_command("copy") {
-                    hidden_textarea.set_value("");
-                    log::trace!("exec_copy ret: {}", ret);
-                    return ret;
-                }
-            }
-        }
-        false
-    }
-
-    /// returns true if the command succeeded
-    fn textarea_exec_cut(&mut self) -> bool {
-        if let Some(selected_text) = self.web_editor.cut_selected_text() {
-            if let Some(ref hidden_textarea) = self.hidden_textarea {
-                log::trace!("setting the value to textarea: {}", selected_text);
-                hidden_textarea.set_value(&selected_text);
-
-                hidden_textarea.select();
-                let html_document: HtmlDocument = sauron::document().unchecked_into();
-                if let Ok(ret) = html_document.exec_command("cut") {
-                    hidden_textarea.set_value("");
-                    return ret;
-                }
-            }
-        }
-        false
     }
 
     fn process_commands(
@@ -167,46 +53,6 @@ impl Component<Msg, ()> for App {
             Msg::Keydown(ke) => {
                 let effects = self.web_editor.update(web_editor::Msg::Keydown(ke));
                 effects.localize(Msg::WebEditorMsg)
-            }
-            Msg::TextareaMounted(target_node) => {
-                self.hidden_textarea = Some(target_node.unchecked_into());
-                self.refocus_hidden_textarea();
-                Effects::none()
-            }
-            Msg::TextareaInput(input) => {
-                let char_count = input.chars().count();
-                // for chrome:
-                // detect if the typed in character was a composed and becomes 1 unicode character
-                let char_count_decreased = if let Some(last_char_count) = self.last_char_count {
-                    last_char_count > 1
-                } else {
-                    false
-                };
-                // firefox doesn't register compose key strokes as input
-                // if there were 1 char then it was cleared
-                let was_cleared = self.last_char_count == Some(0);
-
-                let mut msgs = vec![];
-                if char_count == 1 && (was_cleared || char_count_decreased) {
-                    self.clear_hidden_textarea();
-                    log::trace!("in textarea input char_count == 1..");
-                    let c = input.chars().next().expect("must be only 1 chr");
-                    let more_msgs = if c == '\n' {
-                        self.process_commands([editor::Command::BreakLine])
-                    } else {
-                        self.process_commands([editor::Command::InsertChar(c)])
-                    };
-                    msgs.extend(more_msgs);
-                } else {
-                    log::trace!("char is not inserted becase char_count: {}, was_cleared: {}, char_count_decreased: {}", char_count, was_cleared, char_count_decreased);
-                }
-                self.last_char_count = Some(char_count);
-                log::trace!("extern messages");
-                Effects::new(msgs, vec![]).measure()
-            }
-            Msg::Paste(text_content) => {
-                let msgs = self.process_commands([editor::Command::InsertText(text_content)]);
-                Effects::new(msgs, vec![])
             }
             Msg::WebEditorMsg(emsg) => {
                 let effects = self.web_editor.update(emsg);
@@ -235,29 +81,7 @@ impl Component<Msg, ()> for App {
                 width: percent(100),
                 height: percent(100),
             },
-
-            ".hidden_textarea_wrapper": {
-                overflow: "hidden",
-                position: "relative",
-                width: px(300),
-                height: px(0),
-            },
-            // paste area hack, we don't want to use
-            // the clipboard read api, since it needs permission from the user
-            // create a textarea instead, where it is focused all the time
-            // so, pasting will be intercepted from this textarea
-            ".hidden_textarea": {
-                resize: "none",
-                position: "absolute",
-                padding: 0,
-                width: px(300),
-                height: px(10),
-                border:format!("{} solid black",px(1)),
-                bottom: units::em(-1),
-                outline: "none",
-            },
         };
-
         [css, self.web_editor.style()].join("\n")
     }
 }
