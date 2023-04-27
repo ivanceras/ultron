@@ -73,17 +73,17 @@
     - [X] When typing a key and the next characters next to it is far, say more than 2 space the character is typed in replace mode
         instead of insert mode
     - [ ] Pressing enter should indent, instead of just moving down
-- [ ] Allow the editor to render different syntax highlighting scheme to a set of lines
+- [X] Allow the editor to render different syntax highlighting scheme to a set of lines
     - Use would be markdown text with code fence in the content
-- [ ] Make the keypresses be translated into Commands, so we can use remap such as vi, kakune, etc.
+- [X] Make the keypresses be translated into Commands, so we can use remap such as vi, kakune, etc.
 
 ## Maintenance
-- [ ] Put the css of each of the component to their own module
+- [X] Put the css of each of the component to their own module
     - line, range, cell
 - ~~[ ] Make Line, Range and Cell implement View~~
      - This is not possible since these struct has a custom view function which neeeds access to multiple arguments
-- [ ] Render only the lines that are visible in the viewport
-    - [ ] Determine the number of lines that could fit in the viewport.
+- [~] Render only the lines that are visible in the viewport
+    - [X] Determine the number of lines that could fit in the viewport.
         ```
          let n_lines = viewport_height / line_height;
         ```
@@ -110,16 +110,18 @@
     - A solution would be to send the WindowMouseUp event, but not the window click event
 - Putting the cursor before a quote and typing will make the cursor disappear
     - This might at before any range
-- [ ] The long svgbob example is taking a long time to update.
+- [X] The long svgbob example is taking a long time to update.
     - 180ms when syntax highlighting is enabled
         - scrolling is 20ms
         - building the view: 50ms
         - patching : 40ms
     - 80ms when syntax highlighting is disabled
+        - Update: 15ms when syntax highlighting is disablled
+        - Update: 50ms when syntax highlighting is enabled
 - [X] When `replace_char` is called for the next page, it applies to the first page instead
-- [ ] replace addition and subtraction operation with saturating_add and saturating_sub.
-- [ ] If the top level view of a Program changes, then the original root_node is not set, which causes
-    - [ ] Add a test for replacing the top-level root-node and confirm it is changed
+- [X] replace addition and subtraction operation with saturating_add and saturating_sub.
+- [X] If the top level view of a Program changes, then the original root_node is not set, which causes
+    - [ X Add a test for replacing the top-level root-node and confirm it is changed
 
 ## Tests
 - [ ] Add test for undo and redo (editor)
