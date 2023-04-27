@@ -60,6 +60,7 @@ impl MouseCursor {
 #[derive(Debug, Clone)]
 pub enum Msg {
     EditorMounted(MountEvent),
+    CursorMounted(MountEvent),
     Keydown(web_sys::KeyboardEvent),
     Mouseup(web_sys::MouseEvent),
     Mousedown(web_sys::MouseEvent),
@@ -69,6 +70,7 @@ pub enum Msg {
     Blur(web_sys::FocusEvent),
     ContextMenu(web_sys::MouseEvent),
     ContextMenuMsg(context_menu::Msg),
+    ScrollCursorIntoView,
 }
 
 /// rename this to WebEditor
@@ -76,6 +78,7 @@ pub struct WebEditor<XMSG> {
     options: Options,
     pub editor: Editor<XMSG>,
     editor_element: Option<web_sys::Element>,
+    cursor_element: Option<web_sys::Element>,
     mouse_cursor: MouseCursor,
     measure: Measure,
     is_selecting: bool,
@@ -108,6 +111,7 @@ impl<XMSG> WebEditor<XMSG> {
             options,
             editor,
             editor_element: None,
+            cursor_element: None,
             mouse_cursor: MouseCursor::default(),
             measure: Measure::default(),
             is_selecting: false,
@@ -331,7 +335,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     self.plain_view()
                 },
                 view_if(self.options.show_status_line, self.view_status_line()),
-                view_if(self.is_focused && self.options.show_cursor, self.view_cursor()),
+                view_if(/*self.is_focused &&*/ self.options.show_cursor, self.view_cursor()),
                 view_if(self.is_focused && self.show_context_menu, self.context_menu.view().map_msg(Msg::ContextMenuMsg)),
             ],
         )
@@ -342,6 +346,11 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             Msg::EditorMounted(mount_event) => {
                 let mount_element: web_sys::Element = mount_event.target_node.unchecked_into();
                 self.editor_element = Some(mount_element);
+                Effects::none()
+            }
+            Msg::CursorMounted(mount_event) => {
+                let cursor_element: web_sys::Element = mount_event.target_node.unchecked_into();
+                self.cursor_element = Some(cursor_element);
                 Effects::none()
             }
             Msg::Mousedown(me) => {
@@ -365,7 +374,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             Msg::Mousemove(me) => {
                 let client_x = me.client_x();
                 let client_y = me.client_y();
-                if self.is_selecting && self.in_bounds(client_x as f32, client_y as f32) {
+                if self.in_bounds(client_x as f32, client_y as f32) {
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
                     let selection = self.editor.selection();
                     if let Some(start) = selection.start {
@@ -385,8 +394,10 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 let client_x = me.client_x();
                 let client_y = me.client_y();
                 let is_primary_btn = me.button() == 0;
-                if self.is_selecting && is_primary_btn {
-                    self.is_selecting = false;
+                if is_primary_btn {
+                    if self.is_selecting{
+                        self.is_selecting = false;
+                    }
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
                     self.editor
                         .process_commands([editor::Command::SetPosition(cursor.x, cursor.y)]);
@@ -435,6 +446,15 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     .map_msg(Msg::ContextMenuMsg)
                     .unzip();
                 Effects::new(msgs.into_iter(), [])
+            }
+            Msg::ScrollCursorIntoView => {
+                let cursor_element = self.cursor_element.as_ref().unwrap();
+                let mut options = web_sys::ScrollIntoViewOptions::new();
+                options.behavior(web_sys::ScrollBehavior::Smooth);
+                options.block(web_sys::ScrollLogicalPosition::Center);
+                options.inline(web_sys::ScrollLogicalPosition::Center);
+                cursor_element.scroll_into_view_with_scroll_into_view_options(&options);
+                Effects::none()
             }
         }
     }
@@ -548,7 +568,7 @@ impl<XMSG> WebEditor<XMSG> {
     pub fn process_keypress(&mut self, ke: &web_sys::KeyboardEvent) -> Effects<Msg, XMSG> {
         if let Some(command) = Self::keyevent_to_command(ke) {
             let msgs = self.process_commands([command]);
-            Effects::new(vec![], msgs).measure()
+            Effects::new(vec![Msg::ScrollCursorIntoView], msgs).measure()
         } else {
             Effects::none()
         }
@@ -817,6 +837,7 @@ impl<XMSG> WebEditor<XMSG> {
                     top: px(cursor.y),
                     left: px(cursor.x),
                 },
+                on_mount(|mount_event| Msg::CursorMounted(mount_event)),
             ],
             [div([class_ns("cursor_center")], [])],
         )
