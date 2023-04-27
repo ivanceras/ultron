@@ -6,5 +6,6 @@ pub use web_editor::{Command, MouseCursor, WebEditor, COMPONENT_NAME};
 
 pub use ultron_core;
 
+pub(crate) mod context_menu;
 pub(crate) mod util;
 pub mod web_editor;

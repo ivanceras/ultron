@@ -8,6 +8,7 @@ pub use ultron_core;
 use ultron_core::{editor, nalgebra::Point2, Editor, Options, SelectionMode, TextEdit, TextHighlighter, Style};
 use std::rc::Rc;
 use std::cell::RefCell;
+use crate::context_menu::{self,Menu};
 
 pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
@@ -67,6 +68,7 @@ pub enum Msg {
     Focused(web_sys::FocusEvent),
     Blur(web_sys::FocusEvent),
     ContextMenu(web_sys::MouseEvent),
+    ContextMenuMsg(context_menu::Msg),
 }
 
 /// rename this to WebEditor
@@ -82,6 +84,8 @@ pub struct WebEditor<XMSG> {
     highlighted_lines: Rc<RefCell<Vec<Vec<(Style, String)>>>>,
     current_handle: Option<i32>,
     pub is_focused: bool,
+    context_menu: Menu<Msg>,
+    show_context_menu: bool,
 }
 
 
@@ -111,6 +115,8 @@ impl<XMSG> WebEditor<XMSG> {
             highlighted_lines,
             current_handle: None,
             is_focused: false,
+            context_menu: Menu::new(),
+            show_context_menu: false,
         }
     }
 
@@ -140,7 +146,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
         } else {
             "none"
         };
-        jss_ns_pretty! {COMPONENT_NAME,
+        let main = jss_ns_pretty! {COMPONENT_NAME,
             ".": {
                 position: "relative",
                 font_size: px(14),
@@ -281,8 +287,9 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 opacity: percent(0),
               },
             },
+        };
 
-        }
+        [main, self.context_menu.style()].join("\n")
     }
 
     fn view(&self) -> Node<Msg> {
@@ -325,6 +332,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 },
                 view_if(self.options.show_status_line, self.view_status_line()),
                 view_if(self.is_focused && self.options.show_cursor, self.view_cursor()),
+                view_if(self.is_focused && self.show_context_menu, self.context_menu.view().map_msg(Msg::ContextMenuMsg)),
             ],
         )
     }
@@ -337,6 +345,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 Effects::none()
             }
             Msg::Mousedown(me) => {
+                self.show_context_menu  = false;
                 let client_x = me.client_x();
                 let client_y = me.client_y();
                 let is_primary_btn = me.button() == 0;
@@ -411,8 +420,20 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 Effects::none()
             }
             Msg::ContextMenu(me) => {
+                self.show_context_menu = true;
                 log::debug!("Right clicked! {me:?}");
-                Effects::none()
+                let x = me.client_x();
+                let y = me.client_y();
+                let (msgs, _) = self.context_menu.update(context_menu::Msg::ShowAt(Point2::new(x,y)))
+                    .map_msg(Msg::ContextMenuMsg).unzip();
+                Effects::new(msgs, [])
+            }
+            Msg::ContextMenuMsg(cm_msg) =>  {
+                let (msgs, _xmsg) =
+                self.context_menu.update(cm_msg)
+                    .map_msg(Msg::ContextMenuMsg)
+                    .unzip();
+                Effects::new(msgs.into_iter(), [])
             }
         }
     }

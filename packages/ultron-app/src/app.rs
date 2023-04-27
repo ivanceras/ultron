@@ -9,7 +9,6 @@ use web_sys::HtmlDocument;
 pub enum Msg {
     WebEditorMsg(web_editor::Msg),
     Keydown(web_sys::KeyboardEvent),
-    ContextMenu(web_sys::MouseEvent),
 }
 
 /// The web editor with text area hacks for listening to typing events
@@ -58,10 +57,6 @@ impl Component<Msg, ()> for App {
             Msg::WebEditorMsg(emsg) => {
                 let effects = self.web_editor.update(emsg);
                 effects.localize(Msg::WebEditorMsg)
-            }
-            Msg::ContextMenu(me) => {
-                log::debug!("Right clicked!");
-                Effects::none()
             }
         }
     }
