@@ -95,16 +95,6 @@ impl Application<Msg> for App {
             on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
             on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
             on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
-            on_keydown(|ke| {
-                ke.prevent_default();
-                ke.stop_propagation();
-                Msg::Keydown(ke)
-            }),
-            on_contextmenu(|me| {
-                //me.prevent_default();
-                //me.stop_propagation();
-                Msg::ContextMenu(me)
-            }),
         ])])
     }
 

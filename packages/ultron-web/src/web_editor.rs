@@ -66,6 +66,7 @@ pub enum Msg {
     Measurements(Measurements),
     Focused(web_sys::FocusEvent),
     Blur(web_sys::FocusEvent),
+    ContextMenu(web_sys::MouseEvent),
 }
 
 /// rename this to WebEditor
@@ -80,7 +81,7 @@ pub struct WebEditor<XMSG> {
     /// lines of highlighted ranges
     highlighted_lines: Rc<RefCell<Vec<Vec<(Style, String)>>>>,
     current_handle: Option<i32>,
-    is_focused: bool,
+    pub is_focused: bool,
 }
 
 
@@ -294,6 +295,11 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 ),
                 on_mount(|mount_event| Msg::EditorMounted(mount_event)),
                 attributes::tabindex(1),
+                on_keydown(|ke| {
+                    ke.prevent_default();
+                    ke.stop_propagation();
+                    Msg::Keydown(ke)
+                }),
                 on_focus(|fe|{
                     log::info!("The WebEditor is focused..");
                     Msg::Focused(fe)
@@ -301,6 +307,11 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 on_blur(|fe|{
                     log::info!("The WebEditor is blur..");
                     Msg::Blur(fe)
+                }),
+                on_contextmenu(|me| {
+                    me.prevent_default();
+                    me.stop_propagation();
+                    Msg::ContextMenu(me)
                 }),
                 style! {
                     cursor: self.mouse_cursor.to_str(),
@@ -397,6 +408,10 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             Msg::Blur(fe) => {
                 log::info!("Web editor lose focused... {fe:?}");
                 self.is_focused = false;
+                Effects::none()
+            }
+            Msg::ContextMenu(me) => {
+                log::debug!("Right clicked! {me:?}");
                 Effects::none()
             }
         }
