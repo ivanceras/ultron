@@ -422,8 +422,9 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             Msg::ContextMenu(me) => {
                 self.show_context_menu = true;
                 log::debug!("Right clicked! {me:?}");
-                let x = me.client_x();
-                let y = me.client_y();
+                let (start, _end) = self.bounding_rect().expect("must have a bounding rect");
+                let x = me.client_x() - start.x as i32;
+                let y = me.client_y() - start.y as i32;
                 let (msgs, _) = self.context_menu.update(context_menu::Msg::ShowAt(Point2::new(x,y)))
                     .map_msg(Msg::ContextMenuMsg).unzip();
                 Effects::new(msgs, [])
