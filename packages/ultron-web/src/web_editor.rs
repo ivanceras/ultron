@@ -31,6 +31,7 @@ impl From<editor::Command> for Command {
     }
 }
 
+
 pub enum MouseCursor {
     Text,
     Move,
@@ -63,6 +64,8 @@ pub enum Msg {
     Mousedown(web_sys::MouseEvent),
     Mousemove(web_sys::MouseEvent),
     Measurements(Measurements),
+    Focused(web_sys::FocusEvent),
+    Blur(web_sys::FocusEvent),
 }
 
 /// rename this to WebEditor
@@ -78,6 +81,7 @@ pub struct WebEditor<XMSG> {
     highlighted_lines: Rc<RefCell<Vec<Vec<(Style, String)>>>>,
     current_handle: Option<i32>,
 }
+
 
 #[derive(Default)]
 struct Measure {
@@ -279,28 +283,40 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
     }
 
     fn view(&self) -> Node<Msg> {
-        div(
-            [
-                class(COMPONENT_NAME),
-                classes_flag_namespaced(
-                    COMPONENT_NAME,
-                    [("occupy_container", self.options.occupy_container)],
-                ),
-                on_mount(|mount_event| Msg::EditorMounted(mount_event)),
-                style! {
-                    cursor: self.mouse_cursor.to_str(),
-                },
-            ],
-            [
-                if self.options.use_syntax_highlighter {
-                    self.view_highlighted_lines()
-                } else {
-                    self.plain_view()
-                },
-                view_if(self.options.show_status_line, self.view_status_line()),
-                view_if(self.options.show_cursor, self.view_cursor()),
-            ],
-        )
+        div([], [
+            button([],[text("Hello world")]),
+            div(
+                [
+                    class(COMPONENT_NAME),
+                    classes_flag_namespaced(
+                        COMPONENT_NAME,
+                        [("occupy_container", self.options.occupy_container)],
+                    ),
+                    on_mount(|mount_event| Msg::EditorMounted(mount_event)),
+                    attributes::tabindex(1),
+                    on_focus(|fe|{
+                        log::info!("The WebEditor is focused..");
+                        Msg::Focused(fe)
+                    }),
+                    on_blur(|fe|{
+                        log::info!("The WebEditor is blur..");
+                        Msg::Blur(fe)
+                    }),
+                    style! {
+                        cursor: self.mouse_cursor.to_str(),
+                    },
+                ],
+                [
+                    if self.options.use_syntax_highlighter {
+                        self.view_highlighted_lines()
+                    } else {
+                        self.plain_view()
+                    },
+                    view_if(self.options.show_status_line, self.view_status_line()),
+                    view_if(self.options.show_cursor, self.view_cursor()),
+                ],
+            )
+        ])
     }
 
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
@@ -374,8 +390,18 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 self.update_measure(measure);
                 Effects::none()
             }
+            Msg::Focused(fe) => {
+                log::info!("What now focused...: {fe:?}");
+                Effects::none()
+            }
+            Msg::Blur(fe) => {
+                log::info!("Web editor lose focused... {fe:?}");
+                Effects::none()
+            }
         }
     }
+
+
 }
 
 impl<XMSG> WebEditor<XMSG> {
