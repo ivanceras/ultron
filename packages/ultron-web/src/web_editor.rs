@@ -448,12 +448,14 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 Effects::new(msgs.into_iter(), [])
             }
             Msg::ScrollCursorIntoView => {
-                let cursor_element = self.cursor_element.as_ref().unwrap();
-                let mut options = web_sys::ScrollIntoViewOptions::new();
-                options.behavior(web_sys::ScrollBehavior::Smooth);
-                options.block(web_sys::ScrollLogicalPosition::Center);
-                options.inline(web_sys::ScrollLogicalPosition::Center);
-                cursor_element.scroll_into_view_with_scroll_into_view_options(&options);
+                if self.options.scroll_cursor_into_view{
+                    let cursor_element = self.cursor_element.as_ref().unwrap();
+                    let mut options = web_sys::ScrollIntoViewOptions::new();
+                    options.behavior(web_sys::ScrollBehavior::Smooth);
+                    options.block(web_sys::ScrollLogicalPosition::Center);
+                    options.inline(web_sys::ScrollLogicalPosition::Center);
+                    cursor_element.scroll_into_view_with_scroll_into_view_options(&options);
+                }
                 Effects::none()
             }
         }

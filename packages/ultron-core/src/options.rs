@@ -40,6 +40,8 @@ pub struct Options {
     pub use_smart_replace_insert: bool,
     /// allow the user to select text via browser native text selection
     pub allow_text_selection: bool,
+    /// always put the cursor into view
+    pub scroll_cursor_into_view: bool,
 }
 
 impl Default for Options {
@@ -61,6 +63,7 @@ impl Default for Options {
             use_syntax_highlighter: true,
             use_smart_replace_insert: false,
             allow_text_selection: true,
+            scroll_cursor_into_view: false,
         }
     }
 }
