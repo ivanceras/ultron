@@ -8,7 +8,7 @@ pub use ultron_core;
 use ultron_core::{editor, nalgebra::Point2, Editor, Options, SelectionMode, TextEdit, TextHighlighter, Style};
 use std::rc::Rc;
 use std::cell::RefCell;
-use crate::context_menu::{self,Menu};
+use crate::context_menu::{self,Menu,MenuAction};
 
 pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
@@ -71,6 +71,7 @@ pub enum Msg {
     ContextMenu(web_sys::MouseEvent),
     ContextMenuMsg(context_menu::Msg),
     ScrollCursorIntoView,
+    MenuAction(MenuAction),
 }
 
 /// rename this to WebEditor
@@ -119,7 +120,7 @@ impl<XMSG> WebEditor<XMSG> {
             highlighted_lines,
             current_handle: None,
             is_focused: false,
-            context_menu: Menu::new(),
+            context_menu: Menu::new().on_activate(Msg::MenuAction),
             show_context_menu: false,
         }
     }
@@ -354,7 +355,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 Effects::none()
             }
             Msg::Mousedown(me) => {
-                self.show_context_menu  = false;
+                //self.show_context_menu  = false;
                 let client_x = me.client_x();
                 let client_y = me.client_y();
                 let is_primary_btn = me.button() == 0;
@@ -441,11 +442,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 Effects::new(msgs, [])
             }
             Msg::ContextMenuMsg(cm_msg) =>  {
-                let (msgs, _xmsg) =
-                self.context_menu.update(cm_msg)
-                    .map_msg(Msg::ContextMenuMsg)
-                    .unzip();
-                Effects::new(msgs.into_iter(), [])
+                let (msgs, xmsg) = self.context_menu.update(cm_msg).unzip();
+                Effects::new(xmsg.into_iter().chain(msgs.into_iter().map(Msg::ContextMenuMsg)), [])
             }
             Msg::ScrollCursorIntoView => {
                 if self.options.scroll_cursor_into_view{
@@ -455,6 +453,30 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     options.block(web_sys::ScrollLogicalPosition::Center);
                     options.inline(web_sys::ScrollLogicalPosition::Center);
                     cursor_element.scroll_into_view_with_scroll_into_view_options(&options);
+                }
+                Effects::none()
+            }
+            Msg::MenuAction(menu_action) => {
+                log::info!("Menu action selected: {:?}", menu_action);
+                match menu_action{
+                    MenuAction::Undo => {
+                        self.process_command(Command::EditorCommand(editor::Command::Undo));
+                    }
+                    MenuAction::Redo => {
+                        self.process_command(Command::EditorCommand(editor::Command::Redo));
+                    }
+                    MenuAction::Cut => {
+                        self.cut_selected_text_to_clipboard();
+                    }
+                    MenuAction::Copy => {
+                        self.copy_selected_text_to_clipboard();
+                    }
+                    MenuAction::Paste => todo!(),
+                    MenuAction::Delete => todo!(),
+                    MenuAction::SelectAll => {
+                        self.process_command(Command::EditorCommand(editor::Command::SelectAll));
+                        log::info!("selected text: {:?}", self.selected_text());
+                    }
                 }
                 Effects::none()
             }
@@ -665,6 +687,7 @@ impl<XMSG> WebEditor<XMSG> {
         log::warn!("Copying text to clipboard..");
         if let Some(clipboard) = window().navigator().clipboard() {
             if let Some(selected_text) = self.selected_text() {
+                log::info!("selected text: {selected_text}");
                 let fut = JsFuture::from(clipboard.write_text(&selected_text));
                 spawn_local(async move {
                     fut.await.expect("must not error");

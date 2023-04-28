@@ -203,6 +203,10 @@ impl TextEdit {
         let max = self.text_buffer.last_char_position();
         let end = Point2::new(max.x as i32, max.y as i32);
         self.set_selection(start, end);
+        log::info!(
+            "in text_edit: select_all selected text: {:?}",
+            self.selected_text_in_linear_mode()
+        );
     }
 
     pub fn command_select_all_block_mode(&mut self) {

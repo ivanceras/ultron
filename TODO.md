@@ -76,6 +76,11 @@
 - [X] Allow the editor to render different syntax highlighting scheme to a set of lines
     - Use would be markdown text with code fence in the content
 - [X] Make the keypresses be translated into Commands, so we can use remap such as vi, kakune, etc.
+- [ ] Make ultron-widgets package to contain common widgets such as
+    - [ ] toolbar
+    - [ ] menu
+        - [ ] context menu
+    - [ ] status line
 
 ## Maintenance
 - [X] Put the css of each of the component to their own module

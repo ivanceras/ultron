@@ -33,6 +33,16 @@ impl<XMSG> Menu<XMSG> {
     }
 }
 
+impl<XMSG> Menu<XMSG> {
+    pub(crate) fn on_activate<F>(mut self, f: F) -> Self
+    where
+        F: Fn(MenuAction) -> XMSG + 'static,
+    {
+        self.listeners.push(Callback::from(f));
+        self
+    }
+}
+
 impl<XMSG> Component<Msg, XMSG> for Menu<XMSG> {
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {

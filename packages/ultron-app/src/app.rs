@@ -29,7 +29,7 @@ impl App {
             //theme_name: Some("gruvbox-dark".to_string()),
             use_syntax_highlighter: true,
             allow_text_selection: false,
-            selection_mode: SelectionMode::Block,
+            selection_mode: SelectionMode::Linear,
             ..Default::default()
         };
         Self {
@@ -108,7 +108,6 @@ impl Application<Msg> for App {
     }
 
     fn measurements(&self, measurements: Measurements) -> Cmd<Self, Msg> {
-        log::info!("measurements in ultron app");
         Cmd::new(|program| {
             program.dispatch(Msg::WebEditorMsg(web_editor::Msg::Measurements(
                 measurements,
