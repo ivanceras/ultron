@@ -93,6 +93,53 @@ pub struct WebEditor<XMSG> {
     show_context_menu: bool,
 }
 
+/// a utility enum which hold each cases of line selection
+enum SelectionSplits {
+    /// the while line is selected
+    WholeLine(String),
+    /// the first part is plain, the second one is selected
+    OneSplitStart(String, String),
+    /// the first part is plain, the second one is selected, the third one is plain
+    TwoSplits(String, String, String),
+    /// the first part is selected, the second one is plain
+    OneSplitEnd(String, String),
+    /// It is not part of the selection
+    NotSelected(String),
+}
+
+impl SelectionSplits {
+    fn view<MSG>(&self) -> Node<MSG> {
+        let class_ns =
+            |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        match self {
+            Self::WholeLine(line) => span([class_ns("selected")], [text(line)]),
+            Self::OneSplitStart(first, second) => span(
+                [],
+                [
+                    span([], [text(first)]),
+                    span([class_ns("selected")], [text(second)]),
+                ],
+            ),
+            Self::TwoSplits(first, second, third) => span(
+                [],
+                [
+                    span([], [text(first)]),
+                    span([class_ns("selected")], [text(second)]),
+                    span([], [text(third)]),
+                ],
+            ),
+            Self::OneSplitEnd(first, second) => span(
+                [],
+                [
+                    span([class_ns("selected")], [text(first)]),
+                    span([], [text(second)]),
+                ],
+            ),
+            Self::NotSelected(line) => span([], [text(line)]),
+        }
+    }
+}
+
 #[derive(Default)]
 struct Measure {
     average_dispatch: Option<f64>,
@@ -1089,51 +1136,6 @@ impl<XMSG> WebEditor<XMSG> {
         let line_width = self.editor.text_edit.text_buffer.line_width(line_index);
         let line_end = Point2::new(line_width, line_index);
 
-        enum SelectionSplits {
-            // the while line is selected
-            WholeLine(String),
-            // the first part is plain, the second one is selected
-            OneSplitStart(String, String),
-            // the first part is plain, the second one is selected, the third one is plain
-            TwoSplits(String, String, String),
-            // the first part is selected, the second one is plain
-            OneSplitEnd(String, String),
-            // It is not part of the selection
-            NotSelected(String),
-        }
-
-        impl SelectionSplits {
-            fn view<MSG>(&self) -> Node<MSG> {
-                let class_ns =
-                    |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-                match self {
-                    Self::WholeLine(line) => span([class_ns("selected")], [text(line)]),
-                    Self::OneSplitStart(first, second) => span(
-                        [],
-                        [
-                            span([], [text(first)]),
-                            span([class_ns("selected")], [text(second)]),
-                        ],
-                    ),
-                    Self::TwoSplits(first, second, third) => span(
-                        [],
-                        [
-                            span([], [text(first)]),
-                            span([class_ns("selected")], [text(second)]),
-                            span([], [text(third)]),
-                        ],
-                    ),
-                    Self::OneSplitEnd(first, second) => span(
-                        [],
-                        [
-                            span([class_ns("selected")], [text(first)]),
-                            span([], [text(second)]),
-                        ],
-                    ),
-                    Self::NotSelected(line) => span([], [text(line)]),
-                }
-            }
-        }
 
         let selection_splits = match self.editor.text_edit.selection_normalized_casted() {
             Some((start, end)) => {
@@ -1183,6 +1185,7 @@ impl<XMSG> WebEditor<XMSG> {
         selection_splits.view()
     }
 
+    //TODO: this needs fixing, as we are accessing characters that may not not in the right index
     fn view_line_with_block_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
 
@@ -1194,7 +1197,7 @@ impl<XMSG> WebEditor<XMSG> {
                 // there will be 3 parts
                 // the first one is plain
                 // the second one is highlighted
-                // the first one is plain
+                // the third one is plain
                 let break_point1 = Point2::new(start.x, line_index);
                 let break_point1 = text_buffer.clamp_position(break_point1);
 
