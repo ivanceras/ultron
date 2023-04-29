@@ -5,7 +5,7 @@ use sauron::{
     wasm_bindgen_futures::JsFuture, Measurements,
 };
 pub use ultron_core;
-use ultron_core::{editor, nalgebra::Point2, Editor, Options, SelectionMode, TextEdit, TextHighlighter, Style};
+use ultron_core::{editor, nalgebra::Point2, Editor, Options, SelectionMode, TextEdit, TextHighlighter, Style, Ch};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::context_menu::{self,Menu,MenuAction};
@@ -85,7 +85,7 @@ pub struct WebEditor<XMSG> {
     is_selecting: bool,
     text_highlighter: Rc<RefCell<TextHighlighter>>,
     /// lines of highlighted ranges
-    highlighted_lines: Rc<RefCell<Vec<Vec<(Style, String)>>>>,
+    highlighted_lines: Rc<RefCell<Vec<Vec<(Style, Vec<Ch>)>>>>,
     current_handle: Option<i32>,
     pub is_focused: bool,
     context_menu: Menu<Msg>,
@@ -533,7 +533,7 @@ impl<XMSG> WebEditor<XMSG> {
                                 .highlight_line(line)
                                 .expect("must highlight")
                                 .into_iter()
-                                .map(|(style, line)| (style, line.to_owned()))
+                                .map(|(style, line)|(style, line.chars().map(Ch::new).collect()))
                                 .collect()
                         });
 
@@ -618,7 +618,7 @@ impl<XMSG> WebEditor<XMSG> {
     pub fn highlight_lines(
         text_edit: &TextEdit,
         text_highlighter: &mut TextHighlighter,
-    ) -> Vec<Vec<(Style, String)>> {
+    ) -> Vec<Vec<(Style, Vec<Ch>)>> {
         text_edit
             .lines()
             .iter()
@@ -627,7 +627,7 @@ impl<XMSG> WebEditor<XMSG> {
                     .highlight_line(line)
                     .expect("must highlight")
                     .into_iter()
-                    .map(|(style, line)| (style, line.to_owned()))
+                    .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
                     .collect()
             })
             .collect()
@@ -959,9 +959,10 @@ impl<XMSG> WebEditor<XMSG> {
         }
     }
 
-    fn view_highlighted_line<MSG>(&self, line_index: usize, line: &[(Style, String)]) -> Vec<Node<MSG>>{
+    fn view_highlighted_line<MSG>(&self, line_index: usize, line: &[(Style, Vec<Ch>)]) -> Vec<Node<MSG>>{
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         line.iter().map(|(style, range)| {
+            let range_str = String::from_iter(range.iter().map(|ch|ch.ch));
             let background = util::to_rgba(style.background).to_css();
             let foreground = util::to_rgba(style.foreground).to_css();
             let default_view = span(
@@ -969,7 +970,7 @@ impl<XMSG> WebEditor<XMSG> {
                     color: foreground.clone(),
                     background_color: background,
                 }],
-                [text(range)],
+                [text(range_str.clone())],
             );
 
             match self.editor.text_edit.selection_normalized_casted() {
@@ -989,7 +990,7 @@ impl<XMSG> WebEditor<XMSG> {
                             },
                             class_ns("selected"),
                             ],
-                            [text(range)],
+                            [text(range_str)],
                         )
                     }else{
                         default_view

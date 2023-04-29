@@ -21,7 +21,7 @@ pub struct Ch {
 }
 
 impl Ch {
-    fn new(ch: char) -> Self {
+    pub fn new(ch: char) -> Self {
         Self {
             width: ch.width().unwrap_or(0),
             ch,

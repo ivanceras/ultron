@@ -19,8 +19,8 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         //let content = include_str!("../test_data/hello.rs");
-        //let content = include_str!("../test_data/long.rs");
-        let content = include_str!("../../ultron-web/src/web_editor.rs");
+        let content = include_str!("../test_data/long.rs");
+        //let content = include_str!("../../ultron-web/src/web_editor.rs");
         //let content = include_str!("../test_data/svgbob.md");
 
         let options = Options {
