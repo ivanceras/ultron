@@ -961,8 +961,14 @@ impl<XMSG> WebEditor<XMSG> {
 
     fn view_highlighted_line<MSG>(&self, line_index: usize, line: &[(Style, Vec<Ch>)]) -> Vec<Node<MSG>>{
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let mut range_x: usize = 0;
         line.iter().map(|(style, range)| {
             let range_str = String::from_iter(range.iter().map(|ch|ch.ch));
+
+            let range_start = Point2::new(range_x, line_index);
+            range_x += range.iter().map(|ch|ch.width).sum::<usize>();
+            let range_end = Point2::new(range_x, line_index);
+
             let background = util::to_rgba(style.background).to_css();
             let foreground = util::to_rgba(style.foreground).to_css();
             let default_view = span(
@@ -976,14 +982,27 @@ impl<XMSG> WebEditor<XMSG> {
             match self.editor.text_edit.selection_normalized_casted() {
                 Some((start, end)) => {
                     // selection end points is only on the same line
-                    let _only_one_line = start.y == end.y;
+                    let only_one_line = start.y == end.y;
                     // this line is on the first line of selection
-                    let _in_first_line = line_index == start.y;
+                    let in_first_line = line_index == start.y;
                     // this line is on the last line of selection
-                    let _in_last_line = line_index == end.y;
+                    let in_last_line = line_index == end.y;
                     // this line is in between the selection end points
                     let in_inner_line = line_index > start.y && line_index < end.y;
-                    if in_inner_line{
+                    let in_inner_range = if in_first_line{
+                        if only_one_line{
+                            range_start.x >= start.x && range_end.x <= end.x
+                        }else{
+                            range_start.x >= start.x
+                        }
+                    }else if in_last_line{
+                        range_end.x <= end.x
+                    }else{
+                        false
+                    };
+
+                    //TODO: deal with range that is split in between selection
+                    if in_inner_line || in_inner_range{
                         span(
                             [style! {
                                 color: foreground,
