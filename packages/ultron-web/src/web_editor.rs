@@ -1005,6 +1005,7 @@ impl<XMSG> WebEditor<XMSG> {
         }
     }
 
+    /// calculate which lines are visible in the editor
     fn visible_lines(&self) -> Option<(usize, usize)> {
         if let Some((start, end)) = self.bounding_rect() {
             let ch_height = CH_HEIGHT as f32;
@@ -1044,7 +1045,7 @@ impl<XMSG> WebEditor<XMSG> {
                 match self.editor.text_edit.selection_normalized_casted() {
                     Some((start, end)) => {
                         // selection end points is only on the same line
-                        let only_one_line = start.y == end.y;
+                        let in_same_line = start.y == end.y;
                         // this line is on the first line of selection
                         let in_first_line = line_index == start.y;
                         // this line is on the last line of selection
@@ -1052,7 +1053,7 @@ impl<XMSG> WebEditor<XMSG> {
                         // this line is in between the selection end points
                         let in_inner_line = line_index > start.y && line_index < end.y;
                         let in_inner_range = if in_first_line {
-                            if only_one_line {
+                            if in_same_line {
                                 range_start.x >= start.x && range_end.x <= end.x
                             } else {
                                 range_start.x >= start.x
@@ -1136,21 +1137,20 @@ impl<XMSG> WebEditor<XMSG> {
         let line_width = self.editor.text_edit.text_buffer.line_width(line_index);
         let line_end = Point2::new(line_width, line_index);
 
-
         let selection_splits = match self.editor.text_edit.selection_normalized_casted() {
             Some((start, end)) => {
-                // selection end points is only on the same line
-                let only_one_line = start.y == end.y;
-                // this line is on the first line of selection
-                let in_first_line = line_index == start.y;
-                // this line is on the last line of selection
-                let in_last_line = line_index == end.y;
                 // this line is in between the selection end points
                 let in_inner_line = line_index > start.y && line_index < end.y;
 
                 if in_inner_line {
                     SelectionSplits::WholeLine(line)
                 } else {
+                    // selection end points is only on the same line
+                    let in_same_line = start.y == end.y;
+                    // this line is on the first line of selection
+                    let in_first_line = line_index == start.y;
+                    // this line is on the last line of selection
+                    let in_last_line = line_index == end.y;
                     let text_buffer = &self.editor.text_edit.text_buffer;
                     if in_first_line {
                         // the first part is the plain
@@ -1158,7 +1158,7 @@ impl<XMSG> WebEditor<XMSG> {
                         let break_point = Point2::new(start.x, line_index);
                         let break_point = text_buffer.clamp_position(break_point);
                         let (first, second) = text_buffer.split_line_at_point(break_point);
-                        if only_one_line {
+                        if in_same_line {
                             // the third part will be in plain
                             let break_point2 = Point2::new(end.x, line_end.y);
                             let break_point2 = text_buffer.clamp_position(break_point2);
