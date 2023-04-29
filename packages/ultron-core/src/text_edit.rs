@@ -35,7 +35,7 @@ impl fmt::Debug for Selection {
             "..".to_string()
         };
 
-        write!(f, "{} -> {}", start, end)
+        write!(f, "{start} -> {end}")
     }
 }
 

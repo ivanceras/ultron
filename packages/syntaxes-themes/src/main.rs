@@ -39,7 +39,7 @@ fn load_syntaxset(package_dir: &str) -> SyntaxSet {
     builder.add_plain_text_syntax();
     match builder.add_from_folder(package_dir, true) {
         Ok(_) => (),
-        Err(e) => println!("Loading error: {:?}", e),
+        Err(e) => println!("Loading error: {e:?}"),
     };
 
     builder.build()
