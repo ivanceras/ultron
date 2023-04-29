@@ -1,14 +1,16 @@
+use crate::context_menu::{self, Menu, MenuAction};
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::{
     html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast,
     wasm_bindgen_futures::JsFuture, Measurements,
 };
-pub use ultron_core;
-use ultron_core::{editor, nalgebra::Point2, Editor, Options, SelectionMode, TextEdit, TextHighlighter, Style, Ch};
-use std::rc::Rc;
 use std::cell::RefCell;
-use crate::context_menu::{self,Menu,MenuAction};
+use std::rc::Rc;
+pub use ultron_core;
+use ultron_core::{
+    editor, nalgebra::Point2, Ch, Editor, Options, SelectionMode, Style, TextEdit, TextHighlighter,
+};
 
 pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
@@ -31,7 +33,6 @@ impl From<editor::Command> for Command {
         Self::EditorCommand(ecommand)
     }
 }
-
 
 pub enum MouseCursor {
     Text,
@@ -92,7 +93,6 @@ pub struct WebEditor<XMSG> {
     show_context_menu: bool,
 }
 
-
 #[derive(Default)]
 struct Measure {
     average_dispatch: Option<f64>,
@@ -107,7 +107,10 @@ impl<XMSG> WebEditor<XMSG> {
             text_highlighter.select_theme(theme_name);
         }
         text_highlighter.set_syntax_token(&options.syntax_token);
-        let highlighted_lines = Rc::new(RefCell::new(Self::highlight_lines(&editor.text_edit, &mut text_highlighter)));
+        let highlighted_lines = Rc::new(RefCell::new(Self::highlight_lines(
+            &editor.text_edit,
+            &mut text_highlighter,
+        )));
         WebEditor {
             options,
             editor,
@@ -312,12 +315,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     ke.stop_propagation();
                     Msg::Keydown(ke)
                 }),
-                on_focus(|fe|{
-                    Msg::Focused(fe)
-                }),
-                on_blur(|fe|{
-                    Msg::Blur(fe)
-                }),
+                on_focus(|fe| Msg::Focused(fe)),
+                on_blur(|fe| Msg::Blur(fe)),
                 on_contextmenu(|me| {
                     me.prevent_default();
                     me.stop_propagation();
@@ -334,8 +333,14 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     self.plain_view()
                 },
                 view_if(self.options.show_status_line, self.view_status_line()),
-                view_if(/*self.is_focused &&*/ self.options.show_cursor, self.view_cursor()),
-                view_if(self.is_focused && self.show_context_menu, self.context_menu.view().map_msg(Msg::ContextMenuMsg)),
+                view_if(
+                    /*self.is_focused &&*/ self.options.show_cursor,
+                    self.view_cursor(),
+                ),
+                view_if(
+                    self.is_focused && self.show_context_menu,
+                    self.context_menu.view().map_msg(Msg::ContextMenuMsg),
+                ),
             ],
         )
     }
@@ -360,7 +365,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     //self.editor.clear_selection();
                     self.is_selecting = true;
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
-                    if self.is_selecting && !self.show_context_menu{
+                    if self.is_selecting && !self.show_context_menu {
                         self.editor.set_selection_start(cursor);
                     }
                     let msgs = self
@@ -387,7 +392,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                         } else {
                             Effects::none()
                         }
-                    }else{
+                    } else {
                         Effects::none()
                     }
                 } else {
@@ -403,7 +408,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     self.editor
                         .process_commands([editor::Command::SetPosition(cursor.x, cursor.y)]);
 
-                    if self.is_selecting{
+                    if self.is_selecting {
                         self.is_selecting = false;
                         self.editor.set_selection_end(cursor);
                         let selection = self.editor.selection();
@@ -412,7 +417,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                                 .editor
                                 .process_commands([editor::Command::SetSelection(start, end)]);
                             Effects::new(vec![], msgs)
-                        }else{
+                        } else {
                             Effects::none()
                         }
                     } else {
@@ -440,16 +445,23 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 let (start, _end) = self.bounding_rect().expect("must have a bounding rect");
                 let x = me.client_x() - start.x as i32;
                 let y = me.client_y() - start.y as i32;
-                let (msgs, _) = self.context_menu.update(context_menu::Msg::ShowAt(Point2::new(x,y)))
-                    .map_msg(Msg::ContextMenuMsg).unzip();
+                let (msgs, _) = self
+                    .context_menu
+                    .update(context_menu::Msg::ShowAt(Point2::new(x, y)))
+                    .map_msg(Msg::ContextMenuMsg)
+                    .unzip();
                 Effects::new(msgs, [])
             }
-            Msg::ContextMenuMsg(cm_msg) =>  {
+            Msg::ContextMenuMsg(cm_msg) => {
                 let (msgs, xmsg) = self.context_menu.update(cm_msg).unzip();
-                Effects::new(xmsg.into_iter().chain(msgs.into_iter().map(Msg::ContextMenuMsg)), [])
+                Effects::new(
+                    xmsg.into_iter()
+                        .chain(msgs.into_iter().map(Msg::ContextMenuMsg)),
+                    [],
+                )
             }
             Msg::ScrollCursorIntoView => {
-                if self.options.scroll_cursor_into_view{
+                if self.options.scroll_cursor_into_view {
                     let cursor_element = self.cursor_element.as_ref().unwrap();
                     let mut options = web_sys::ScrollIntoViewOptions::new();
                     options.behavior(web_sys::ScrollBehavior::Smooth);
@@ -461,7 +473,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             }
             Msg::MenuAction(menu_action) => {
                 self.show_context_menu = false;
-                match menu_action{
+                match menu_action {
                     MenuAction::Undo => {
                         self.process_command(Command::EditorCommand(editor::Command::Undo));
                     }
@@ -485,8 +497,6 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             }
         }
     }
-
-
 }
 
 impl<XMSG> WebEditor<XMSG> {
@@ -512,37 +522,41 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     pub fn rehighlight_visible_lines(&mut self) {
-        if let Some((_top, end)) = self.visible_lines(){
+        if let Some((_top, end)) = self.visible_lines() {
             let text_highlighter = self.text_highlighter.clone();
             let highlighted_lines = self.highlighted_lines.clone();
             let lines = self.editor.text_edit.lines();
-            if let Some(current_handle) = self.current_handle{
-                sauron::window().cancel_animation_frame(current_handle).expect("must cancel");
+            if let Some(current_handle) = self.current_handle {
+                sauron::window()
+                    .cancel_animation_frame(current_handle)
+                    .expect("must cancel");
             }
-            let handle = sauron::request_animation_frame(move||{
+            let handle = sauron::request_animation_frame(move || {
                 let mut text_highlighter = text_highlighter.borrow_mut();
                 text_highlighter.reset();
                 let start = 0; // TODO use the actual start
 
-                let new_highlighted_lines = lines
-                        .iter()
-                        .skip(start)
-                        .take(end - start)
-                        .map(|line| {
-                            text_highlighter
-                                .highlight_line(line)
-                                .expect("must highlight")
-                                .into_iter()
-                                .map(|(style, line)|(style, line.chars().map(Ch::new).collect()))
-                                .collect()
-                        });
+                let new_highlighted_lines =
+                    lines.iter().skip(start).take(end - start).map(|line| {
+                        text_highlighter
+                            .highlight_line(line)
+                            .expect("must highlight")
+                            .into_iter()
+                            .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
+                            .collect()
+                    });
 
-                for (line, new_highlight) in highlighted_lines.borrow_mut().iter_mut().skip(start).zip(new_highlighted_lines){
-                        *line = new_highlight;
+                for (line, new_highlight) in highlighted_lines
+                    .borrow_mut()
+                    .iter_mut()
+                    .skip(start)
+                    .zip(new_highlighted_lines)
+                {
+                    *line = new_highlight;
                 }
                 log::debug!("It did complete");
-
-            }).expect("must have a handle");
+            })
+            .expect("must have a handle");
             self.current_handle = Some(handle);
         }
     }
@@ -633,13 +647,14 @@ impl<XMSG> WebEditor<XMSG> {
             .collect()
     }
 
-
     /// rehighlight the texts
     pub fn rehighlight(&mut self) {
         self.text_highlighter.borrow_mut().reset();
-        *self.highlighted_lines.borrow_mut() = Self::highlight_lines(&self.editor.text_edit, &mut self.text_highlighter.borrow_mut());
+        *self.highlighted_lines.borrow_mut() = Self::highlight_lines(
+            &self.editor.text_edit,
+            &mut self.text_highlighter.borrow_mut(),
+        );
     }
-
 
     pub fn process_command(&mut self, command: Command) -> bool {
         log::info!("Processing command: {:?}", command);
@@ -677,7 +692,6 @@ impl<XMSG> WebEditor<XMSG> {
         }
     }
 
-
     pub fn clear(&mut self) {
         self.editor.clear()
     }
@@ -696,7 +710,7 @@ impl<XMSG> WebEditor<XMSG> {
                     fut.await.expect("must not error");
                 });
                 return true;
-            }else{
+            } else {
                 log::warn!("No selected text..")
             }
         } else {
@@ -758,8 +772,7 @@ impl<XMSG> WebEditor<XMSG> {
 
     fn theme_background(&self) -> RGBA {
         let default = rgba(255, 255, 255, 1.0);
-        self
-            .text_highlighter
+        self.text_highlighter
             .borrow()
             .active_theme()
             .settings
@@ -770,8 +783,7 @@ impl<XMSG> WebEditor<XMSG> {
 
     fn gutter_background(&self) -> RGBA {
         let default = rgba(0, 0, 0, 1.0);
-        self
-            .text_highlighter
+        self.text_highlighter
             .borrow()
             .active_theme()
             .settings
@@ -782,8 +794,7 @@ impl<XMSG> WebEditor<XMSG> {
 
     fn gutter_foreground(&self) -> RGBA {
         let default = rgba(0, 0, 0, 1.0);
-        self
-            .text_highlighter
+        self.text_highlighter
             .borrow()
             .active_theme()
             .settings
@@ -794,8 +805,7 @@ impl<XMSG> WebEditor<XMSG> {
 
     fn selection_background(&self) -> RGBA {
         let default = rgba(0, 0, 255, 1.0);
-        self
-            .text_highlighter
+        self.text_highlighter
             .borrow()
             .active_theme()
             .settings
@@ -892,19 +902,19 @@ impl<XMSG> WebEditor<XMSG> {
                 text!(" |> line: {}, col: {} ", cursor.y + 1, cursor.x + 1),
                 text!(" |> version:{}", env!("CARGO_PKG_VERSION")),
                 text!(" |> lines: {}", self.editor.total_lines()),
-                if let Some((start, end)) = self.bounding_rect(){
+                if let Some((start, end)) = self.bounding_rect() {
                     text!(" |> bounding rect: {}->{}", start, end)
-                }else{
+                } else {
                     text!("")
                 },
-                if let Some(visible_lines)  = self.max_visible_lines(){
+                if let Some(visible_lines) = self.max_visible_lines() {
                     text!(" |> visible lines: {}", visible_lines)
-                }else{
+                } else {
                     text!("")
                 },
-                if let Some((start, end)) = self.visible_lines(){
+                if let Some((start, end)) = self.visible_lines() {
                     text!(" |> lines: ({},{})", start, end)
-                }else{
+                } else {
                     text!("")
                 },
                 text!(" |> selection: {:?}", self.editor.selection()),
@@ -940,90 +950,95 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     /// calculate the maximum number of visible lines
-    fn max_visible_lines(&self) -> Option<usize>{
-        if let Some((start, end)) = self.bounding_rect(){
-            Some(((end.y - start.y)/ CH_HEIGHT as f32).round() as usize)
-        }else{
+    fn max_visible_lines(&self) -> Option<usize> {
+        if let Some((start, end)) = self.bounding_rect() {
+            Some(((end.y - start.y) / CH_HEIGHT as f32).round() as usize)
+        } else {
             None
         }
     }
 
-    fn visible_lines(&self) -> Option<(usize, usize)>{
-        if let Some((start, end)) = self.bounding_rect(){
+    fn visible_lines(&self) -> Option<(usize, usize)> {
+        if let Some((start, end)) = self.bounding_rect() {
             let ch_height = CH_HEIGHT as f32;
             let top = ((0.0 - start.y) / ch_height) as usize;
             let bottom = ((end.y - 2.0 * start.y) / ch_height) as usize;
             Some((top, bottom))
-        }else{
+        } else {
             None
         }
     }
 
-    fn view_highlighted_line<MSG>(&self, line_index: usize, line: &[(Style, Vec<Ch>)]) -> Vec<Node<MSG>>{
+    fn view_highlighted_line<MSG>(
+        &self,
+        line_index: usize,
+        line: &[(Style, Vec<Ch>)],
+    ) -> Vec<Node<MSG>> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let mut range_x: usize = 0;
-        line.iter().map(|(style, range)| {
-            let range_str = String::from_iter(range.iter().map(|ch|ch.ch));
+        line.iter()
+            .map(|(style, range)| {
+                let range_str = String::from_iter(range.iter().map(|ch| ch.ch));
 
-            let range_start = Point2::new(range_x, line_index);
-            range_x += range.iter().map(|ch|ch.width).sum::<usize>();
-            let range_end = Point2::new(range_x, line_index);
+                let range_start = Point2::new(range_x, line_index);
+                range_x += range.iter().map(|ch| ch.width).sum::<usize>();
+                let range_end = Point2::new(range_x, line_index);
 
-            let background = util::to_rgba(style.background).to_css();
-            let foreground = util::to_rgba(style.foreground).to_css();
-            let default_view = span(
-                [style! {
-                    color: foreground.clone(),
-                    background_color: background,
-                }],
-                [text(range_str.clone())],
-            );
+                let background = util::to_rgba(style.background).to_css();
+                let foreground = util::to_rgba(style.foreground).to_css();
+                let default_view = span(
+                    [style! {
+                        color: foreground.clone(),
+                        background_color: background,
+                    }],
+                    [text(range_str.clone())],
+                );
 
-            match self.editor.text_edit.selection_normalized_casted() {
-                Some((start, end)) => {
-                    // selection end points is only on the same line
-                    let only_one_line = start.y == end.y;
-                    // this line is on the first line of selection
-                    let in_first_line = line_index == start.y;
-                    // this line is on the last line of selection
-                    let in_last_line = line_index == end.y;
-                    // this line is in between the selection end points
-                    let in_inner_line = line_index > start.y && line_index < end.y;
-                    let in_inner_range = if in_first_line{
-                        if only_one_line{
-                            range_start.x >= start.x && range_end.x <= end.x
-                        }else{
-                            range_start.x >= start.x
+                match self.editor.text_edit.selection_normalized_casted() {
+                    Some((start, end)) => {
+                        // selection end points is only on the same line
+                        let only_one_line = start.y == end.y;
+                        // this line is on the first line of selection
+                        let in_first_line = line_index == start.y;
+                        // this line is on the last line of selection
+                        let in_last_line = line_index == end.y;
+                        // this line is in between the selection end points
+                        let in_inner_line = line_index > start.y && line_index < end.y;
+                        let in_inner_range = if in_first_line {
+                            if only_one_line {
+                                range_start.x >= start.x && range_end.x <= end.x
+                            } else {
+                                range_start.x >= start.x
+                            }
+                        } else if in_last_line {
+                            range_end.x <= end.x
+                        } else {
+                            false
+                        };
+
+                        //TODO: deal with range that is split in between selection
+                        if in_inner_line || in_inner_range {
+                            span(
+                                [
+                                    style! {
+                                        color: foreground,
+                                    },
+                                    class_ns("selected"),
+                                ],
+                                [text(range_str)],
+                            )
+                        } else {
+                            default_view
                         }
-                    }else if in_last_line{
-                        range_end.x <= end.x
-                    }else{
-                        false
-                    };
-
-                    //TODO: deal with range that is split in between selection
-                    if in_inner_line || in_inner_range{
-                        span(
-                            [style! {
-                                color: foreground,
-                            },
-                            class_ns("selected"),
-                            ],
-                            [text(range_str)],
-                        )
-                    }else{
-                        default_view
                     }
+                    None => default_view,
                 }
-                None => default_view,
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     // highlighted view
-    pub fn view_highlighted_lines<MSG>(
-        &self,
-    ) -> Node<MSG> {
+    pub fn view_highlighted_lines<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let class_number_wide = format!("number_wide{}", self.editor.numberline_wide());
 
@@ -1034,7 +1049,8 @@ impl<XMSG> WebEditor<XMSG> {
         ];
 
         let highlighted_lines = self.highlighted_lines.borrow();
-        let rendered_lines =  highlighted_lines.iter()
+        let rendered_lines = highlighted_lines
+            .iter()
             .enumerate()
             .map(|(line_index, line)| {
                 div([class_ns("line")], {
@@ -1073,7 +1089,7 @@ impl<XMSG> WebEditor<XMSG> {
         let line_width = self.editor.text_edit.text_buffer.line_width(line_index);
         let line_end = Point2::new(line_width, line_index);
 
-        enum SelectionSplits{
+        enum SelectionSplits {
             // the while line is selected
             WholeLine(String),
             // the first part is plain, the second one is selected
@@ -1086,41 +1102,34 @@ impl<XMSG> WebEditor<XMSG> {
             NotSelected(String),
         }
 
-        impl SelectionSplits{
-            fn view<MSG>(&self) -> Node<MSG>{
-                let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-                match self{
-                    Self::WholeLine(line) => {
-                        span([class_ns("selected")], [text(line)])
-                    }
-                    Self::OneSplitStart(first, second) => {
-                        span(
-                            [],
-                            [
-                                span([], [text(first)]),
-                                span([class_ns("selected")], [text(second)]),
-                            ],
-                        )
-                    }
-                    Self::TwoSplits(first, second, third) => {
-                        span(
-                            [],
-                            [
-                                span([], [text(first)]),
-                                span([class_ns("selected")], [text(second)]),
-                                span([], [text(third)]),
-                            ],
-                        )
-                    }
-                    Self::OneSplitEnd(first, second) => {
-                        span(
-                            [],
-                            [
-                                span([class_ns("selected")], [text(first)]),
-                                span([], [text(second)]),
-                            ],
-                        )
-                    }
+        impl SelectionSplits {
+            fn view<MSG>(&self) -> Node<MSG> {
+                let class_ns =
+                    |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+                match self {
+                    Self::WholeLine(line) => span([class_ns("selected")], [text(line)]),
+                    Self::OneSplitStart(first, second) => span(
+                        [],
+                        [
+                            span([], [text(first)]),
+                            span([class_ns("selected")], [text(second)]),
+                        ],
+                    ),
+                    Self::TwoSplits(first, second, third) => span(
+                        [],
+                        [
+                            span([], [text(first)]),
+                            span([class_ns("selected")], [text(second)]),
+                            span([], [text(third)]),
+                        ],
+                    ),
+                    Self::OneSplitEnd(first, second) => span(
+                        [],
+                        [
+                            span([class_ns("selected")], [text(first)]),
+                            span([], [text(second)]),
+                        ],
+                    ),
                     Self::NotSelected(line) => span([], [text(line)]),
                 }
             }
@@ -1128,7 +1137,6 @@ impl<XMSG> WebEditor<XMSG> {
 
         let selection_splits = match self.editor.text_edit.selection_normalized_casted() {
             Some((start, end)) => {
-
                 // selection end points is only on the same line
                 let only_one_line = start.y == end.y;
                 // this line is on the first line of selection
@@ -1138,26 +1146,22 @@ impl<XMSG> WebEditor<XMSG> {
                 // this line is in between the selection end points
                 let in_inner_line = line_index > start.y && line_index < end.y;
 
-
                 if in_inner_line {
-                   SelectionSplits::WholeLine(line)
+                    SelectionSplits::WholeLine(line)
                 } else {
                     let text_buffer = &self.editor.text_edit.text_buffer;
                     if in_first_line {
                         // the first part is the plain
                         // the second part is the highlighted
                         let break_point = Point2::new(start.x, line_index);
-                        let break_point = text_buffer
-                            .clamp_position(break_point);
-                        let (first, second) =  text_buffer
-                            .split_line_at_point(break_point);
+                        let break_point = text_buffer.clamp_position(break_point);
+                        let (first, second) = text_buffer.split_line_at_point(break_point);
                         if only_one_line {
                             // the third part will be in plain
                             let break_point2 = Point2::new(end.x, line_end.y);
-                            let break_point2 = text_buffer
-                                .clamp_position(break_point2);
-                            let (first, second, third) = text_buffer
-                                .split_line_at_2_points(break_point, break_point2);
+                            let break_point2 = text_buffer.clamp_position(break_point2);
+                            let (first, second, third) =
+                                text_buffer.split_line_at_2_points(break_point, break_point2);
                             SelectionSplits::TwoSplits(first, second, third)
                         } else {
                             SelectionSplits::OneSplitStart(first, second)
@@ -1166,17 +1170,15 @@ impl<XMSG> WebEditor<XMSG> {
                         // the first part is the highlighted
                         // the second part is plain
                         let break_point = Point2::new(end.x, line_index);
-                        let break_point = text_buffer
-                            .clamp_position(break_point);
-                        let (first, second) = text_buffer
-                            .split_line_at_point(break_point);
+                        let break_point = text_buffer.clamp_position(break_point);
+                        let (first, second) = text_buffer.split_line_at_point(break_point);
                         SelectionSplits::OneSplitEnd(first, second)
                     } else {
                         SelectionSplits::NotSelected(line)
                     }
                 }
             }
-            None => SelectionSplits::NotSelected(line)
+            None => SelectionSplits::NotSelected(line),
         };
         selection_splits.view()
     }
@@ -1184,25 +1186,24 @@ impl<XMSG> WebEditor<XMSG> {
     fn view_line_with_block_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
 
-       let default_view  = span([], [text(&line)]);
-        match self.editor.text_edit.selection_normalized_casted(){
+        let default_view = span([], [text(&line)]);
+        match self.editor.text_edit.selection_normalized_casted() {
             Some((start, end)) => {
-                let text_buffer =  &self.editor.text_edit.text_buffer;
+                let text_buffer = &self.editor.text_edit.text_buffer;
 
                 // there will be 3 parts
                 // the first one is plain
                 // the second one is highlighted
                 // the first one is plain
                 let break_point1 = Point2::new(start.x, line_index);
-                let break_point1 = text_buffer
-                    .clamp_position(break_point1);
+                let break_point1 = text_buffer.clamp_position(break_point1);
 
                 let break_point2 = Point2::new(end.x, line_index);
-                let break_point2 = text_buffer
-                    .clamp_position(break_point2);
-                let (first, second, third) = text_buffer.split_line_at_2_points(break_point1, break_point2);
+                let break_point2 = text_buffer.clamp_position(break_point2);
+                let (first, second, third) =
+                    text_buffer.split_line_at_2_points(break_point1, break_point2);
 
-                if line_index >= start.y && line_index <= end.y{
+                if line_index >= start.y && line_index <= end.y {
                     span(
                         [],
                         [
@@ -1211,7 +1212,7 @@ impl<XMSG> WebEditor<XMSG> {
                             span([], [text(third)]),
                         ],
                     )
-                }else{
+                } else {
                     default_view
                 }
             }
@@ -1230,7 +1231,7 @@ impl<XMSG> WebEditor<XMSG> {
             .lines()
             .into_iter()
             .enumerate()
-            .map(|(line_index, line)|{
+            .map(|(line_index, line)| {
                 let line_number = line_index + 1;
                 div(
                     [class_ns("line")],
@@ -1239,11 +1240,14 @@ impl<XMSG> WebEditor<XMSG> {
                             self.options.show_line_numbers,
                             span([class_ns("number")], [text(line_number)]),
                         ),
-                        match self.options.selection_mode{
-                            SelectionMode::Linear =>
-                                self.view_line_with_linear_selection(line_index, line),
-                            SelectionMode::Block => self.view_line_with_block_selection(line_index, line),
-                        }
+                        match self.options.selection_mode {
+                            SelectionMode::Linear => {
+                                self.view_line_with_linear_selection(line_index, line)
+                            }
+                            SelectionMode::Block => {
+                                self.view_line_with_block_selection(line_index, line)
+                            }
+                        },
                     ],
                 )
             });
