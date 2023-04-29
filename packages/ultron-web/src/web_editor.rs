@@ -601,7 +601,6 @@ impl<XMSG> WebEditor<XMSG> {
                 {
                     *line = new_highlight;
                 }
-                log::debug!("It did complete");
             })
             .expect("must have a handle");
             self.current_handle = Some(handle);
@@ -704,7 +703,6 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     pub fn process_command(&mut self, command: Command) -> bool {
-        log::info!("Processing command: {:?}", command);
         match command {
             Command::EditorCommand(ecommand) => self.editor.process_command(ecommand),
             Command::PasteTextBlock(text_block) => self
