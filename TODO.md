@@ -66,7 +66,8 @@
                 - then make a delayed call to the function
             - if the elapsed is more than the allowable, then execute the function, mark pending/dirty = false
             - if the last record is not yet there, then execute the function and set it to now
-- [ ] Always make the cursor visible, by scrolling to where the cursor is located
+- [X] Always make the cursor visible, by scrolling to where the cursor is located
+- [ ] Activating a context menu interferes with the selection since both are based on mouse clicks
 
 ## Features
 - [~] Smart edit blockmode

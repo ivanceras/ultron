@@ -47,7 +47,6 @@ impl<XMSG> Component<Msg, XMSG> for Menu<XMSG> {
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
             Msg::SelectAction(menu_action) => {
-                log::trace!("selected: {:?}", menu_action);
                 let xmsgs: Vec<XMSG> = self
                     .listeners
                     .iter()
