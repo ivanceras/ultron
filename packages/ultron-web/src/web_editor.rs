@@ -1187,24 +1187,20 @@ impl<XMSG> WebEditor<XMSG> {
        let default_view  = span([], [text(&line)]);
         match self.editor.text_edit.selection_normalized_casted(){
             Some((start, end)) => {
+                let text_buffer =  &self.editor.text_edit.text_buffer;
+
                 // there will be 3 parts
                 // the first one is plain
                 // the second one is highlighted
                 // the first one is plain
                 let break_point1 = Point2::new(start.x, line_index);
-                let break_point1 = self
-                    .editor
-                    .text_edit
-                    .text_buffer
+                let break_point1 = text_buffer
                     .clamp_position(break_point1);
 
                 let break_point2 = Point2::new(end.x, line_index);
-                let break_point2 = self
-                    .editor
-                    .text_edit
-                    .text_buffer
+                let break_point2 = text_buffer
                     .clamp_position(break_point2);
-                let (first, second, third) = self.editor.text_edit.text_buffer.split_line_at_2_points(break_point1, break_point2);
+                let (first, second, third) = text_buffer.split_line_at_2_points(break_point1, break_point2);
 
                 if line_index >= start.y && line_index <= end.y{
                     span(
