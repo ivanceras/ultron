@@ -1070,14 +1070,63 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     fn view_line_with_linear_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-
         let line_width = self.editor.text_edit.text_buffer.line_width(line_index);
         let line_end = Point2::new(line_width, line_index);
 
-        let default_view = span([], [text(&line)]);
+        enum SelectionSplits{
+            // the while line is selected
+            WholeLine(String),
+            // the first part is plain, the second one is selected
+            OneSplitStart(String, String),
+            // the first part is plain, the second one is selected, the third one is plain
+            TwoSplits(String, String, String),
+            // the first part is selected, the second one is plain
+            OneSplitEnd(String, String),
+            // It is not part of the selection
+            NotSelected(String),
+        }
 
-        match self.editor.text_edit.selection_normalized_casted() {
+        impl SelectionSplits{
+            fn view<MSG>(&self) -> Node<MSG>{
+                let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+                match self{
+                    Self::WholeLine(line) => {
+                        span([class_ns("selected")], [text(line)])
+                    }
+                    Self::OneSplitStart(first, second) => {
+                        span(
+                            [],
+                            [
+                                span([], [text(first)]),
+                                span([class_ns("selected")], [text(second)]),
+                            ],
+                        )
+                    }
+                    Self::TwoSplits(first, second, third) => {
+                        span(
+                            [],
+                            [
+                                span([], [text(first)]),
+                                span([class_ns("selected")], [text(second)]),
+                                span([], [text(third)]),
+                            ],
+                        )
+                    }
+                    Self::OneSplitEnd(first, second) => {
+                        span(
+                            [],
+                            [
+                                span([class_ns("selected")], [text(first)]),
+                                span([], [text(second)]),
+                            ],
+                        )
+                    }
+                    Self::NotSelected(line) => span([], [text(line)]),
+                }
+            }
+        }
+
+        let selection_splits = match self.editor.text_edit.selection_normalized_casted() {
             Some((start, end)) => {
 
                 // selection end points is only on the same line
@@ -1091,80 +1140,45 @@ impl<XMSG> WebEditor<XMSG> {
 
 
                 if in_inner_line {
-                    span([class_ns("selected")], [text(line)])
+                   SelectionSplits::WholeLine(line)
                 } else {
+                    let text_buffer = &self.editor.text_edit.text_buffer;
                     if in_first_line {
                         // the first part is the plain
                         // the second part is the highlighted
                         let break_point = Point2::new(start.x, line_index);
-                        let break_point = self
-                            .editor
-                            .text_edit
-                            .text_buffer
+                        let break_point = text_buffer
                             .clamp_position(break_point);
-                        let (first, second) = self
-                            .editor
-                            .text_edit
-                            .text_buffer
+                        let (first, second) =  text_buffer
                             .split_line_at_point(break_point);
                         if only_one_line {
                             // the third part will be in plain
                             let break_point2 = Point2::new(end.x, line_end.y);
-                            let break_point2 = self
-                                .editor
-                                .text_edit
-                                .text_buffer
+                            let break_point2 = text_buffer
                                 .clamp_position(break_point2);
-                            let (first, second, third) = self
-                                .editor
-                                .text_edit
-                                .text_buffer
+                            let (first, second, third) = text_buffer
                                 .split_line_at_2_points(break_point, break_point2);
-                            span(
-                                [],
-                                [
-                                    span([], [text(first)]),
-                                    span([class_ns("selected")], [text(second)]),
-                                    span([], [text(third)]),
-                                ],
-                            )
+                            SelectionSplits::TwoSplits(first, second, third)
                         } else {
-                            span(
-                                [],
-                                [
-                                    span([], [text(first)]),
-                                    span([class_ns("selected")], [text(second)]),
-                                ],
-                            )
+                            SelectionSplits::OneSplitStart(first, second)
                         }
                     } else if in_last_line {
                         // the first part is the highlighted
                         // the second part is plain
                         let break_point = Point2::new(end.x, line_index);
-                        let break_point = self
-                            .editor
-                            .text_edit
-                            .text_buffer
+                        let break_point = text_buffer
                             .clamp_position(break_point);
-                        let (first, second) = self
-                            .editor
-                            .text_edit
-                            .text_buffer
+                        let (first, second) = text_buffer
                             .split_line_at_point(break_point);
-                        span(
-                            [],
-                            [
-                                span([class_ns("selected")], [text(first)]),
-                                span([], [text(second)]),
-                            ],
-                        )
+                        SelectionSplits::OneSplitEnd(first, second)
                     } else {
-                        default_view
+                        SelectionSplits::NotSelected(line)
                     }
                 }
             }
-            _ => default_view
-        }
+            None => SelectionSplits::NotSelected(line)
+        };
+        selection_splits.view()
     }
 
     fn view_line_with_block_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
