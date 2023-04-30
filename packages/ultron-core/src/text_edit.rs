@@ -237,7 +237,7 @@ impl TextEdit {
     pub fn is_selected_in_linear_mode(&self, loc: Point2<i32>) -> bool {
         match (self.selection.start, self.selection.end) {
             (Some(start), Some(end)) => {
-                let (start, end) = util::normalize_points(start, end);
+                let (start, end) = util::reorder_top_down_left_right(start, end);
                 let only_one_line = start.y == end.y;
                 let in_first_line = loc.y == start.y;
                 let in_inner_line = loc.y > start.y && loc.y < end.y;
@@ -282,7 +282,7 @@ impl TextEdit {
     }
 
     pub fn selected_text_in_linear_mode(&self) -> Option<String> {
-        match self.selection_normalized_casted() {
+        match self.selection_reorder_casted() {
             Some((start, end)) => Some(self.text_buffer.get_text_in_linear_mode(start, end)),
             _ => None,
         }
@@ -296,7 +296,7 @@ impl TextEdit {
     }
 
     pub fn cut_selected_text_in_linear_mode(&mut self) -> Option<String> {
-        match self.selection_normalized_casted() {
+        match self.selection_reorder_casted() {
             Some((start, end)) => {
                 let cut_text = self.text_buffer.cut_text_in_linear_mode(start, end);
                 if !cut_text.is_empty() {
