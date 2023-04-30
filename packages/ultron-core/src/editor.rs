@@ -92,6 +92,27 @@ impl<XMSG> Editor<XMSG> {
         self.text_edit.selection()
     }
 
+    pub fn selected_text(&self) -> Option<String> {
+        match self.options.selection_mode {
+            SelectionMode::Linear => self.text_edit.selected_text_in_linear_mode(),
+            SelectionMode::Block => self.text_edit.selected_text_in_block_mode(),
+        }
+    }
+
+    pub fn cut_selected_text(&mut self) -> Option<String> {
+        match self.options.selection_mode {
+            SelectionMode::Linear => self.text_edit.cut_selected_text_in_linear_mode(),
+            SelectionMode::Block => self.text_edit.cut_selected_text_in_block_mode(),
+        }
+    }
+
+    pub fn is_selected(&self, loc: Point2<i32>) -> bool {
+        match self.options.selection_mode {
+            SelectionMode::Linear => self.text_edit.is_selected_in_linear_mode(loc),
+            SelectionMode::Block => self.text_edit.is_selected_in_block_mode(loc),
+        }
+    }
+
     pub fn clear_selection(&mut self) {
         self.text_edit.clear_selection()
     }

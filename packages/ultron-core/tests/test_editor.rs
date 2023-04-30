@@ -80,9 +80,14 @@ fn test_text_is_selected_linear_multiline() {
 #[test]
 fn test_text_is_selected_block_multiline() {
     let raw = "Hello\nworld\nand you with \neveryone";
-    let mut editor: Editor<()> = Editor::from_str(Options::default(), raw);
+    let mut editor: Editor<()> = Editor::from_str(
+        Options {
+            selection_mode: SelectionMode::Block,
+            ..Default::default()
+        },
+        raw,
+    );
     editor.set_selection(Point2::new(1, 1), Point2::new(2, 2));
-    editor.set_selection_mode(SelectionMode::Block);
     let txt = editor.selected_text();
     assert_eq!(txt, Some("or\nnd".to_string()));
     assert!(editor.is_selected(Point2::new(1, 1)));

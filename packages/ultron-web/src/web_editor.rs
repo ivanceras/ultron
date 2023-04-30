@@ -754,24 +754,15 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     pub fn selected_text(&self) -> Option<String> {
-        match self.options.selection_mode {
-            SelectionMode::Linear => self.editor.text_edit.selected_text_in_linear_mode(),
-            SelectionMode::Block => self.editor.text_edit.selected_text_in_block_mode(),
-        }
+        self.editor.selected_text()
     }
 
     pub fn is_selected(&self, loc: Point2<i32>) -> bool {
-        match self.options.selection_mode {
-            SelectionMode::Linear => self.editor.text_edit.is_selected_in_linear_mode(loc),
-            SelectionMode::Block => self.editor.text_edit.is_selected_in_block_mode(loc),
-        }
+        self.editor.is_selected(loc)
     }
 
     pub fn cut_selected_text(&mut self) -> Option<String> {
-        match self.options.selection_mode {
-            SelectionMode::Linear => self.editor.text_edit.cut_selected_text_in_linear_mode(),
-            SelectionMode::Block => self.editor.text_edit.cut_selected_text_in_block_mode(),
-        }
+        self.editor.cut_selected_text()
     }
 
     pub fn clear(&mut self) {
@@ -1084,7 +1075,7 @@ impl<XMSG> WebEditor<XMSG> {
                         // the end selection is in the range end
                         let in_range_end = range_end.x <= end.x;
                         // both selection endpoints is inside this range, there will be 2 splits
-                        let _in_same_range = start.x >= range_start.x&& end.x <= range_end.x;
+                        let in_same_range = start.x >= range_start.x && end.x <= range_end.x;
                         // the range is in between the selection end points
                         let in_inner_range = if in_first_line {
                             if in_same_line {
@@ -1100,42 +1091,37 @@ impl<XMSG> WebEditor<XMSG> {
                         if in_inner_line || in_inner_range {
                             SelectionSplits::Whole(range_str)
                         } else {
-                            /*
-                            //TODO: deal with range that is split in between selection
-                            //TODO: use a new text_buffer for this
                             let text_buffer = TextBuffer::from_str(&range_str);
-                            if in_same_range{
-                                // the first is plain
-                                // the second is selected
-                                // the third is plain
-                                let break1 = Point2::new(start.x - range_start.x, 0);
+                            if in_first_line && in_range_start{
+                                    if in_same_range{
+                                        // the first is plain
+                                        // the second is selected
+                                        // the third is plain
+                                        let break1 = Point2::new(start.x - range_start.x, 0);
+                                        let break1 = text_buffer.clamp_position(break1);
+                                        let break2 = Point2::new(end.x - range_start.x, 0);
+                                        let break2 = text_buffer.clamp_position(break2);
+                                        let (first, second, third) =
+                                            text_buffer.split_line_at_2_points(break1, break2);
+                                        SelectionSplits::TwoSplits(first, second, third)
+                                    }else{
+                                        // the first is plain
+                                        // the second is selected
+                                        let break1 = Point2::new(start.x - range_start.x, 0);
+                                        let break1 = text_buffer.clamp_position(break1);
+                                        let (first, second) = text_buffer.split_line_at_point(break1);
+                                        SelectionSplits::OneSplitStart(first, second)
+                                    }
+                            }else if in_last_line && in_range_end{
+                                // the first is selected
+                                // the second is plain
+                                let break1 = Point2::new(end.x - range_start.x, 0);
                                 let break1 = text_buffer.clamp_position(break1);
-                                let break2 = Point2::new(end.x - range_start.x, 0);
-                                let break2 = text_buffer.clamp_position(break2);
-                                let (first, second, third) =
-                                    text_buffer.split_line_at_2_points(break1, break2);
-                                SelectionSplits::TwoSplits(first, second, third)
+                                let (first, second) = text_buffer.split_line_at_point(break1);
+                                SelectionSplits::OneSplitEnd(first, second)
                             }else{
-                                if in_range_start{
-                                    // the first is plain
-                                    // the second is selected
-                                    let break1 = Point2::new(start.x - range_start.x, 0);
-                                    let break1 = text_buffer.clamp_position(break1);
-                                    let (first, second) = text_buffer.split_line_at_point(break1);
-                                    SelectionSplits::OneSplitStart(first, second)
-                                }else if in_range_end{
-                                    // the first is selected
-                                    // the second is plain
-                                    let break1 = Point2::new(end.x - range_start.x, 0);
-                                    let break1 = text_buffer.clamp_position(break1);
-                                    let (first, second) = text_buffer.split_line_at_point(break1);
-                                    SelectionSplits::OneSplitEnd(first, second)
-                                }else{
-                                    unreachable!()
-                                }
+                                SelectionSplits::NotSelected(range_str)
                             }
-                            */
-                            SelectionSplits::NotSelected(range_str)
                         }
                     }
                     None => SelectionSplits::NotSelected(range_str),
