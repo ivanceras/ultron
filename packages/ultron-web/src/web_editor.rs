@@ -96,20 +96,15 @@ impl MouseCursor {
 
 /// a utility enum which hold each cases of line selection
 enum SelectionSplits {
-    /// the while line is selected
-    /// TODO: rename to All
-    Whole(String),
+    /// the whole range/line is selected
+    SelectAll(String),
     /// the first part is plain, the second one is selected
-    /// TODO: rename to Right
-    OneSplitStart(String, String),
+    SelectRight(String, String),
     /// the first part is plain, the second one is selected, the third one is plain
-    /// TODO: rename to Middle
-    TwoSplits(String, String, String),
+    SelectMiddle(String, String, String),
     /// the first part is selected, the second one is plain
-    /// TODO: rename to Left
-    OneSplitEnd(String, String),
+    SelectLeft(String, String),
     /// It is not part of the selection
-    /// TODO: rename to Nothing
     NotSelected(String),
 }
 
@@ -117,15 +112,15 @@ impl SelectionSplits {
     fn view<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         match self {
-            Self::Whole(line) => span([class_ns("selected")], [text(line)]),
-            Self::OneSplitStart(first, second) => span(
+            Self::SelectAll(line) => span([class_ns("selected")], [text(line)]),
+            Self::SelectRight(first, second) => span(
                 [],
                 [
                     span([], [text(first)]),
                     span([class_ns("selected")], [text(second)]),
                 ],
             ),
-            Self::TwoSplits(first, second, third) => span(
+            Self::SelectMiddle(first, second, third) => span(
                 [],
                 [
                     span([], [text(first)]),
@@ -133,7 +128,7 @@ impl SelectionSplits {
                     span([], [text(third)]),
                 ],
             ),
-            Self::OneSplitEnd(first, second) => span(
+            Self::SelectLeft(first, second) => span(
                 [],
                 [
                     span([class_ns("selected")], [text(first)]),
@@ -147,15 +142,15 @@ impl SelectionSplits {
     fn view_with_style<MSG>(&self, node_style: Attribute<MSG>) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         match self {
-            Self::Whole(line) => span([class_ns("selected"), node_style], [text(line)]),
-            Self::OneSplitStart(first, second) => span(
+            Self::SelectAll(line) => span([class_ns("selected"), node_style], [text(line)]),
+            Self::SelectRight(first, second) => span(
                 [node_style],
                 [
                     span([], [text(first)]),
                     span([class_ns("selected")], [text(second)]),
                 ],
             ),
-            Self::TwoSplits(first, second, third) => span(
+            Self::SelectMiddle(first, second, third) => span(
                 [node_style],
                 [
                     span([], [text(first)]),
@@ -163,7 +158,7 @@ impl SelectionSplits {
                     span([], [text(third)]),
                 ],
             ),
-            Self::OneSplitEnd(first, second) => span(
+            Self::SelectLeft(first, second) => span(
                 [node_style],
                 [
                     span([class_ns("selected")], [text(first)]),
@@ -1089,14 +1084,14 @@ impl<XMSG> WebEditor<XMSG> {
                         let text_buffer = TextBuffer::from_ch(vec![range.clone()]);
 
                         if line_within_selection {
-                            SelectionSplits::Whole(range_str)
+                            SelectionSplits::SelectAll(range_str)
                         } else if line_outside_selection {
                             SelectionSplits::NotSelected(range_str)
                         } else if selection_in_same_line {
                             let range_within_selection =
                                 range_start.x >= start.x && range_end.x <= end.x;
                             if range_within_selection {
-                                SelectionSplits::Whole(range_str)
+                                SelectionSplits::SelectAll(range_str)
                             } else if selection_within_range {
                                 // the first is plain
                                 // the second is selected
@@ -1107,12 +1102,12 @@ impl<XMSG> WebEditor<XMSG> {
                                 let break2 = text_buffer.clamp_position(break2);
                                 let (first, second, third) =
                                     text_buffer.split_line_at_2_points(break1, break2);
-                                SelectionSplits::TwoSplits(first, second, third)
+                                SelectionSplits::SelectMiddle(first, second, third)
                             } else if selection_start_within_range_start {
                                 let break1 = Point2::new(start.x - range_start.x, 0);
                                 let break1 = text_buffer.clamp_position(break1);
                                 let (first, second) = text_buffer.split_line_at_point(break1);
-                                SelectionSplits::OneSplitStart(first, second)
+                                SelectionSplits::SelectRight(first, second)
                             } else if range_in_right_of_selection_end {
                                 SelectionSplits::NotSelected(range_str)
                             } else if selection_end_within_range_end {
@@ -1121,24 +1116,24 @@ impl<XMSG> WebEditor<XMSG> {
                                 let break1 = Point2::new(end.x - range_start.x, 0);
                                 let break1 = text_buffer.clamp_position(break1);
                                 let (first, second) = text_buffer.split_line_at_point(break1);
-                                SelectionSplits::OneSplitEnd(first, second)
+                                SelectionSplits::SelectLeft(first, second)
                             } else {
                                 SelectionSplits::NotSelected(range_str)
                             }
                         } else if selection_start_within_first_line {
                             if range_in_right_of_selection_start {
-                                SelectionSplits::Whole(range_str)
+                                SelectionSplits::SelectAll(range_str)
                             } else if selection_start_within_range_start {
                                 let break1 = Point2::new(start.x - range_start.x, 0);
                                 let break1 = text_buffer.clamp_position(break1);
                                 let (first, second) = text_buffer.split_line_at_point(break1);
-                                SelectionSplits::OneSplitStart(first, second)
+                                SelectionSplits::SelectRight(first, second)
                             } else {
                                 SelectionSplits::NotSelected(range_str)
                             }
                         } else if selection_end_within_last_line {
                             if range_in_left_of_selection_end {
-                                SelectionSplits::Whole(range_str)
+                                SelectionSplits::SelectAll(range_str)
                             } else if range_in_right_of_selection_end {
                                 SelectionSplits::NotSelected(range_str)
                             } else if selection_end_within_range_end {
@@ -1147,7 +1142,7 @@ impl<XMSG> WebEditor<XMSG> {
                                 let break1 = Point2::new(end.x - range_start.x, 0);
                                 let break1 = text_buffer.clamp_position(break1);
                                 let (first, second) = text_buffer.split_line_at_point(break1);
-                                SelectionSplits::OneSplitEnd(first, second)
+                                SelectionSplits::SelectLeft(first, second)
                             } else {
                                 SelectionSplits::NotSelected(range_str)
                             }
@@ -1220,7 +1215,7 @@ impl<XMSG> WebEditor<XMSG> {
                 let in_inner_line = line_index > start.y && line_index < end.y;
 
                 if in_inner_line {
-                    SelectionSplits::Whole(line)
+                    SelectionSplits::SelectAll(line)
                 } else {
                     // selection end points is only on the same line
                     let in_same_line = start.y == end.y;
@@ -1241,9 +1236,9 @@ impl<XMSG> WebEditor<XMSG> {
                             let break2 = text_buffer.clamp_position(break2);
                             let (first, second, third) =
                                 text_buffer.split_line_at_2_points(break1, break2);
-                            SelectionSplits::TwoSplits(first, second, third)
+                            SelectionSplits::SelectMiddle(first, second, third)
                         } else {
-                            SelectionSplits::OneSplitStart(first, second)
+                            SelectionSplits::SelectRight(first, second)
                         }
                     } else if in_last_line {
                         // the first part is the highlighted
@@ -1251,7 +1246,7 @@ impl<XMSG> WebEditor<XMSG> {
                         let break1 = Point2::new(end.x, line_index);
                         let break1 = text_buffer.clamp_position(break1);
                         let (first, second) = text_buffer.split_line_at_point(break1);
-                        SelectionSplits::OneSplitEnd(first, second)
+                        SelectionSplits::SelectLeft(first, second)
                     } else {
                         SelectionSplits::NotSelected(line)
                     }
