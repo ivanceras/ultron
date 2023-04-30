@@ -1081,7 +1081,7 @@ impl<XMSG> WebEditor<XMSG> {
                         let range_in_right_of_selection_end =
                             range_start.x > end.x && range_end.x > end.x;
 
-                        let text_buffer = TextBuffer::from_ch(vec![range.clone()]);
+                        let text_buffer = TextBuffer::from_ch(&[range]);
 
                         if line_within_selection {
                             SelectionSplits::SelectAll(range_str)

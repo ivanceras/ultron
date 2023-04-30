@@ -41,9 +41,12 @@ impl TextBuffer {
         }
     }
 
-    pub fn from_ch(chars: Vec<Vec<Ch>>) -> Self {
+    pub fn from_ch(chars: &[&[Ch]]) -> Self {
         Self {
-            chars,
+            chars: chars
+                .iter()
+                .map(|inner| inner.iter().map(|ch| *ch).collect())
+                .collect(),
             cursor: Point2::new(0, 0),
         }
     }
