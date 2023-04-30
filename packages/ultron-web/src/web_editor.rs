@@ -1110,6 +1110,15 @@ impl<XMSG> WebEditor<XMSG> {
                                 let break1 = text_buffer.clamp_position(break1);
                                 let (first, second) = text_buffer.split_line_at_point(break1);
                                 SelectionSplits::OneSplitStart(first, second)
+                            }else if range_in_right_of_selection_end{
+                                SelectionSplits::NotSelected(range_str)
+                            }else if selection_end_within_range_end{
+                                // the first is selected
+                                // the second is plain
+                                let break1 = Point2::new(end.x - range_start.x, 0);
+                                let break1 = text_buffer.clamp_position(break1);
+                                let (first, second) = text_buffer.split_line_at_point(break1);
+                                SelectionSplits::OneSplitEnd(first, second)
                             }else{
                                 SelectionSplits::NotSelected(range_str)
                             }
