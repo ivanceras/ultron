@@ -1112,17 +1112,26 @@ impl<XMSG> WebEditor<XMSG> {
                                 SelectionSplits::Whole(range_str)
                             } else if selection_start_within_first_line{
                                 if selection_start_within_range_start{
-                                    if selection_within_range{
-                                        // the first is plain
-                                        // the second is selected
-                                        // the third is plain
-                                        let break1 = Point2::new(start.x - range_start.x, 0);
-                                        let break1 = text_buffer.clamp_position(break1);
-                                        let break2 = Point2::new(end.x - range_start.x, 0);
-                                        let break2 = text_buffer.clamp_position(break2);
-                                        let (first, second, third) =
-                                            text_buffer.split_line_at_2_points(break1, break2);
-                                        SelectionSplits::TwoSplits(first, second, third)
+                                    if selection_in_same_line{
+                                        if selection_within_range{
+                                            // the first is plain
+                                            // the second is selected
+                                            // the third is plain
+                                            let break1 = Point2::new(start.x - range_start.x, 0);
+                                            let break1 = text_buffer.clamp_position(break1);
+                                            let break2 = Point2::new(end.x - range_start.x, 0);
+                                            let break2 = text_buffer.clamp_position(break2);
+                                            let (first, second, third) =
+                                                text_buffer.split_line_at_2_points(break1, break2);
+                                            SelectionSplits::TwoSplits(first, second, third)
+                                        }else{
+                                            // the first is plain
+                                            // the second is selected
+                                            let break1 = Point2::new(start.x - range_start.x, 0);
+                                            let break1 = text_buffer.clamp_position(break1);
+                                            let (first, second) = text_buffer.split_line_at_point(break1);
+                                            SelectionSplits::OneSplitStart(first, second)
+                                        }
                                     }else{
                                         // the first is plain
                                         // the second is selected
@@ -1135,7 +1144,7 @@ impl<XMSG> WebEditor<XMSG> {
                                     SelectionSplits::NotSelected(range_str)
                                 }
                             }else if selection_end_within_last_line{
-                                if selection_end_within_range_end {
+                                if selection_end_within_range_end && range_start.x <= end.x {
                                     // the first is selected
                                     // the second is plain
                                     let break1 = Point2::new(end.x - range_start.x, 0);
