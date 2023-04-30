@@ -1060,7 +1060,7 @@ impl<XMSG> WebEditor<XMSG> {
 
                 let foreground = util::to_rgba(style.foreground).to_css();
 
-                let selection_splits = match self.editor.text_edit.selection_normalized_casted() {
+                let selection_splits = match self.editor.text_edit.selection_reorder_casted() {
                     Some((start, end)) => {
                         // selection end points is only on the same line
                         let selection_in_same_line = start.y == end.y;

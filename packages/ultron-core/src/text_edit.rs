@@ -333,6 +333,20 @@ impl TextEdit {
         }
     }
 
+    pub fn selection_reorder_casted(&self) -> Option<(Point2<usize>, Point2<usize>)> {
+        match (self.selection.start, self.selection.end) {
+            (Some(start), Some(end)) => {
+                let (start, end) = util::reorder_top_down_left_right(start, end);
+                let start = util::cast_point(start);
+                let end = util::cast_point(end);
+                let start = self.text_buffer.clamp_position(start);
+                let end = self.text_buffer.clamp_position(end);
+                Some((start, end))
+            }
+            _ => None,
+        }
+    }
+
     pub fn cut_selected_text_in_block_mode(&mut self) -> Option<String> {
         match self.selection_normalized_casted() {
             Some((start, end)) => {
