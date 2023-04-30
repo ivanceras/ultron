@@ -27,7 +27,7 @@ impl App {
             syntax_token: "rust".to_string(),
             theme_name: Some("solarized-light".to_string()),
             //theme_name: Some("gruvbox-dark".to_string()),
-            use_syntax_highlighter: false,
+            use_syntax_highlighter: true,
             allow_text_selection: false,
             selection_mode: SelectionMode::Linear,
             ..Default::default()

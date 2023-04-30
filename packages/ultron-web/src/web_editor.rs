@@ -154,21 +154,21 @@ impl SelectionSplits {
                 [node_style],
                 [
                     span([], [text(first)]),
-                    span([class_ns("selected"), style!{background_color:"green"}], [text(second)]),
+                    span([class_ns("selected")], [text(second)]),
                 ],
             ),
             Self::TwoSplits(first, second, third) => span(
                 [node_style],
                 [
                     span([], [text(first)]),
-                    span([class_ns("selected"), style!{background_color: "red"}], [text(second)]),
+                    span([class_ns("selected")], [text(second)]),
                     span([], [text(third)]),
                 ],
             ),
             Self::OneSplitEnd(first, second) => span(
                 [node_style],
                 [
-                    span([class_ns("selected"), style!{background_color: "blue"}], [text(first)]),
+                    span([class_ns("selected")], [text(first)]),
                     span([], [text(second)]),
                 ],
             ),
