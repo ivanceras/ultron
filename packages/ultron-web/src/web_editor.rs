@@ -17,6 +17,23 @@ pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
 pub const CH_HEIGHT: u32 = 16;
 
+#[derive(Debug, Clone)]
+pub enum Msg {
+    EditorMounted(MountEvent),
+    CursorMounted(MountEvent),
+    Keydown(web_sys::KeyboardEvent),
+    Mouseup(web_sys::MouseEvent),
+    Mousedown(web_sys::MouseEvent),
+    Mousemove(web_sys::MouseEvent),
+    Measurements(Measurements),
+    Focused(web_sys::FocusEvent),
+    Blur(web_sys::FocusEvent),
+    ContextMenu(web_sys::MouseEvent),
+    ContextMenuMsg(context_menu::Msg),
+    ScrollCursorIntoView,
+    MenuAction(MenuAction),
+}
+
 #[derive(Debug)]
 pub enum Command {
     EditorCommand(editor::Command),
@@ -28,6 +45,26 @@ pub enum Command {
     /// execute cut text
     CutText,
 }
+
+/// rename this to WebEditor
+pub struct WebEditor<XMSG> {
+    options: Options,
+    pub editor: Editor<XMSG>,
+    editor_element: Option<web_sys::Element>,
+    cursor_element: Option<web_sys::Element>,
+    mouse_cursor: MouseCursor,
+    measure: Measure,
+    is_selecting: bool,
+    text_highlighter: Rc<RefCell<TextHighlighter>>,
+    /// lines of highlighted ranges
+    highlighted_lines: Rc<RefCell<Vec<Vec<(Style, Vec<Ch>)>>>>,
+    current_handle: Option<i32>,
+    pub is_focused: bool,
+    context_menu: Menu<Msg>,
+    show_context_menu: bool,
+}
+
+
 
 impl From<editor::Command> for Command {
     fn from(ecommand: editor::Command) -> Self {
@@ -57,41 +94,6 @@ impl MouseCursor {
             Self::CrossHair => "crosshair",
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum Msg {
-    EditorMounted(MountEvent),
-    CursorMounted(MountEvent),
-    Keydown(web_sys::KeyboardEvent),
-    Mouseup(web_sys::MouseEvent),
-    Mousedown(web_sys::MouseEvent),
-    Mousemove(web_sys::MouseEvent),
-    Measurements(Measurements),
-    Focused(web_sys::FocusEvent),
-    Blur(web_sys::FocusEvent),
-    ContextMenu(web_sys::MouseEvent),
-    ContextMenuMsg(context_menu::Msg),
-    ScrollCursorIntoView,
-    MenuAction(MenuAction),
-}
-
-/// rename this to WebEditor
-pub struct WebEditor<XMSG> {
-    options: Options,
-    pub editor: Editor<XMSG>,
-    editor_element: Option<web_sys::Element>,
-    cursor_element: Option<web_sys::Element>,
-    mouse_cursor: MouseCursor,
-    measure: Measure,
-    is_selecting: bool,
-    text_highlighter: Rc<RefCell<TextHighlighter>>,
-    /// lines of highlighted ranges
-    highlighted_lines: Rc<RefCell<Vec<Vec<(Style, Vec<Ch>)>>>>,
-    current_handle: Option<i32>,
-    pub is_focused: bool,
-    context_menu: Menu<Msg>,
-    show_context_menu: bool,
 }
 
 /// a utility enum which hold each cases of line selection
