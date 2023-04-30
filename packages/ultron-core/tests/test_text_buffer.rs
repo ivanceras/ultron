@@ -489,3 +489,23 @@ fn test_cut_text_block_mode() {
         "0000\n01234  5678\n01234  5678\n01234  5678\n0000"
     );
 }
+
+#[test]
+fn test_split_line_at_point() {
+    let raw = "Hello world";
+    let text_buffer = TextBuffer::from_str(raw);
+    let (first, second) = text_buffer.split_line_at_point(Point2::new(5, 0));
+    assert_eq!(first, "Hello");
+    assert_eq!(second, " world");
+}
+
+#[test]
+fn test_split_line_at_2_points() {
+    let raw = "Hello world and everywhere";
+    let text_buffer = TextBuffer::from_str(raw);
+    let (first, second, third) =
+        text_buffer.split_line_at_2_points(Point2::new(5, 0), Point2::new(15, 0));
+    assert_eq!(first, "Hello");
+    assert_eq!(second, " world and");
+    assert_eq!(third, " everywhere");
+}

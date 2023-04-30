@@ -154,21 +154,21 @@ impl SelectionSplits {
                 [node_style],
                 [
                     span([], [text(first)]),
-                    span([class_ns("selected")], [text(second)]),
+                    span([class_ns("selected"), style!{background_color:"green"}], [text(second)]),
                 ],
             ),
             Self::TwoSplits(first, second, third) => span(
                 [node_style],
                 [
                     span([], [text(first)]),
-                    span([class_ns("selected")], [text(second)]),
+                    span([class_ns("selected"), style!{background_color: "red"}], [text(second)]),
                     span([], [text(third)]),
                 ],
             ),
             Self::OneSplitEnd(first, second) => span(
                 [node_style],
                 [
-                    span([class_ns("selected")], [text(first)]),
+                    span([class_ns("selected"), style!{background_color: "blue"}], [text(first)]),
                     span([], [text(second)]),
                 ],
             ),
@@ -1092,7 +1092,8 @@ impl<XMSG> WebEditor<XMSG> {
                             SelectionSplits::Whole(range_str)
                         } else {
                             let text_buffer = TextBuffer::from_str(&range_str);
-                            if in_first_line && in_range_start{
+                            if in_first_line{
+                                if in_range_start{
                                     if in_same_range{
                                         // the first is plain
                                         // the second is selected
@@ -1112,13 +1113,20 @@ impl<XMSG> WebEditor<XMSG> {
                                         let (first, second) = text_buffer.split_line_at_point(break1);
                                         SelectionSplits::OneSplitStart(first, second)
                                     }
-                            }else if in_last_line && in_range_end{
-                                // the first is selected
-                                // the second is plain
-                                let break1 = Point2::new(end.x - range_start.x, 0);
-                                let break1 = text_buffer.clamp_position(break1);
-                                let (first, second) = text_buffer.split_line_at_point(break1);
-                                SelectionSplits::OneSplitEnd(first, second)
+                                }else{
+                                    SelectionSplits::NotSelected(range_str)
+                                }
+                            }else if in_last_line {
+                                if in_range_end{
+                                    // the first is selected
+                                    // the second is plain
+                                    let break1 = Point2::new(end.x - range_start.x, 0);
+                                    let break1 = text_buffer.clamp_position(break1);
+                                    let (first, second) = text_buffer.split_line_at_point(break1);
+                                    SelectionSplits::OneSplitEnd(first, second)
+                                }else{
+                                    SelectionSplits::NotSelected(range_str)
+                                }
                             }else{
                                 SelectionSplits::NotSelected(range_str)
                             }
