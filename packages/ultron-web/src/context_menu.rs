@@ -50,7 +50,7 @@ impl<XMSG> Component<Msg, XMSG> for Menu<XMSG> {
                 let xmsgs: Vec<XMSG> = self
                     .listeners
                     .iter()
-                    .map(|listener| listener.emit(menu_action.clone()))
+                    .map(|listener| listener.emit(menu_action))
                     .collect();
                 Effects::with_external(xmsgs)
             }

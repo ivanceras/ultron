@@ -390,15 +390,15 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     COMPONENT_NAME,
                     [("occupy_container", self.options.occupy_container)],
                 ),
-                on_mount(|mount_event| Msg::EditorMounted(mount_event)),
+                on_mount(Msg::EditorMounted),
                 attributes::tabindex(1),
                 on_keydown(|ke| {
                     ke.prevent_default();
                     ke.stop_propagation();
                     Msg::Keydown(ke)
                 }),
-                on_focus(|fe| Msg::Focused(fe)),
-                on_blur(|fe| Msg::Blur(fe)),
+                on_focus(Msg::Focused),
+                on_blur(Msg::Blur),
                 on_contextmenu(|me| {
                     me.prevent_default();
                     me.stop_propagation();
@@ -948,7 +948,7 @@ impl<XMSG> WebEditor<XMSG> {
                     top: px(cursor.y),
                     left: px(cursor.x),
                 },
-                on_mount(|mount_event| Msg::CursorMounted(mount_event)),
+                on_mount(Msg::CursorMounted),
             ],
             [div([class_ns("cursor_center")], [])],
         )
@@ -1157,7 +1157,7 @@ impl<XMSG> WebEditor<XMSG> {
                     }
                     None => SelectionSplits::NotSelected(range_str),
                 };
-                selection_splits.view_with_style(style! { color: foreground.clone() })
+                selection_splits.view_with_style(style! { color: foreground })
             })
             .collect()
     }
