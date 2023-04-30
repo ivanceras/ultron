@@ -1043,6 +1043,7 @@ impl<XMSG> WebEditor<XMSG> {
         }
     }
 
+    #[allow(unused)]
     fn view_highlighted_line<MSG>(
         &self,
         line_index: usize,
@@ -1063,38 +1064,44 @@ impl<XMSG> WebEditor<XMSG> {
                 let selection_splits = match self.editor.text_edit.selection_normalized_casted() {
                     Some((start, end)) => {
                         // selection end points is only on the same line
-                        let in_same_line = start.y == end.y;
+                        let selection_in_same_line = start.y == end.y;
                         // this line is on the first line of selection
-                        let in_first_line = line_index == start.y;
+                        let selection_start_within_first_line = line_index == start.y;
                         // this line is on the last line of selection
-                        let in_last_line = line_index == end.y;
+                        let selection_end_within_last_line = line_index == end.y;
                         // this line is in between the selection end points
-                        let in_inner_line = line_index > start.y && line_index < end.y;
-                        // the start selection is in the range start
-                        let in_range_start = range_start.x >= start.x;
-                        // the end selection is in the range end
-                        let in_range_end = range_end.x <= end.x;
-                        // both selection endpoints is inside this range, there will be 2 splits
-                        let in_same_range = start.x >= range_start.x && end.x <= range_end.x;
-                        // the range is in between the selection end points
-                        let in_inner_range = if in_first_line {
-                            if in_same_line {
-                                in_range_start && in_range_end
+                        let line_within_selection = line_index > start.y && line_index < end.y;
+
+                        // the start selection is within this range  location
+                        let selection_start_within_range_start = start.x >= range_start.x;
+                        // the end selection is within this range location
+                        let selection_end_within_range_end = end.x <= range_end.x;
+                        // both selection endpoints is inside this range
+                        let selection_within_range = start.x >= range_start.x && end.x <= range_end.x;
+
+                        // the range is in between the selection endpoints
+                        let range_within_selection = if selection_start_within_first_line {
+                            if selection_in_same_line {
+                               start.x <= range_start.x && end.x >= range_end.x
                             } else {
-                                in_range_start
+                               start.x <= range_start.x
                             }
-                        } else if in_last_line {
-                            in_range_end
+                        } else if selection_end_within_last_line {
+                            end.x >= range_end.x
                         } else {
                             false
                         };
-                        if in_inner_line || in_inner_range {
+
+                        let text_buffer = TextBuffer::from_str(&range_str);
+
+                        if line_within_selection {
                             SelectionSplits::Whole(range_str)
                         } else {
-                            let text_buffer = TextBuffer::from_str(&range_str);
-                            if in_first_line{
-                                if in_range_start{
-                                    if in_same_range{
+                            if range_within_selection{
+                                SelectionSplits::Whole(range_str)
+                            } else if selection_start_within_first_line{
+                                if selection_start_within_range_start{
+                                    if selection_within_range{
                                         // the first is plain
                                         // the second is selected
                                         // the third is plain
@@ -1113,21 +1120,21 @@ impl<XMSG> WebEditor<XMSG> {
                                         let (first, second) = text_buffer.split_line_at_point(break1);
                                         SelectionSplits::OneSplitStart(first, second)
                                     }
-                                }else{
+                                } else{
                                     SelectionSplits::NotSelected(range_str)
                                 }
-                            }else if in_last_line {
-                                if in_range_end{
+                            }else if selection_end_within_last_line{
+                                if selection_end_within_range_end {
                                     // the first is selected
                                     // the second is plain
                                     let break1 = Point2::new(end.x - range_start.x, 0);
                                     let break1 = text_buffer.clamp_position(break1);
                                     let (first, second) = text_buffer.split_line_at_point(break1);
                                     SelectionSplits::OneSplitEnd(first, second)
-                                }else{
+                                } else{
                                     SelectionSplits::NotSelected(range_str)
                                 }
-                            }else{
+                            } else{
                                 SelectionSplits::NotSelected(range_str)
                             }
                         }
