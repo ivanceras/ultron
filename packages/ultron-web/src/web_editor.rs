@@ -1097,6 +1097,17 @@ impl<XMSG> WebEditor<XMSG> {
                         if line_within_selection {
                             SelectionSplits::Whole(range_str)
                         } else {
+                            //TODO: are multiple use case where
+                            // range that are not within the selection
+                            // - first line
+                            //     - before the start of selection
+                            //          - range split in the start selection
+                            //     - after the end of selection
+                            //          - range split in the end selection
+                            // - last line
+                            //     - before the end of selection
+                            //          - range split at the end of selection
+                            //     - after the end of selection
                             if range_within_selection{
                                 SelectionSplits::Whole(range_str)
                             } else if selection_start_within_first_line{
