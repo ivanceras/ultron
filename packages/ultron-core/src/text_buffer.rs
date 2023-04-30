@@ -1,5 +1,6 @@
 use nalgebra::Point2;
 use std::iter::FromIterator;
+use std::iter::IntoIterator;
 use unicode_width::UnicodeWidthChar;
 
 pub const BLANK_CH: char = ' ';
@@ -36,6 +37,13 @@ impl TextBuffer {
                 .lines()
                 .map(|line| line.chars().map(Ch::new).collect())
                 .collect(),
+            cursor: Point2::new(0, 0),
+        }
+    }
+
+    pub fn from_ch(chars: Vec<Vec<Ch>>) -> Self {
+        Self {
+            chars,
             cursor: Point2::new(0, 0),
         }
     }

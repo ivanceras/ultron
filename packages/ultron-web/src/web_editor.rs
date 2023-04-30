@@ -1092,7 +1092,7 @@ impl<XMSG> WebEditor<XMSG> {
                             false
                         };
 
-                        let text_buffer = TextBuffer::from_str(&range_str);
+                        let text_buffer = TextBuffer::from_ch(vec![range.clone()]);
 
                         if line_within_selection {
                             SelectionSplits::Whole(range_str)
@@ -1100,6 +1100,7 @@ impl<XMSG> WebEditor<XMSG> {
                             //TODO: are multiple use case where
                             // range that are not within the selection
                             // - first line
+                            //     - if the end_selection is also in the first line
                             //     - before the start of selection
                             //          - range split in the start selection
                             //     - after the end of selection
@@ -1108,6 +1109,13 @@ impl<XMSG> WebEditor<XMSG> {
                             //     - before the end of selection
                             //          - range split at the end of selection
                             //     - after the end of selection
+                            //
+                            //     The quick [brown fox jumps over the lazy] dog!
+                            //     The quick b[row]n fox jumps over the lazy dog!
+                            //
+                            //     The quick b[rown fox
+                            //      jumps over the la]zy dog!
+                            //
                             if range_within_selection{
                                 SelectionSplits::Whole(range_str)
                             } else if selection_start_within_first_line{
