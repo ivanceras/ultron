@@ -1211,7 +1211,7 @@ impl<XMSG> WebEditor<XMSG> {
         let line_width = self.editor.text_edit.text_buffer.line_width(line_index);
         let line_end = Point2::new(line_width, line_index);
 
-        let selection_splits = match self.editor.text_edit.selection_normalized_casted() {
+        let selection_splits = match self.editor.text_edit.selection_reorder_casted() {
             Some((start, end)) => {
                 // this line is in between the selection end points
                 let in_inner_line = line_index > start.y && line_index < end.y;
