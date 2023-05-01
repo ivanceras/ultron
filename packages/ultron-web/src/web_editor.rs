@@ -438,7 +438,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 let client_x = me.client_x();
                 let client_y = me.client_y();
                 let is_primary_btn = me.button() == 0;
-                if is_primary_btn && self.in_bounds(client_x as f32, client_y as f32) {
+                if is_primary_btn{
                     //self.editor.clear_selection();
                     self.is_selecting = true;
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
@@ -456,19 +456,15 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             Msg::Mousemove(me) => {
                 let client_x = me.client_x();
                 let client_y = me.client_y();
-                if self.in_bounds(client_x as f32, client_y as f32) {
-                    let cursor = self.client_to_grid_clamped(client_x, client_y);
-                    if self.is_selecting && !self.show_context_menu {
-                        let selection = self.editor.selection();
-                        if let Some(start) = selection.start {
-                            self.editor.set_selection_end(cursor);
-                            let msgs = self
-                                .editor
-                                .process_commands([editor::Command::SetSelection(start, cursor)]);
-                            Effects::new(vec![], msgs).measure()
-                        } else {
-                            Effects::none()
-                        }
+                let cursor = self.client_to_grid_clamped(client_x, client_y);
+                if self.is_selecting && !self.show_context_menu {
+                    let selection = self.editor.selection();
+                    if let Some(start) = selection.start {
+                        self.editor.set_selection_end(cursor);
+                        let msgs = self
+                            .editor
+                            .process_commands([editor::Command::SetSelection(start, cursor)]);
+                        Effects::new(vec![], msgs).measure()
                     } else {
                         Effects::none()
                     }
