@@ -1,7 +1,7 @@
 #![deny(warnings)]
 
 use ultron_web::{
-    sauron::{html::tags::style, prelude::*},
+    sauron::{html::attributes::r#type, html::tags::style, html::text, *},
     Options, WebEditor,
 };
 
