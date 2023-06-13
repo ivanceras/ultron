@@ -1,5 +1,5 @@
-use sauron::jss;
-use sauron::prelude::*;
+use sauron::dom::Callback;
+use sauron::{html::attributes::*, html::events::*, html::*, *};
 use ultron_core::nalgebra::Point2;
 
 #[derive(Debug, Clone)]

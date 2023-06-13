@@ -2,8 +2,10 @@ use crate::context_menu::{self, Menu, MenuAction};
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::{
-    html::attributes, jss_ns_pretty, prelude::*, wasm_bindgen::JsCast,
-    wasm_bindgen_futures::JsFuture, Measurements,
+    html::*,
+    html::attributes::*, jss_ns_pretty, *, wasm_bindgen::JsCast,
+    html::events::*,
+    wasm_bindgen_futures::JsFuture, dom::Measurements,
 };
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -604,7 +606,7 @@ impl<XMSG> WebEditor<XMSG> {
                     .cancel_animation_frame(current_handle)
                     .expect("must cancel");
             }
-            let handle = sauron::request_animation_frame(move || {
+            let handle = sauron::dom::request_animation_frame(move || {
                 let mut text_highlighter = text_highlighter.borrow_mut();
                 text_highlighter.reset();
                 let start = 0; // TODO use the actual start
@@ -768,7 +770,7 @@ impl<XMSG> WebEditor<XMSG> {
             if let Some(selected_text) = self.selected_text() {
                 log::info!("selected text: {selected_text}");
                 let fut = JsFuture::from(clipboard.write_text(&selected_text));
-                spawn_local(async move {
+                sauron::dom::spawn_local(async move {
                     fut.await.expect("must not error");
                 });
                 return true;

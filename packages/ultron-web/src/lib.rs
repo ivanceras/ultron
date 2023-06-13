@@ -1,6 +1,6 @@
 #![deny(warnings)]
 pub use sauron;
-use sauron::prelude::*;
+use sauron::*;
 pub use ultron_core::{editor, nalgebra, Options, SelectionMode, TextBuffer};
 pub use web_editor::{Command, MouseCursor, WebEditor, COMPONENT_NAME};
 
