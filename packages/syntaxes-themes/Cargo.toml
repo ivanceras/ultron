@@ -2,7 +2,7 @@
 name = "ultron-syntaxes-themes"
 version = "0.2.6"
 authors = ["Jovansonlee Cesar <ivanceras@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "Syntaxes and themes dump for ultron"
 license = "MIT"
 repository = "https://github.com/ivanceras/ultron"
