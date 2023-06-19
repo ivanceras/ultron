@@ -2,6 +2,7 @@
 pub use crate::Selection;
 use crate::{Options, SelectionMode, TextBuffer, TextEdit};
 use nalgebra::Point2;
+use std::marker::PhantomData;
 use std::sync::Arc;
 pub use ultron_syntaxes_themes::{Style, TextHighlighter};
 
@@ -11,10 +12,13 @@ pub struct Editor<XMSG> {
     pub text_edit: TextEdit,
     /// Other components can listen to the an event.
     /// When the content of the text editor changes, the change listener will be emitted
+    #[cfg(feature = "callback")]
     change_listeners: Vec<Callback<String, XMSG>>,
     /// a cheaper listener which doesn't need to assemble the text content
     /// of the text editor everytime
+    #[cfg(feature = "callback")]
     change_notify_listeners: Vec<Callback<(), XMSG>>,
+    _phantom: PhantomData<XMSG>,
 }
 
 #[derive(Debug)]
@@ -75,8 +79,11 @@ impl<XMSG> Editor<XMSG> {
         Editor {
             options,
             text_edit,
+            #[cfg(feature = "callback")]
             change_listeners: vec![],
+            #[cfg(feature = "callback")]
             change_notify_listeners: vec![],
+            _phantom: PhantomData,
         }
     }
 
@@ -148,11 +155,15 @@ impl<XMSG> Editor<XMSG> {
             .into_iter()
             .map(|command| self.process_command(command))
             .collect();
+
+        #[cfg(feature = "callback")]
         if results.into_iter().any(|v| v) {
             self.emit_on_change_listeners()
         } else {
             vec![]
         }
+        #[cfg(not(feature = "callback"))]
+        vec![]
     }
 
     /// TODO: convert this into process_commands
@@ -308,6 +319,7 @@ impl<XMSG> Editor<XMSG> {
     ///
     /// Note:The content is extracted into string and used as a parameter to the function.
     /// This may be a costly operation when the editor has lot of text on it.
+    #[cfg(feature = "callback")]
     pub fn on_change<F>(mut self, f: F) -> Self
     where
         F: Fn(String) -> XMSG + 'static,
@@ -317,6 +329,7 @@ impl<XMSG> Editor<XMSG> {
         self
     }
 
+    #[cfg(feature = "callback")]
     pub fn add_on_change_listener<F>(&mut self, f: F)
     where
         F: Fn(String) -> XMSG + 'static,
@@ -333,6 +346,7 @@ impl<XMSG> Editor<XMSG> {
     /// decides when to do an expensive operation based on time and recency.
     ///
     ///
+    #[cfg(feature = "callback")]
     pub fn on_change_notify<F>(mut self, f: F) -> Self
     where
         F: Fn(()) -> XMSG + 'static,
@@ -342,6 +356,7 @@ impl<XMSG> Editor<XMSG> {
         self
     }
 
+    #[cfg(feature = "callback")]
     pub fn add_on_change_notify<F>(&mut self, f: F)
     where
         F: Fn(()) -> XMSG + 'static,
@@ -350,6 +365,7 @@ impl<XMSG> Editor<XMSG> {
         self.change_notify_listeners.push(cb);
     }
 
+    #[cfg(feature = "callback")]
     pub fn emit_on_change_listeners(&self) -> Vec<XMSG> {
         let mut extern_msgs: Vec<XMSG> = vec![];
         if !self.change_listeners.is_empty() {

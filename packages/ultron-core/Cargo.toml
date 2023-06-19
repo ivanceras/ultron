@@ -11,3 +11,6 @@ nalgebra = "0.29.0"
 log = "0.4.17"
 ultron-syntaxes-themes = { version = "0.2.6", path = "../syntaxes-themes" }
 async-recursion = "1.0.0"
+
+[features]
+callback = []
