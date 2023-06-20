@@ -15,6 +15,15 @@ pub struct TextBuffer {
     cursor: Point2<usize>,
 }
 
+impl Default for TextBuffer {
+    fn default() -> Self {
+        Self {
+            chars: vec![],
+            cursor: Point2::new(0, 0),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Ch {
     pub ch: char,

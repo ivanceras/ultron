@@ -7,6 +7,7 @@ use std::sync::Arc;
 pub use ultron_syntaxes_themes::{Style, TextHighlighter};
 
 /// An editor with core functionality platform specific UI
+#[derive(Default)]
 pub struct Editor<XMSG> {
     options: Options,
     pub text_edit: TextEdit,

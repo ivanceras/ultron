@@ -13,6 +13,15 @@ pub struct Menu<XMSG> {
     position: Option<Point2<i32>>,
 }
 
+impl<XMSG> Default for Menu<XMSG> {
+    fn default() -> Self {
+        Self {
+            listeners: vec![],
+            position: None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Copy)]
 pub enum MenuAction {
     Undo,
