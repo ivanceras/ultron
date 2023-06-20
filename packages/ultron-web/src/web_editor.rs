@@ -12,6 +12,11 @@ use ultron_core::{
     editor, nalgebra::Point2, Ch, Editor, Options, SelectionMode, Style, TextBuffer, TextEdit,
     TextHighlighter,
 };
+use selection::SelectionSplits;
+pub use mouse_cursor::MouseCursor;
+
+mod selection;
+mod mouse_cursor;
 
 pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
@@ -71,105 +76,6 @@ impl From<editor::Command> for Command {
     }
 }
 
-pub enum MouseCursor {
-    Text,
-    Move,
-    Pointer,
-    CrossHair,
-}
-
-impl Default for MouseCursor {
-    fn default() -> Self {
-        Self::Text
-    }
-}
-
-impl MouseCursor {
-    fn to_str(&self) -> &str {
-        match self {
-            Self::Text => "text",
-            Self::Move => "move",
-            Self::Pointer => "default",
-            Self::CrossHair => "crosshair",
-        }
-    }
-}
-
-/// a utility enum which hold each cases of line selection
-enum SelectionSplits {
-    /// the whole range/line is selected
-    SelectAll(String),
-    /// the first part is plain, the second one is selected
-    SelectRight(String, String),
-    /// the first part is plain, the second one is selected, the third one is plain
-    SelectMiddle(String, String, String),
-    /// the first part is selected, the second one is plain
-    SelectLeft(String, String),
-    /// It is not part of the selection
-    NotSelected(String),
-}
-
-impl SelectionSplits {
-    fn view<MSG>(&self) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        match self {
-            Self::SelectAll(line) => span([class_ns("selected")], [text(line)]),
-            Self::SelectRight(first, second) => span(
-                [],
-                [
-                    span([], [text(first)]),
-                    span([class_ns("selected")], [text(second)]),
-                ],
-            ),
-            Self::SelectMiddle(first, second, third) => span(
-                [],
-                [
-                    span([], [text(first)]),
-                    span([class_ns("selected")], [text(second)]),
-                    span([], [text(third)]),
-                ],
-            ),
-            Self::SelectLeft(first, second) => span(
-                [],
-                [
-                    span([class_ns("selected")], [text(first)]),
-                    span([], [text(second)]),
-                ],
-            ),
-            Self::NotSelected(line) => span([], [text(line)]),
-        }
-    }
-
-    fn view_with_style<MSG>(&self, node_style: Attribute<MSG>) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        match self {
-            Self::SelectAll(line) => span([class_ns("selected"), node_style], [text(line)]),
-            Self::SelectRight(first, second) => span(
-                [node_style],
-                [
-                    span([], [text(first)]),
-                    span([class_ns("selected")], [text(second)]),
-                ],
-            ),
-            Self::SelectMiddle(first, second, third) => span(
-                [node_style],
-                [
-                    span([], [text(first)]),
-                    span([class_ns("selected")], [text(second)]),
-                    span([], [text(third)]),
-                ],
-            ),
-            Self::SelectLeft(first, second) => span(
-                [node_style],
-                [
-                    span([class_ns("selected")], [text(first)]),
-                    span([], [text(second)]),
-                ],
-            ),
-            Self::NotSelected(line) => span([node_style], [text(line)]),
-        }
-    }
-}
 
 #[derive(Default)]
 struct Measure {
@@ -413,7 +319,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 },
                 view_if(self.options.show_status_line, self.view_status_line()),
                 view_if(
-                    /*self.is_focused &&*/ self.options.show_cursor,
+                    self.is_focused && self.options.show_cursor,
                     self.view_cursor(),
                 ),
                 view_if(
@@ -427,6 +333,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
             Msg::EditorMounted(mount_event) => {
+                log::info!("Web editor is mounted..");
                 let mount_element: web_sys::Element = mount_event.target_node.unchecked_into();
                 self.editor_element = Some(mount_element);
                 Effects::none()
