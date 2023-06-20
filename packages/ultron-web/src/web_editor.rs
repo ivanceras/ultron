@@ -60,7 +60,7 @@ pub struct WebEditor<XMSG> {
     text_highlighter: Rc<RefCell<TextHighlighter>>,
     /// lines of highlighted ranges
     highlighted_lines: Rc<RefCell<Vec<Vec<(Style, Vec<Ch>)>>>>,
-    current_handle: Option<i32>,
+    current_handle: Vec<i32>,
     pub is_focused: bool,
     context_menu: Menu<Msg>,
     show_context_menu: bool,
@@ -200,7 +200,7 @@ impl<XMSG> WebEditor<XMSG> {
             is_selecting: false,
             text_highlighter: Rc::new(RefCell::new(text_highlighter)),
             highlighted_lines,
-            current_handle: None,
+            current_handle: vec![],
             is_focused: false,
             context_menu: Menu::new().on_activate(Msg::MenuAction),
             show_context_menu: false,
@@ -601,12 +601,12 @@ impl<XMSG> WebEditor<XMSG> {
             let text_highlighter = self.text_highlighter.clone();
             let highlighted_lines = self.highlighted_lines.clone();
             let lines = self.editor.text_edit.lines();
-            if let Some(current_handle) = self.current_handle {
-                sauron::window()
-                    .cancel_animation_frame(current_handle)
+            for handle in self.current_handle.drain(..){
+                //cancel the old ones
+                sauron::dom::util::cancel_animation_frame(handle)
                     .expect("must cancel");
             }
-            let handle = sauron::dom::request_animation_frame(move || {
+            let handle = sauron::dom::util::request_animation_frame(move || {
                 let mut text_highlighter = text_highlighter.borrow_mut();
                 text_highlighter.reset();
                 let start = 0; // TODO use the actual start
@@ -631,7 +631,7 @@ impl<XMSG> WebEditor<XMSG> {
                 }
             })
             .expect("must have a handle");
-            self.current_handle = Some(handle);
+            self.current_handle.push(handle);
         }
     }
 
@@ -730,9 +730,37 @@ impl<XMSG> WebEditor<XMSG> {
         );
     }
 
+    /// insert the newly typed character to the highlighted line
+    /// Note: This is a hacky way to have a visual feedback for the users to see
+    /// the typed letter, the highlighter will eventually color it when it is done running
+    fn insert_to_highlighted_line(&mut self, ch: char) {
+       let cursor = self.get_position();
+       let line = cursor.y;
+       let column = cursor.x;
+       if let Some(line) = self.highlighted_lines.borrow_mut().get_mut(line){
+           let mut width: usize = 0;
+           for (_style, ref mut range) in line.iter_mut(){
+               let range_width = range.iter().map(|range|range.width).sum::<usize>();
+               if column > width && column <= width + range_width {
+                   range.push(Ch::new(ch));
+               }
+               width += range_width;
+           }
+       }
+    }
+
     pub fn process_command(&mut self, command: Command) -> bool {
         match command {
-            Command::EditorCommand(ecommand) => self.editor.process_command(ecommand),
+            Command::EditorCommand(ecommand) => {
+                match ecommand{
+                    editor::Command::InsertChar(ch) => {
+                        self.insert_to_highlighted_line(ch);
+                        self.editor.process_command(ecommand)
+                    }
+                    _ =>
+                        self.editor.process_command(ecommand)
+                }
+            }
             Command::PasteTextBlock(text_block) => self
                 .editor
                 .process_command(editor::Command::PasteTextBlock(text_block)),

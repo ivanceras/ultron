@@ -131,3 +131,7 @@
 
 ## Tests
 - [ ] Add test for undo and redo (editor)
+
+## Performance improvement
+- [ ] For every last typed character, add it to the most probable range in the highlighted line
+    - It will be corrected once the highlighting is run
