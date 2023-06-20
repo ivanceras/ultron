@@ -68,6 +68,11 @@
             - if the last record is not yet there, then execute the function and set it to now
 - [X] Always make the cursor visible, by scrolling to where the cursor is located
 - [ ] Activating a context menu interferes with the selection since both are based on mouse clicks
+- [ ] Make the editor a custom_element using tag `ultron-editor`.
+    Example usage
+    ```html
+        <ultron-editor value="The long text the user wants to be edited" on_change= {(|ie| {log::info!("The value changed to: {}", ie.value);})}/>
+    ```
 
 ## Features
 - [~] Smart edit blockmode
@@ -133,5 +138,5 @@
 - [ ] Add test for undo and redo (editor)
 
 ## Performance improvement
-- [ ] For every last typed character, add it to the most probable range in the highlighted line
+- [X] For every last typed character, add it to the most probable range in the highlighted line
     - It will be corrected once the highlighting is run

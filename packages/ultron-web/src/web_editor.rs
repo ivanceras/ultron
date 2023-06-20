@@ -660,6 +660,8 @@ impl<XMSG> WebEditor<XMSG> {
                     .collect()
             });
 
+            // TODO: there could be a bug here, what if the new and old highlighted lines have
+            // different length, it will only iterate to which ever is the shorted length.
             for (line, new_highlight) in highlighted_lines
                 .borrow_mut()
                 .iter_mut()
@@ -736,8 +738,10 @@ impl<XMSG> WebEditor<XMSG> {
             .collect();
         if results.into_iter().any(|v| v) {
             let xmsgs = self.editor.emit_on_change_listeners();
-            self.rehighlight_visible_lines();
-            self.rehighlight_non_visible_lines_in_background();
+            if self.options.use_syntax_highlighter{
+                self.rehighlight_visible_lines();
+                self.rehighlight_non_visible_lines_in_background();
+            }
             xmsgs
         } else {
             vec![]
@@ -760,15 +764,6 @@ impl<XMSG> WebEditor<XMSG> {
                     .collect()
             })
             .collect()
-    }
-
-    /// rehighlight the texts
-    pub fn rehighlight(&mut self) {
-        self.text_highlighter.borrow_mut().reset();
-        *self.highlighted_lines.borrow_mut() = Self::highlight_lines(
-            &self.editor.text_edit,
-            &mut self.text_highlighter.borrow_mut(),
-        );
     }
 
     /// insert the newly typed character to the highlighted line
