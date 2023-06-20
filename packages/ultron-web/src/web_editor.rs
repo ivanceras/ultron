@@ -742,7 +742,8 @@ impl<XMSG> WebEditor<XMSG> {
            for (_style, ref mut range) in line.iter_mut(){
                let range_width = range.iter().map(|range|range.width).sum::<usize>();
                if column > width && column <= width + range_width {
-                   range.push(Ch::new(ch));
+                   let diff = column - width;
+                   range.insert(diff, Ch::new(ch));
                }
                width += range_width;
            }
