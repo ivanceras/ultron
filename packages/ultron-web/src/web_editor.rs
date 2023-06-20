@@ -2,10 +2,8 @@ use crate::context_menu::{self, Menu, MenuAction};
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::{
-    html::*,
-    html::attributes::*, jss_ns_pretty, *, wasm_bindgen::JsCast,
-    html::events::*,
-    wasm_bindgen_futures::JsFuture, dom::Measurements,
+    dom::Measurements, html::attributes::*, html::events::*, html::*, jss_ns_pretty,
+    wasm_bindgen::JsCast, wasm_bindgen_futures::JsFuture, *,
 };
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -442,7 +440,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 let client_x = me.client_x();
                 let client_y = me.client_y();
                 let is_primary_btn = me.button() == 0;
-                if is_primary_btn{
+                if is_primary_btn {
                     //self.editor.clear_selection();
                     self.is_selecting = true;
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
@@ -604,10 +602,9 @@ impl<XMSG> WebEditor<XMSG> {
         let text_highlighter = self.text_highlighter.clone();
         let highlighted_lines = self.highlighted_lines.clone();
         let lines = self.editor.text_edit.lines();
-        for handle in self.animation_frame_handles.drain(..){
+        for handle in self.animation_frame_handles.drain(..) {
             //cancel the old ones
-            sauron::dom::util::cancel_animation_frame(handle)
-                .expect("must cancel");
+            sauron::dom::util::cancel_animation_frame(handle).expect("must cancel");
         }
         let closure = move || {
             let mut text_highlighter = text_highlighter.borrow_mut();
@@ -617,15 +614,14 @@ impl<XMSG> WebEditor<XMSG> {
             // where the parse state didn't change at that location, but that would be a much
             // complex code
             let start = 0;
-            let new_highlighted_lines =
-                lines.iter().skip(start).take(end - start).map(|line| {
-                    text_highlighter
-                        .highlight_line(line)
-                        .expect("must highlight")
-                        .into_iter()
-                        .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
-                        .collect()
-                });
+            let new_highlighted_lines = lines.iter().skip(start).take(end - start).map(|line| {
+                text_highlighter
+                    .highlight_line(line)
+                    .expect("must highlight")
+                    .into_iter()
+                    .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
+                    .collect()
+            });
 
             for (line, new_highlight) in highlighted_lines
                 .borrow_mut()
@@ -637,45 +633,45 @@ impl<XMSG> WebEditor<XMSG> {
             }
         };
 
-        let handle = sauron::dom::util::request_animation_frame(closure)
-        .expect("must have a handle");
+        let handle =
+            sauron::dom::util::request_animation_frame(closure).expect("must have a handle");
 
         self.animation_frame_handles.push(handle);
     }
 
     /// rehighlight the rest of the lines that are not visible
     pub fn rehighlight_non_visible_lines_in_background(&mut self) {
-        for handle in self.background_task_handles.drain(..){
+        for handle in self.background_task_handles.drain(..) {
             sauron::dom::util::cancel_timeout_callback(handle).expect("cancel timeout");
         }
         let (_top, end) = self.visible_lines().expect("must have visible lines");
         let text_highlighter = self.text_highlighter.clone();
         let highlighted_lines = self.highlighted_lines.clone();
         let lines = self.editor.text_edit.lines();
-        let closure = move ||{
-                let mut text_highlighter = text_highlighter.borrow_mut();
+        let closure = move || {
+            let mut text_highlighter = text_highlighter.borrow_mut();
 
-                let new_highlighted_lines =
-                    lines.iter().skip(end).map(|line| {
-                        text_highlighter
-                            .highlight_line(line)
-                            .expect("must highlight")
-                            .into_iter()
-                            .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
-                            .collect()
-                    });
+            let new_highlighted_lines = lines.iter().skip(end).map(|line| {
+                text_highlighter
+                    .highlight_line(line)
+                    .expect("must highlight")
+                    .into_iter()
+                    .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
+                    .collect()
+            });
 
-                for (line, new_highlight) in highlighted_lines
-                    .borrow_mut()
-                    .iter_mut()
-                    .skip(end)
-                    .zip(new_highlighted_lines)
-                {
-                    *line = new_highlight;
-                }
+            for (line, new_highlight) in highlighted_lines
+                .borrow_mut()
+                .iter_mut()
+                .skip(end)
+                .zip(new_highlighted_lines)
+            {
+                *line = new_highlight;
+            }
         };
 
-        let handle = sauron::dom::util::request_timeout_callback(closure, 1_000).expect("timeout handle");
+        let handle =
+            sauron::dom::util::request_timeout_callback(closure, 1_000).expect("timeout handle");
         self.background_task_handles.push(handle);
     }
 
@@ -775,39 +771,35 @@ impl<XMSG> WebEditor<XMSG> {
         );
     }
 
-
     /// insert the newly typed character to the highlighted line
     /// Note: This is a hacky way to have a visual feedback for the users to see
     /// the typed letter, the highlighter will eventually color it when it is done running
     fn insert_to_highlighted_line(&mut self, ch: char) {
-       let cursor = self.get_position();
-       let line = cursor.y;
-       let column = cursor.x;
-       if let Some(line) = self.highlighted_lines.borrow_mut().get_mut(line){
-           let mut width: usize = 0;
-           for (_style, ref mut range) in line.iter_mut(){
-               let range_width = range.iter().map(|range|range.width).sum::<usize>();
-               if column > width && column <= width + range_width {
-                   let diff = column - width;
-                   range.insert(diff, Ch::new(ch));
-               }
-               width += range_width;
-           }
-       }
+        let cursor = self.get_position();
+        let line = cursor.y;
+        let column = cursor.x;
+        if let Some(line) = self.highlighted_lines.borrow_mut().get_mut(line) {
+            let mut width: usize = 0;
+            for (_style, ref mut range) in line.iter_mut() {
+                let range_width = range.iter().map(|range| range.width).sum::<usize>();
+                if column > width && column <= width + range_width {
+                    let diff = column - width;
+                    range.insert(diff, Ch::new(ch));
+                }
+                width += range_width;
+            }
+        }
     }
 
     pub fn process_command(&mut self, command: Command) -> bool {
         match command {
-            Command::EditorCommand(ecommand) => {
-                match ecommand{
-                    editor::Command::InsertChar(ch) => {
-                        self.insert_to_highlighted_line(ch);
-                        self.editor.process_command(ecommand)
-                    }
-                    _ =>
-                        self.editor.process_command(ecommand)
+            Command::EditorCommand(ecommand) => match ecommand {
+                editor::Command::InsertChar(ch) => {
+                    self.insert_to_highlighted_line(ch);
+                    self.editor.process_command(ecommand)
                 }
-            }
+                _ => self.editor.process_command(ecommand),
+            },
             Command::PasteTextBlock(text_block) => self
                 .editor
                 .process_command(editor::Command::PasteTextBlock(text_block)),
