@@ -42,6 +42,8 @@ pub struct Options {
     pub allow_text_selection: bool,
     /// always put the cursor into view
     pub scroll_cursor_into_view: bool,
+    /// show context menu when user right clicks on the editor
+    pub enable_context_menu: bool,
 }
 
 impl Default for Options {
@@ -64,6 +66,7 @@ impl Default for Options {
             use_smart_replace_insert: false,
             allow_text_selection: true,
             scroll_cursor_into_view: false,
+            enable_context_menu: false,
         }
     }
 }

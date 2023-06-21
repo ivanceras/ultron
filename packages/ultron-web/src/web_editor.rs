@@ -42,6 +42,7 @@ pub enum Msg {
     ContextMenuMsg(context_menu::Msg),
     ScrollCursorIntoView,
     MenuAction(MenuAction),
+    NoOp,
 }
 
 #[derive(Debug)]
@@ -57,7 +58,6 @@ pub enum Command {
 }
 
 /// rename this to WebEditor
-#[derive(Default)]
 pub struct WebEditor<XMSG> {
     options: Options,
     pub editor: Editor<XMSG>,
@@ -74,6 +74,12 @@ pub struct WebEditor<XMSG> {
     pub is_focused: bool,
     context_menu: Menu<Msg>,
     show_context_menu: bool,
+}
+
+impl<XMSG> Default for WebEditor<XMSG>{
+    fn default() -> Self {
+        Self::from_str(Options::default(), "")
+    }
 }
 
 impl From<editor::Command> for Command {
@@ -292,6 +298,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
     }
 
     fn view(&self) -> Node<Msg> {
+        let enable_context_menu = self.options.enable_context_menu;
         div(
             [
                 class(COMPONENT_NAME),
@@ -308,10 +315,14 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 }),
                 on_focus(Msg::Focused),
                 on_blur(Msg::Blur),
-                on_contextmenu(|me| {
-                    me.prevent_default();
-                    me.stop_propagation();
-                    Msg::ContextMenu(me)
+                on_contextmenu(move|me| {
+                    if enable_context_menu{
+                        me.prevent_default();
+                        me.stop_propagation();
+                        Msg::ContextMenu(me)
+                    }else{
+                        Msg::NoOp
+                    }
                 }),
                 style! {
                     cursor: self.mouse_cursor.to_str(),
@@ -345,7 +356,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 Effects::none()
             }
             Msg::ValueChanged(content) => {
-                self.editor.process_commands([editor::Command::SetContent(content)]);
+                self.process_commands([editor::Command::SetContent(content).into()]);
                 Effects::none()
             }
             Msg::CursorMounted(mount_event) => {
@@ -487,6 +498,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 }
                 Effects::none()
             }
+            Msg::NoOp => Effects::none()
         }
     }
 }
@@ -513,85 +525,100 @@ impl<XMSG> WebEditor<XMSG> {
         self.editor.get_position()
     }
 
+
+  fn rehighlight_all(&mut self) {
+        self.text_highlighter.borrow_mut().reset();
+        *self.highlighted_lines.borrow_mut() = Self::highlight_lines(
+            &self.editor.text_edit,
+            &mut self.text_highlighter.borrow_mut(),
+        );
+    }
+
     /// rehighlight from 0 to the end of the visible lines
     pub fn rehighlight_visible_lines(&mut self) {
-        let (_top, end) = self.visible_lines().expect("must have visible lines");
-        let text_highlighter = self.text_highlighter.clone();
-        let highlighted_lines = self.highlighted_lines.clone();
-        let lines = self.editor.text_edit.lines();
-        for handle in self.animation_frame_handles.drain(..) {
-            //cancel the old ones
-            sauron::dom::util::cancel_animation_frame(handle).expect("must cancel");
-        }
-        let closure = move || {
-            let mut text_highlighter = text_highlighter.borrow_mut();
-            text_highlighter.reset();
-            // Note: we are just starting from the very top.
-            // The alternative would be to save parse state, and start to the line
-            // where the parse state didn't change at that location, but that would be a much
-            // complex code
-            let start = 0;
-            let new_highlighted_lines = lines.iter().skip(start).take(end - start).map(|line| {
-                text_highlighter
-                    .highlight_line(line)
-                    .expect("must highlight")
-                    .into_iter()
-                    .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
-                    .collect()
-            });
-
-            for (line, new_highlight) in highlighted_lines
-                .borrow_mut()
-                .iter_mut()
-                .skip(start)
-                .zip(new_highlighted_lines)
-            {
-                *line = new_highlight;
+        if let Some((_top, end)) = self.visible_lines(){
+            let text_highlighter = self.text_highlighter.clone();
+            let highlighted_lines = self.highlighted_lines.clone();
+            let lines = self.editor.text_edit.lines();
+            for handle in self.animation_frame_handles.drain(..) {
+                //cancel the old ones
+                sauron::dom::util::cancel_animation_frame(handle).expect("must cancel");
             }
-        };
+            let closure = move || {
+                let mut text_highlighter = text_highlighter.borrow_mut();
+                text_highlighter.reset();
+                // Note: we are just starting from the very top.
+                // The alternative would be to save parse state, and start to the line
+                // where the parse state didn't change at that location, but that would be a much
+                // complex code
+                let start = 0;
+                let new_highlighted_lines = lines.iter().skip(start).take(end - start).map(|line| {
+                    text_highlighter
+                        .highlight_line(line)
+                        .expect("must highlight")
+                        .into_iter()
+                        .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
+                        .collect()
+                });
 
-        let handle =
-            sauron::dom::util::request_animation_frame(closure).expect("must have a handle");
+                for (line, new_highlight) in highlighted_lines
+                    .borrow_mut()
+                    .iter_mut()
+                    .skip(start)
+                    .zip(new_highlighted_lines)
+                {
+                    *line = new_highlight;
+                }
+            };
 
-        self.animation_frame_handles.push(handle);
+            let handle =
+                sauron::dom::util::request_animation_frame(closure).expect("must have a handle");
+
+            self.animation_frame_handles.push(handle);
+        }else{
+            self.rehighlight_all();
+        }
     }
 
     /// rehighlight the rest of the lines that are not visible
     pub fn rehighlight_non_visible_lines_in_background(&mut self) {
-        for handle in self.background_task_handles.drain(..) {
-            sauron::dom::util::cancel_timeout_callback(handle).expect("cancel timeout");
-        }
-        let (_top, end) = self.visible_lines().expect("must have visible lines");
-        let text_highlighter = self.text_highlighter.clone();
-        let highlighted_lines = self.highlighted_lines.clone();
-        let lines = self.editor.text_edit.lines();
-        let closure = move || {
-            let mut text_highlighter = text_highlighter.borrow_mut();
-
-            let new_highlighted_lines = lines.iter().skip(end).map(|line| {
-                text_highlighter
-                    .highlight_line(line)
-                    .expect("must highlight")
-                    .into_iter()
-                    .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
-                    .collect()
-            });
-
-            // TODO: there could be a bug here, what if the new and old highlighted lines have
-            // different length, it will only iterate to which ever is the shorted length.
-            for (line, new_highlight) in highlighted_lines
-                .borrow_mut()
-                .iter_mut()
-                .skip(end)
-                .zip(new_highlighted_lines)
-            {
-                *line = new_highlight;
+        if let Some((_top, end)) = self.visible_lines(){
+            for handle in self.background_task_handles.drain(..) {
+                sauron::dom::util::cancel_timeout_callback(handle).expect("cancel timeout");
             }
-        };
+            let text_highlighter = self.text_highlighter.clone();
+            let highlighted_lines = self.highlighted_lines.clone();
+            let lines = self.editor.text_edit.lines();
+            let closure = move || {
+                let mut text_highlighter = text_highlighter.borrow_mut();
 
-        let handle =
-            sauron::dom::util::request_timeout_callback(closure, 1_000).expect("timeout handle");
-        self.background_task_handles.push(handle);
+                let new_highlighted_lines = lines.iter().skip(end).map(|line| {
+                    text_highlighter
+                        .highlight_line(line)
+                        .expect("must highlight")
+                        .into_iter()
+                        .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
+                        .collect()
+                });
+
+                // TODO: there could be a bug here, what if the new and old highlighted lines have
+                // different length, it will only iterate to which ever is the shorted length.
+                for (line, new_highlight) in highlighted_lines
+                    .borrow_mut()
+                    .iter_mut()
+                    .skip(end)
+                    .zip(new_highlighted_lines)
+                {
+                    *line = new_highlight;
+                }
+            };
+
+            let handle =
+                sauron::dom::util::request_timeout_callback(closure, 1_000).expect("timeout handle");
+            self.background_task_handles.push(handle);
+        }else{
+            self.rehighlight_all();
+        }
     }
 
     pub fn keyevent_to_command(ke: &web_sys::KeyboardEvent) -> Option<Command> {
@@ -1367,7 +1394,7 @@ where
     XMSG: 'static,
 {
     fn observed_attributes() -> Vec<&'static str> {
-        vec!["value"]
+        vec!["content"]
     }
 
     /// this is called when the attributes in the mount is changed
@@ -1380,7 +1407,8 @@ where
         DSP: Dispatch<Msg> + Clone + 'static,
     {
         match &*attr_name {
-            "value" => if let Some(new_value) = new_value.as_string() {
+            "content" => if let Some(new_value) = new_value.as_string() {
+                log::info!("value is changed.. {new_value}");
                 program.dispatch(Msg::ValueChanged(new_value));
             }
             _ => (),
@@ -1452,8 +1480,8 @@ impl WebEditorCustomElement {
     }
 }
 
-pub fn value<MSG, V: Into<Value>>(v: V) -> Attribute<MSG> {
-    attr("value", v)
+pub fn content<MSG, V: Into<Value>>(v: V) -> Attribute<MSG> {
+    attr("content", v)
 }
 
 
@@ -1462,5 +1490,5 @@ pub fn ultron_editor<MSG>(
     children: impl IntoIterator<Item = Node<MSG>>,
 ) -> Node<MSG> {
     WebEditorCustomElement::register();
-    html_element(None, "date-time", attrs, children, true)
+    html_element(None, "ultron-editor", attrs, children, true)
 }
