@@ -4,6 +4,7 @@ use css_colors::{rgba, Color, RGBA};
 use sauron::{
     dom::Measurements, html::attributes::*, html::events::*, html::*, jss_ns_pretty,
     wasm_bindgen::JsCast, wasm_bindgen_futures::JsFuture, *,
+    web_sys::HtmlElement,
 };
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -41,6 +42,8 @@ pub enum Msg {
     ContextMenuMsg(context_menu::Msg),
     ScrollCursorIntoView,
     MenuAction(MenuAction),
+    /// set focus to the editor
+    SetFocus,
     NoOp,
 }
 
@@ -312,6 +315,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     ke.stop_propagation();
                     Msg::Keydown(ke)
                 }),
+                tabindex(0),
                 on_focus(Msg::Focused),
                 on_blur(Msg::Blur),
                 on_contextmenu(move|me| {
@@ -436,6 +440,14 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             }
             Msg::Focused(_fe) => {
                 self.is_focused = true;
+                Effects::none()
+            }
+            Msg::SetFocus => {
+                self.is_focused = true;
+                if let Some(editor_element) = &self.editor_element{
+                    let html_elm: &HtmlElement = editor_element.unchecked_ref();
+                    html_elm.focus().expect("element must focus");
+                }
                 Effects::none()
             }
             Msg::Blur(_fe) => {
