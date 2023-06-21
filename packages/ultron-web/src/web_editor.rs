@@ -162,7 +162,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 
             ".occupy_container": {
                 width: percent(100),
-                height: percent(100),
+                height: "auto",
             },
 
             "pre code":{
