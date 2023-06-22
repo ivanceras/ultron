@@ -10,6 +10,9 @@ impl<XMSG> sauron::CustomElement<Msg> for WebEditor<XMSG>
 where
     XMSG: 'static,
 {
+    fn custom_tag() -> &'static str {
+        "ultron-editor"
+    }
     fn observed_attributes() -> Vec<&'static str> {
         vec!["content"]
     }
@@ -65,7 +68,7 @@ impl WebEditorCustomElement {
     #[allow(unused)]
     #[wasm_bindgen(getter, static_method_of = Self, js_name = observedAttributes)]
     pub fn observed_attributes() -> JsValue {
-        let attributes = WebEditor::<Msg>::observed_attributes();
+        let attributes = WebEditor::<()>::observed_attributes();
         serde_wasm_bindgen::to_value(&attributes).expect("convert to value")
     }
 
@@ -76,7 +79,7 @@ impl WebEditorCustomElement {
         old_value: JsValue,
         new_value: JsValue,
     ) {
-        WebEditor::<Msg>::attribute_changed(&self.program, attr_name, old_value, new_value);
+        WebEditor::<()>::attribute_changed(&self.program, attr_name, old_value, new_value);
     }
 
     #[wasm_bindgen(method, js_name = connectedCallback)]
@@ -94,12 +97,12 @@ impl WebEditorCustomElement {
     #[wasm_bindgen(method, js_name = adoptedCallback)]
     pub fn adopted_callback(&mut self) {}
 
+    fn struct_name() -> &'static str {
+        "WebEditorCustomElement"
+    }
+
     pub fn register() {
-        sauron::dom::register_custom_element(
-            "ultron-editor",
-            "WebEditorCustomElement",
-            "HTMLElement",
-        );
+        sauron::dom::register_custom_element(WebEditor::<()>::custom_tag(), Self::struct_name());
     }
 }
 
@@ -108,5 +111,5 @@ pub fn ultron_editor<MSG>(
     children: impl IntoIterator<Item = Node<MSG>>,
 ) -> Node<MSG> {
     WebEditorCustomElement::register();
-    html_element(None, "ultron-editor", attrs, children, true)
+    html_element(None, WebEditor::<()>::custom_tag(), attrs, children, true)
 }
