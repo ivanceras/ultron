@@ -1,0 +1,10 @@
+build-web:
+    wasm-pack build --target web --release 
+
+test-all: 
+    cargo test --all
+
+serve: build-web
+    basic-http-server  -a 127.0.0.1:4401 .
+
+

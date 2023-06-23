@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Simple ultron-editor usage</title>
+    <script type=module>
+        import init, {WebEditorCustomElement} from './pkg/simple.js';
+      Object.assign(window, {WebEditorCustomElement});
+      await init().catch(console.error);
+    </script>
+  </head>
+  <body>
+      <ultron-editor content="The quick brown fox jumps over the lazy dog!
+The lorem ipsum sit in the dolor!"/>
+  </body>
+</html>
