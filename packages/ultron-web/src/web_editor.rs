@@ -301,6 +301,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 
     fn view(&self) -> Node<Msg> {
         let enable_context_menu = self.options.enable_context_menu;
+        let enable_keypresses = self.options.enable_keypresses;
         div(
             [
                 class(COMPONENT_NAME),
@@ -310,10 +311,14 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 ),
                 on_mount(Msg::EditorMounted),
                 attributes::tabindex(1),
-                on_keydown(|ke| {
-                    ke.prevent_default();
-                    ke.stop_propagation();
-                    Msg::Keydown(ke)
+                on_keydown(move|ke| {
+                    if enable_keypresses{
+                        ke.prevent_default();
+                        ke.stop_propagation();
+                        Msg::Keydown(ke)
+                    }else{
+                        Msg::NoOp
+                    }
                 }),
                 tabindex(0),
                 on_focus(Msg::Focused),

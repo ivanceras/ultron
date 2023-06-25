@@ -44,6 +44,10 @@ pub struct Options {
     pub scroll_cursor_into_view: bool,
     /// show context menu when user right clicks on the editor
     pub enable_context_menu: bool,
+    /// if enabled, the editor will listen to keypresses
+    /// if disabled, it will not react to keypresses
+    /// default: true
+    pub enable_keypresses: bool,
 }
 
 impl Default for Options {
@@ -67,6 +71,7 @@ impl Default for Options {
             allow_text_selection: true,
             scroll_cursor_into_view: false,
             enable_context_menu: false,
+            enable_keypresses: true,
         }
     }
 }
