@@ -22,7 +22,7 @@ fn cjk_length() {
 fn test_get_char() {
     let raw = "Hello world";
     let buffer = TextBuffer::from_str(raw);
-    assert_eq!(buffer.get_char(6, 0), Some('w'));
+    assert_eq!(buffer.get_char(Point2::new(6, 0)), Some('w'));
 }
 
 #[test]
@@ -103,7 +103,7 @@ fn test_get_text_multi_line_and_every() {
 fn delete_last_char() {
     let raw = "Hello world";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.delete_char(10, 0);
+    buffer.delete_char(Point2::new(10, 0));
     assert_eq!(buffer.to_string(), "Hello worl");
 }
 
@@ -111,7 +111,7 @@ fn delete_last_char() {
 fn delete_first_char() {
     let raw = "Hello world";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.delete_char(0, 0);
+    buffer.delete_char(Point2::new(0, 0));
     assert_eq!(buffer.to_string(), "ello world");
 }
 
@@ -119,7 +119,7 @@ fn delete_first_char() {
 fn delete_5th_char() {
     let raw = "Hello world";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.delete_char(5, 0);
+    buffer.delete_char(Point2::new(5, 0));
     assert_eq!(buffer.to_string(), "Helloworld");
 }
 
@@ -127,7 +127,7 @@ fn delete_5th_char() {
 fn delete_in_2nd_line() {
     let raw = "Hello\nworld\nthere";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.delete_char(0, 2);
+    buffer.delete_char(Point2::new(0, 2));
     assert_eq!(buffer.to_string(), "Hello\nworld\nhere");
 }
 
@@ -135,7 +135,7 @@ fn delete_in_2nd_line() {
 fn break_line() {
     let raw = "Hello world";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.break_line(5, 0);
+    buffer.break_line(Point2::new(5, 0));
     assert_eq!(buffer.to_string(), "Hello\n world");
 }
 
@@ -143,9 +143,9 @@ fn break_line() {
 fn break_line_then_insert_1() {
     let raw = "Hello world\n\nHowdy";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.break_line(0, 1);
+    buffer.break_line(Point2::new(0, 1));
     assert_eq!(buffer.to_string(), "Hello world\n\n\nHowdy");
-    buffer.insert_char(0, 1, '1');
+    buffer.insert_char(Point2::new(0, 1), '1');
     assert_eq!(buffer.to_string(), "Hello world\n1\n\nHowdy");
 }
 
@@ -153,9 +153,9 @@ fn break_line_then_insert_1() {
 fn break_line_in_non_existing_cell() {
     let raw = "Hello world\n\nHowdy";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.break_line(2, 1);
+    buffer.break_line(Point2::new(2, 1));
     assert_eq!(buffer.to_string(), "Hello world\n  \n\nHowdy");
-    buffer.insert_char(0, 2, '1');
+    buffer.insert_char(Point2::new(0, 2), '1');
     assert_eq!(buffer.to_string(), "Hello world\n  \n1\nHowdy");
 }
 
@@ -163,9 +163,9 @@ fn break_line_in_non_existing_cell() {
 fn break_line_then_insert_1_below() {
     let raw = "Hello world\n\nHowdy";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.break_line(0, 1);
+    buffer.break_line(Point2::new(0, 1));
     assert_eq!(buffer.to_string(), "Hello world\n\n\nHowdy");
-    buffer.insert_char(0, 2, '1');
+    buffer.insert_char(Point2::new(0, 2), '1');
     assert_eq!(buffer.to_string(), "Hello world\n\n1\nHowdy");
 }
 
@@ -173,10 +173,10 @@ fn break_line_then_insert_1_below() {
 fn break_line_then_insert_2_below() {
     let raw = "Hello world\n\nHowdy";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.break_line(0, 1);
-    buffer.break_line(0, 1);
+    buffer.break_line(Point2::new(0, 1));
+    buffer.break_line(Point2::new(0, 1));
     assert_eq!(buffer.to_string(), "Hello world\n\n\n\nHowdy");
-    buffer.insert_char(0, 3, '2');
+    buffer.insert_char(Point2::new(0, 3), '2');
     assert_eq!(buffer.to_string(), "Hello world\n\n\n2\nHowdy");
 }
 
@@ -184,7 +184,7 @@ fn break_line_then_insert_2_below() {
 fn join_line() {
     let raw = "Hello\n world";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.join_line(0, 0);
+    buffer.join_line(Point2::new(0, 0));
     assert_eq!(buffer.to_string(), "Hello world");
 }
 
@@ -198,14 +198,14 @@ fn ensure_line_exist5() {
 #[test]
 fn ensure_cell_exist5_2() {
     let mut buffer = TextBuffer::from_str("");
-    buffer.ensure_cell_exist(5, 2);
+    buffer.ensure_cell_exist(Point2::new(5, 2));
     assert_eq!(buffer.to_string(), "\n\n      ");
 }
 
 #[test]
 fn ensure_cell_exist0_0() {
     let mut buffer = TextBuffer::from_str("");
-    buffer.ensure_cell_exist(0, 0);
+    buffer.ensure_cell_exist(Point2::new(0, 0));
     assert_eq!(buffer.to_string(), " ");
 }
 
@@ -213,11 +213,11 @@ fn ensure_cell_exist0_0() {
 fn insert_5_lines() {
     let raw = "Hello world";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.break_line(5, 0);
-    buffer.break_line(0, 1);
-    buffer.break_line(0, 1);
-    buffer.break_line(0, 1);
-    buffer.break_line(0, 1);
+    buffer.break_line(Point2::new(5, 0));
+    buffer.break_line(Point2::new(0, 1));
+    buffer.break_line(Point2::new(0, 1));
+    buffer.break_line(Point2::new(0, 1));
+    buffer.break_line(Point2::new(0, 1));
     assert_eq!(buffer.to_string(), "Hello\n\n\n\n\n world");
 }
 
@@ -225,11 +225,11 @@ fn insert_5_lines() {
 fn join_5_lines() {
     let raw = "Hello\n\n\n\n\n world";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.join_line(0, 0);
-    buffer.join_line(0, 0);
-    buffer.join_line(0, 0);
-    buffer.join_line(0, 0);
-    buffer.join_line(0, 0);
+    buffer.join_line(Point2::new(0, 0));
+    buffer.join_line(Point2::new(0, 0));
+    buffer.join_line(Point2::new(0, 0));
+    buffer.join_line(Point2::new(0, 0));
+    buffer.join_line(Point2::new(0, 0));
     assert_eq!(buffer.to_string(), "Hello world");
 }
 
@@ -237,7 +237,7 @@ fn join_5_lines() {
 fn insert_new_line_at_start() {
     let raw = "Hello world";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.break_line(0, 0);
+    buffer.break_line(Point2::new(0, 0));
     assert_eq!(buffer.to_string(), "\nHello world");
 }
 
@@ -245,42 +245,42 @@ fn insert_new_line_at_start() {
 fn insert_new_line_at_end() {
     let raw = "Hello world";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.break_line(11, 0);
+    buffer.break_line(Point2::new(11, 0));
     assert_eq!(buffer.to_string(), "Hello world\n");
 }
 
 #[test]
 fn insert_anywhere_col() {
     let mut buffer = TextBuffer::from_str("");
-    buffer.insert_char(5, 0, 'Y');
+    buffer.insert_char(Point2::new(5, 0), 'Y');
     assert_eq!(buffer.to_string(), "     Y");
 }
 
 #[test]
 fn insert_anywhere_line() {
     let mut buffer = TextBuffer::from_str("");
-    buffer.insert_char(0, 5, 'Y');
+    buffer.insert_char(Point2::new(0, 5), 'Y');
     assert_eq!(buffer.to_string(), "\n\n\n\n\nY");
 }
 
 #[test]
 fn insert_anywhere_cell() {
     let mut buffer = TextBuffer::from_str("");
-    buffer.insert_char(2, 5, 'Y');
+    buffer.insert_char(Point2::new(2, 5), 'Y');
     assert_eq!(buffer.to_string(), "\n\n\n\n\n  Y");
 }
 
 #[test]
 fn insert_anywhere_cell_10_10() {
     let mut buffer = TextBuffer::from_str("");
-    buffer.insert_char(10, 10, 'Y');
+    buffer.insert_char(Point2::new(10, 10), 'Y');
     assert_eq!(buffer.to_string(), "\n\n\n\n\n\n\n\n\n\n          Y");
 }
 
 #[test]
 fn breaking_line_anywhere_will_make_lines_on_it() {
     let mut buffer = TextBuffer::from_str("");
-    buffer.break_line(2, 5);
+    buffer.break_line(Point2::new(2, 5));
     assert_eq!(buffer.to_string(), "\n\n\n\n\n  \n");
 }
 
@@ -306,7 +306,7 @@ fn cjk() {
 fn insert_end_cjk() {
     let raw = "Hello 文件系统";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.insert_char(14, 0, 'Y');
+    buffer.insert_char(Point2::new(14, 0), 'Y');
     assert_eq!(buffer.to_string(), "Hello 文件系统Y");
 }
 
@@ -314,7 +314,7 @@ fn insert_end_cjk() {
 fn insert_end_cjk_same_insert_on_13th_or_14th() {
     let raw = "Hello 文件系统";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.insert_char(14, 0, 'Y');
+    buffer.insert_char(Point2::new(14, 0), 'Y');
     assert_eq!(buffer.to_string(), "Hello 文件系统Y");
 }
 
@@ -322,7 +322,7 @@ fn insert_end_cjk_same_insert_on_13th_or_14th() {
 fn insert_end_cjk_but_not_15th() {
     let raw = "Hello 文件系统";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.insert_char(15, 0, 'Y');
+    buffer.insert_char(Point2::new(15, 0), 'Y');
     assert_eq!(buffer.to_string(), "Hello 文件系统 Y");
 }
 
@@ -330,7 +330,7 @@ fn insert_end_cjk_but_not_15th() {
 fn replace_start() {
     let raw = "Hello";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.replace_char(0, 0, 'Y');
+    buffer.replace_char(Point2::new(0, 0), 'Y');
     assert_eq!(buffer.to_string(), "Yello");
 }
 
@@ -338,7 +338,7 @@ fn replace_start() {
 fn replace_middle() {
     let raw = "Hello";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.replace_char(2, 0, 'Y');
+    buffer.replace_char(Point2::new(2, 0), 'Y');
     assert_eq!(buffer.to_string(), "HeYlo");
 }
 
@@ -346,7 +346,7 @@ fn replace_middle() {
 fn replace_end() {
     let raw = "Hello";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.replace_char(4, 0, 'Y');
+    buffer.replace_char(Point2::new(4, 0), 'Y');
     assert_eq!(buffer.to_string(), "HellY");
 }
 
@@ -354,7 +354,7 @@ fn replace_end() {
 fn replace_char_on_next_page() {
     let raw = "Hello";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.replace_char(4, 30, 'Y');
+    buffer.replace_char(Point2::new(4, 30), 'Y');
     assert_eq!(
         buffer.to_string(),
         "Hello\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    Y"
@@ -365,7 +365,7 @@ fn replace_char_on_next_page() {
 fn insert_start() {
     let raw = "Hello";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.insert_char(0, 0, 'Y');
+    buffer.insert_char(Point2::new(0, 0), 'Y');
     assert_eq!(buffer.to_string(), "YHello");
 }
 
@@ -373,7 +373,7 @@ fn insert_start() {
 fn insert_middle() {
     let raw = "Hello";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.insert_char(2, 0, 'Y');
+    buffer.insert_char(Point2::new(2, 0), 'Y');
     assert_eq!(buffer.to_string(), "HeYllo");
 }
 
@@ -381,7 +381,7 @@ fn insert_middle() {
 fn insert_end() {
     let raw = "Hello";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.insert_char(5, 0, 'Y');
+    buffer.insert_char(Point2::new(5, 0), 'Y');
     assert_eq!(buffer.to_string(), "HelloY");
 }
 
@@ -444,7 +444,7 @@ fn test_cut_text_2lines_multi_line_block_mode() {
 fn test_insert_text() {
     let raw = "Hello world";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.insert_text(5, 0, "YYYY");
+    buffer.insert_text(Point2::new(5, 0), "YYYY");
     assert_eq!(buffer.to_string(), "HelloYYYY world");
 }
 
@@ -453,7 +453,7 @@ fn test_insert_text() {
 fn test_insert_multi_line_text() {
     let raw = "Hello world";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.insert_text(5, 0, "XXXX\nYYYY");
+    buffer.insert_text(Point2::new(5, 0), "XXXX\nYYYY");
     assert_eq!(buffer.to_string(), "HelloXXXX\nYYYY world");
 }
 
@@ -462,7 +462,7 @@ fn test_insert_multi_line_text() {
 fn test_insert_multi_line_text_to_multi_line_text() {
     let raw = "before text\nHello world\nafter text";
     let mut buffer = TextBuffer::from_str(raw);
-    buffer.insert_text(5, 1, "XXXX\nYYYY");
+    buffer.insert_text(Point2::new(5, 1), "XXXX\nYYYY");
     assert_eq!(
         buffer.to_string(),
         "before text\nHelloXXXX\nYYYY world\nafter text"
