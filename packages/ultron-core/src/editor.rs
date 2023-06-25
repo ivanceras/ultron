@@ -48,7 +48,7 @@ pub enum Command {
     SetSelection(Point2<i32>, Point2<i32>),
     SelectAll,
     ClearSelection,
-    SetPosition(i32, i32),
+    SetPosition(Point2<i32>),
 }
 
 pub struct Callback<IN, OUT> {
@@ -133,8 +133,8 @@ impl<XMSG> Editor<XMSG> {
         self.text_edit.set_selection_end(end);
     }
 
-    pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
-        self.text_edit.get_char(x, y)
+    pub fn get_char(&self, loc: Point2<usize>) -> Option<char> {
+        self.text_edit.get_char(loc)
     }
 
     pub fn get_position(&self) -> Point2<usize> {
@@ -267,8 +267,8 @@ impl<XMSG> Editor<XMSG> {
                 self.text_edit.clear_selection();
                 false
             }
-            Command::SetPosition(x, y) => {
-                self.command_set_position(x, y);
+            Command::SetPosition(pos) => {
+                self.command_set_position(pos);
                 false
             }
         }
@@ -302,13 +302,12 @@ impl<XMSG> Editor<XMSG> {
         }
     }
 
-    fn command_set_position(&mut self, cursor_x: i32, cursor_y: i32) {
+    fn command_set_position(&mut self, loc: Point2<i32>) {
+        let cursor = Point2::new(loc.x as usize, loc.y as usize);
         if self.options.use_virtual_edit {
-            self.text_edit
-                .command_set_position(cursor_x as usize, cursor_y as usize);
+            self.text_edit.command_set_position(cursor);
         } else {
-            self.text_edit
-                .command_set_position_clamped(cursor_x as usize, cursor_y as usize);
+            self.text_edit.command_set_position_clamped(cursor);
         }
     }
 

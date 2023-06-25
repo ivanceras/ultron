@@ -368,6 +368,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 Effects::none()
             }
             Msg::Mousedown(me) => {
+                log::info!("mouse down event in ultron..");
                 let client_x = me.client_x();
                 let client_y = me.client_y();
                 let is_primary_btn = me.button() == 0;
@@ -380,7 +381,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     }
                     let msgs = self
                         .editor
-                        .process_commands([editor::Command::SetPosition(cursor.x, cursor.y)]);
+                        .process_commands([editor::Command::SetPosition(cursor)]);
                     Effects::new(vec![], msgs).measure()
                 } else {
                     Effects::none()
@@ -412,7 +413,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 if is_primary_btn {
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
                     self.editor
-                        .process_commands([editor::Command::SetPosition(cursor.x, cursor.y)]);
+                        .process_commands([editor::Command::SetPosition(cursor)]);
 
                     if self.is_selecting {
                         self.is_selecting = false;
@@ -528,8 +529,8 @@ impl<XMSG> WebEditor<XMSG> {
         self.mouse_cursor = mouse_cursor;
     }
 
-    pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
-        self.editor.get_char(x, y)
+    pub fn get_char(&self,loc: Point2<usize>) -> Option<char> {
+        self.editor.get_char(loc)
     }
 
     pub fn get_position(&self) -> Point2<usize> {

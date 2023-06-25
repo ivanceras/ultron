@@ -26,19 +26,19 @@ impl Action {
     pub fn apply(&self, content: &mut TextBuffer) {
         match *self {
             Action::Insert(cursor, ch) => {
-                content.insert_char(cursor.x, cursor.y, ch);
+                content.insert_char(cursor, ch);
             }
             Action::Delete(cursor, _ch) => {
-                content.delete_char(cursor.x, cursor.y);
+                content.delete_char(cursor);
             }
             Action::Replace(cursor, _old_ch, ch) => {
-                content.replace_char(cursor.x, cursor.y, ch);
+                content.replace_char(cursor, ch);
             }
             Action::BreakLine(loc) => {
-                content.break_line(loc.x, loc.y);
+                content.break_line(loc);
             }
             Action::JoinLine(loc) => {
-                content.join_line(loc.x, loc.y);
+                content.join_line(loc);
             }
         };
     }

@@ -213,7 +213,7 @@ impl TextBuffer {
             let y = self.cursor.y + line_index;
             for ch in line.chars() {
                 let x = self.cursor.x + width;
-                self.replace_char(x, y, ch);
+                self.replace_char(Point2::new(x, y), ch);
                 width += ch.width().unwrap_or(0);
             }
         }
@@ -303,10 +303,10 @@ impl TextBuffer {
     }
 
     /// break at line y and put the characters after x on the next line
-    pub fn break_line(&mut self, x: usize, y: usize) {
-        self.ensure_before_cell_exist(x, y);
-        let line = &self.chars[y];
-        if let Some(break_point) = self.column_index(x, y) {
+    pub fn break_line(&mut self, loc: Point2<usize>) {
+        self.ensure_before_cell_exist(loc);
+        let line = &self.chars[loc.y];
+        if let Some(break_point) = self.column_index(loc) {
             let (break1, break2): (Vec<_>, Vec<_>) = line
                 .iter()
                 .enumerate()
@@ -314,18 +314,18 @@ impl TextBuffer {
 
             let break1: Vec<Ch> = break1.into_iter().map(|(_, ch)| *ch).collect();
             let break2: Vec<Ch> = break2.into_iter().map(|(_, ch)| *ch).collect();
-            self.chars.remove(y);
-            self.chars.insert(y, break2);
-            self.chars.insert(y, break1);
+            self.chars.remove(loc.y);
+            self.chars.insert(loc.y, break2);
+            self.chars.insert(loc.y, break1);
         } else {
-            self.chars.insert(y + 1, vec![]);
+            self.chars.insert(loc.y + 1, vec![]);
         }
     }
 
-    pub fn join_line(&mut self, _x: usize, y: usize) {
-        let next_line_index = y.saturating_add(1);
+    pub fn join_line(&mut self, loc: Point2<usize>) {
+        let next_line_index = loc.y.saturating_add(1);
         let mut next_line = self.chars.remove(next_line_index);
-        self.chars[y].append(&mut next_line);
+        self.chars[loc.y].append(&mut next_line);
     }
 
     /// ensure line at index y exist
@@ -344,29 +344,29 @@ impl TextBuffer {
     }
 
     /// ensure line in index y exist and the cell at index x
-    pub fn ensure_cell_exist(&mut self, x: usize, y: usize) {
-        self.ensure_line_exist(y);
-        let line_width = self.line_width(y);
-        let diff = x.saturating_add(1).saturating_sub(line_width);
+    pub fn ensure_cell_exist(&mut self, loc: Point2<usize>) {
+        self.ensure_line_exist(loc.y);
+        let line_width = self.line_width(loc.y);
+        let diff = loc.x.saturating_add(1).saturating_sub(line_width);
         for _ in 0..diff {
-            self.chars[y].push(Ch::new(BLANK_CH));
+            self.chars[loc.y].push(Ch::new(BLANK_CH));
         }
     }
 
-    pub fn ensure_before_cell_exist(&mut self, x: usize, y: usize) {
-        self.ensure_line_exist(y);
-        if x > 0 {
-            self.ensure_cell_exist(x.saturating_sub(1), y);
+    pub fn ensure_before_cell_exist(&mut self, loc: Point2<usize>) {
+        self.ensure_line_exist(loc.y);
+        if loc.x > 0 {
+            self.ensure_cell_exist(Point2::new(loc.x.saturating_sub(1), loc.y));
         }
     }
 
     /// calculate the column index base on position of x and y
     /// and considering the unicode width of the characters
-    fn column_index(&self, x: usize, y: usize) -> Option<usize> {
-        if let Some(line) = self.chars.get(y) {
+    fn column_index(&self, loc: Point2<usize>) -> Option<usize> {
+        if let Some(line) = self.chars.get(loc.y) {
             let mut width_sum = 0;
             for (i, ch) in line.iter().enumerate() {
-                if width_sum == x {
+                if width_sum == loc.x {
                     return Some(i);
                 }
                 width_sum += ch.width;
@@ -380,58 +380,56 @@ impl TextBuffer {
     /// translate this point into the correct index position
     /// considering the character widths
     fn point_to_index(&self, point: Point2<usize>) -> Point2<usize> {
-        let x = point.x;
-        let y = point.y;
-        let column_x = self.column_index(x, y).unwrap_or(x);
-        Point2::new(column_x, y)
+        let column_x = self.column_index(point).unwrap_or(point.x);
+        Point2::new(column_x, point.y)
     }
 
     /// insert a character at this x and y and move cells after it to the right
-    pub fn insert_char(&mut self, x: usize, y: usize, ch: char) {
-        self.ensure_before_cell_exist(x, y);
+    pub fn insert_char(&mut self, loc: Point2<usize>, ch: char) {
+        self.ensure_before_cell_exist(loc);
         let new_ch = Ch::new(ch);
-        if let Some(column_index) = self.column_index(x, y) {
+        if let Some(column_index) = self.column_index(loc) {
             let insert_index = column_index;
-            self.chars[y].insert(insert_index, new_ch);
+            self.chars[loc.y].insert(insert_index, new_ch);
         } else {
-            self.chars[y].push(new_ch);
+            self.chars[loc.y].push(new_ch);
         }
     }
 
     /// insert a text, must not contain a \n
-    fn insert_line_text(&mut self, x: usize, y: usize, text: &str) {
+    fn insert_line_text(&mut self, loc: Point2<usize>, text: &str) {
         let mut width_inc = 0;
         for ch in text.chars() {
             let new_ch = Ch::new(ch);
-            self.insert_char(x + width_inc, y, new_ch.ch);
+            self.insert_char(Point2::new(loc.x + width_inc, loc.y), new_ch.ch);
             width_inc += new_ch.width;
         }
     }
 
-    pub fn insert_text(&mut self, x: usize, y: usize, text: &str) {
-        let mut start = x;
+    pub fn insert_text(&mut self, loc: Point2<usize>, text: &str) {
+        let mut start = loc.x;
         for (i, line) in text.lines().enumerate() {
             if i > 0 {
-                self.chars.insert(y + 1, vec![]);
+                self.chars.insert(loc.y + 1, vec![]);
             }
-            self.insert_line_text(start, y + i, line);
+            self.insert_line_text(Point2::new(start, loc.y + i), line);
             start = 0;
         }
     }
 
     /// replace the character at this location
-    pub fn replace_char(&mut self, x: usize, y: usize, ch: char) -> Option<char> {
-        self.ensure_cell_exist(x, y);
-        let column_index = self.column_index(x, y).expect("must have a column index");
-        let ex_ch = self.chars[y].remove(column_index);
-        self.chars[y].insert(column_index, Ch::new(ch));
+    pub fn replace_char(&mut self, loc: Point2<usize>, ch: char) -> Option<char> {
+        self.ensure_cell_exist(loc);
+        let column_index = self.column_index(loc).expect("must have a column index");
+        let ex_ch = self.chars[loc.y].remove(column_index);
+        self.chars[loc.y].insert(column_index, Ch::new(ch));
         Some(ex_ch.ch)
     }
 
     /// get the character at this cursor position
-    pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
-        if let Some(line) = self.chars.get(y) {
-            let column_index = self.column_index(x, y);
+    pub fn get_char(&self, loc: Point2<usize>) -> Option<char> {
+        if let Some(line) = self.chars.get(loc.y) {
+            let column_index = self.column_index(loc);
             column_index.and_then(|col| line.get(col).map(|ch| ch.ch))
         } else {
             None
@@ -439,9 +437,9 @@ impl TextBuffer {
     }
 
     /// delete character at this position
-    pub fn delete_char(&mut self, x: usize, y: usize) -> Option<char> {
-        if let Some(column_index) = self.column_index(x, y) {
-            let ex_ch = self.chars[y].remove(column_index);
+    pub fn delete_char(&mut self, loc: Point2<usize>) -> Option<char> {
+        if let Some(column_index) = self.column_index(loc) {
+            let ex_ch = self.chars[loc.y].remove(column_index);
             Some(ex_ch.ch)
         } else {
             None
@@ -465,17 +463,17 @@ impl TextBuffer {
 /// commands, which doesn't move the cursor location
 impl TextBuffer {
     pub fn command_insert_char(&mut self, ch: char) {
-        self.insert_char(self.cursor.x, self.cursor.y, ch);
+        self.insert_char(self.cursor, ch);
         let width = ch.width().expect("must have a unicode width");
         self.move_x(width);
     }
 
     pub fn command_replace_char(&mut self, ch: char) -> Option<char> {
-        self.replace_char(self.cursor.x, self.cursor.y, ch)
+        self.replace_char(self.cursor, ch)
     }
 
     pub fn command_insert_text(&mut self, text: &str) {
-        self.insert_text(self.cursor.x, self.cursor.y, text);
+        self.insert_text(self.cursor, text);
     }
 
     pub fn move_left(&mut self) {
@@ -557,39 +555,40 @@ impl TextBuffer {
         }
     }
 
-    pub fn set_position(&mut self, x: usize, y: usize) {
-        self.cursor.x = x;
-        self.cursor.y = y;
+    pub fn set_position(&mut self, pos: Point2<usize>) {
+        self.cursor = pos;
     }
 
     /// set the position to the max_column of the line if it is out of
     /// bounds
-    pub fn set_position_clamped(&mut self, mut x: usize, mut y: usize) {
+    pub fn set_position_clamped(&mut self, pos: Point2<usize>) {
         let total_lines = self.total_lines();
+        let mut y = pos.y;
         if y > total_lines {
             y = total_lines.saturating_sub(1);
         }
         let line_width = self.line_width(y);
+        let mut x = pos.x;
         if x > line_width {
             x = line_width.saturating_sub(1);
         }
-        self.set_position(x, y)
+        self.set_position(Point2::new(x, y))
     }
 
-    pub fn command_break_line(&mut self, x: usize, y: usize) {
-        self.break_line(x, y);
+    pub fn command_break_line(&mut self, loc: Point2<usize>) {
+        self.break_line(loc);
         self.move_left_start();
         self.move_down();
     }
 
-    pub fn command_join_line(&mut self, x: usize, y: usize) {
-        self.join_line(x, y);
-        self.set_position(x, y);
+    pub fn command_join_line(&mut self, loc: Point2<usize>) {
+        self.join_line(loc);
+        self.set_position(loc);
     }
 
     pub fn command_delete_back(&mut self) -> Option<char> {
         if self.cursor.x > 0 {
-            let c = self.delete_char(self.cursor.x.saturating_sub(1), self.cursor.y);
+            let c = self.delete_char(Point2::new(self.cursor.x.saturating_sub(1), self.cursor.y));
             self.move_left();
             c
         } else {
@@ -598,12 +597,12 @@ impl TextBuffer {
     }
 
     pub fn command_delete_forward(&mut self) -> Option<char> {
-        self.delete_char(self.cursor.x, self.cursor.y)
+        self.delete_char(self.cursor)
     }
 
     /// move the cursor to position
     pub fn move_to(&mut self, pos: Point2<usize>) {
-        self.set_position(pos.x, pos.y);
+        self.set_position(pos);
     }
 
     /// clear the contents of this text buffer

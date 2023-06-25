@@ -95,13 +95,13 @@ impl TextEdit {
         self.recorded.insert_char(cursor, ch);
     }
 
-    pub fn get_char(&self, x: usize, y: usize) -> Option<char> {
-        self.text_buffer.get_char(x, y)
+    pub fn get_char(&self, loc: Point2<usize>) -> Option<char> {
+        self.text_buffer.get_char(loc)
     }
 
     pub fn command_smart_replace_insert_char(&mut self, ch: char) {
         let cursor = self.text_buffer.get_position();
-        let has_right_char = if let Some(ch) = self.get_char(cursor.x + 1, cursor.y) {
+        let has_right_char = if let Some(ch) = self.get_char(Point2::new(cursor.x + 1, cursor.y)) {
             !ch.is_whitespace()
         } else {
             false
@@ -171,13 +171,13 @@ impl TextEdit {
 
     pub fn command_break_line(&mut self) {
         let pos = self.text_buffer.get_position();
-        self.text_buffer.command_break_line(pos.x, pos.y);
+        self.text_buffer.command_break_line(pos);
         self.recorded.break_line(pos);
     }
 
     pub fn command_join_line(&mut self) {
         let pos = self.text_buffer.get_position();
-        self.text_buffer.command_join_line(pos.x, pos.y);
+        self.text_buffer.command_join_line(pos);
         self.recorded.join_line(pos);
     }
 
@@ -185,14 +185,12 @@ impl TextEdit {
         self.text_buffer.command_insert_text(text);
     }
 
-    //TODO: use Point2<usize>
-    pub fn command_set_position(&mut self, cursor_x: usize, cursor_y: usize) {
-        self.text_buffer.set_position(cursor_x, cursor_y);
+    pub fn command_set_position(&mut self, cursor: Point2<usize>) {
+        self.text_buffer.set_position(cursor);
     }
 
-    //TODO: use Point2<usize>
-    pub fn command_set_position_clamped(&mut self, cursor_x: usize, cursor_y: usize) {
-        self.text_buffer.set_position_clamped(cursor_x, cursor_y);
+    pub fn command_set_position_clamped(&mut self, cursor: Point2<usize>) {
+        self.text_buffer.set_position_clamped(cursor);
     }
 
     pub fn command_set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
@@ -225,13 +223,13 @@ impl TextEdit {
 
     pub fn command_undo(&mut self) {
         if let Some(location) = self.recorded.undo(&mut self.text_buffer) {
-            self.text_buffer.set_position(location.x, location.y);
+            self.text_buffer.set_position(location);
         }
     }
 
     pub fn command_redo(&mut self) {
         if let Some(location) = self.recorded.redo(&mut self.text_buffer) {
-            self.text_buffer.set_position(location.x, location.y);
+            self.text_buffer.set_position(location);
         }
     }
 
@@ -374,7 +372,7 @@ impl TextEdit {
             for ch in line.chars() {
                 if ch != crate::BLANK_CH {
                     let x = width;
-                    self.command_set_position(x, y);
+                    self.command_set_position(Point2::new(x, y));
                     self.command_replace_char(ch);
                 }
                 width += ch.width().unwrap_or(0);
