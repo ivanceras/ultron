@@ -14,7 +14,7 @@ where
         "ultron-editor"
     }
     fn observed_attributes() -> Vec<&'static str> {
-        vec!["content"]
+        vec!["value"]
     }
 
     /// this is called when the attributes in the mount is changed
@@ -27,7 +27,7 @@ where
         DSP: Dispatch<Msg> + Clone + 'static,
     {
         match &*attr_name {
-            "content" => {
+            "value" => {
                 if let Some(new_value) = new_value.as_string() {
                     log::info!("value is changed.. {new_value}");
                     program.dispatch(Msg::ValueChanged(new_value));
