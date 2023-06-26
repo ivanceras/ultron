@@ -29,6 +29,7 @@ pub const CH_HEIGHT: u32 = 16;
 pub enum Msg {
     EditorMounted(MountEvent),
     /// Discard current editor content if any, and use this new value
+    /// This is triggered from the top-level DOM of this component
     ValueChanged(String),
     CursorMounted(MountEvent),
     Keydown(web_sys::KeyboardEvent),
@@ -64,6 +65,8 @@ pub struct WebEditor<XMSG> {
     options: Options,
     pub editor: Editor<XMSG>,
     editor_element: Option<web_sys::Element>,
+    /// the host element the web editor is mounted to, when mounted as a custom web component
+    host_element: Option<web_sys::Element>,
     cursor_element: Option<web_sys::Element>,
     mouse_cursor: MouseCursor,
     measure: Measure,
@@ -113,6 +116,7 @@ impl<XMSG> WebEditor<XMSG> {
             options,
             editor,
             editor_element: None,
+            host_element: None,
             cursor_element: None,
             mouse_cursor: MouseCursor::default(),
             measure: Measure::default(),
@@ -360,6 +364,11 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             Msg::EditorMounted(mount_event) => {
                 log::info!("Web editor is mounted..");
                 let mount_element: web_sys::Element = mount_event.target_node.unchecked_into();
+                let root_node = mount_element.get_root_node();
+                if let Some(shadow_root) = root_node.dyn_ref::<web_sys::ShadowRoot>(){
+                    let host_element = shadow_root.host();
+                    self.host_element = Some(host_element);
+                }
                 self.editor_element = Some(mount_element);
                 Effects::none()
             }
@@ -702,6 +711,10 @@ impl<XMSG> WebEditor<XMSG> {
             if self.options.use_syntax_highlighter{
                 self.rehighlight_visible_lines();
                 self.rehighlight_non_visible_lines_in_background();
+            }
+            if let Some(host_element) = self.host_element.as_ref(){
+                host_element.set_attribute("content", &self.get_content()).expect("set attr content");
+                host_element.dispatch_event(&InputEvent::create_web_event_composed()).expect("dispatch event");
             }
             xmsgs
         } else {

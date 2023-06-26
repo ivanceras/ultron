@@ -8,10 +8,22 @@
         import init, {WebEditorCustomElement} from './pkg/simple.js';
       Object.assign(window, {WebEditorCustomElement});
       await init().catch(console.error);
+
+      function receivedFocus(event){
+        console.log("editor has received focus");
+      }
+
+      function editorInput(event){
+        console.log("editor value is changed...",event);
+      }
+
+      let editor1 = document.getElementById("editor1");
+      editor1.addEventListener("focus", receivedFocus);
+      editor1.addEventListener("input", editorInput);
     </script>
   </head>
   <body>
-      <ultron-editor content="The quick brown fox jumps over the lazy dog!
+      <ultron-editor id="editor1" value="The quick brown fox jumps over the lazy dog!
 The lorem ipsum sit in the dolor!"/>
   </body>
 </html>
