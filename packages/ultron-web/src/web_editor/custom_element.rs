@@ -14,7 +14,7 @@ where
         "ultron-editor"
     }
     fn observed_attributes() -> Vec<&'static str> {
-        vec!["value"]
+        vec!["value", "syntax", "theme"]
     }
 
     /// this is called when the attributes in the mount is changed
@@ -30,7 +30,19 @@ where
             "value" => {
                 if let Some(new_value) = new_value.as_string() {
                     log::info!("value is changed.. {new_value}");
-                    program.dispatch(Msg::ValueChanged(new_value));
+                    program.dispatch(Msg::ChangeValue(new_value));
+                }
+            }
+            "syntax" => {
+                if let Some(new_value) = new_value.as_string() {
+                    log::info!("syntax token is changed: {new_value}");
+                    program.dispatch(Msg::ChangeSyntax(new_value));
+                }
+            }
+            "theme" => {
+                if let Some(new_value) = new_value.as_string() {
+                    log::info!("theme is changed: {new_value}");
+                    program.dispatch(Msg::ChangeTheme(new_value));
                 }
             }
             _ => (),
@@ -103,6 +115,19 @@ impl WebEditorCustomElement {
 
     pub fn register() {
         sauron::dom::register_custom_element(WebEditor::<()>::custom_tag(), Self::struct_name());
+    }
+}
+
+pub mod attributes {
+    use sauron::html::attributes::{attr, Value};
+    use sauron::*;
+
+    pub fn syntax<MSG, V: Into<Value>>(value: V) -> Attribute<MSG> {
+        attr("syntax", value)
+    }
+
+    pub fn theme<MSG, V: Into<Value>>(value: V) -> Attribute<MSG> {
+        attr("theme", value)
     }
 }
 

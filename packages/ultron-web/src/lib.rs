@@ -2,8 +2,8 @@
 pub use sauron;
 use sauron::*;
 pub use ultron_core::{editor, nalgebra, Options, SelectionMode, TextBuffer};
-pub use web_editor::WebEditorCustomElement;
-pub use web_editor::{ultron_editor, Command, MouseCursor, WebEditor, COMPONENT_NAME};
+pub use web_editor::custom_element::{attributes, ultron_editor, WebEditorCustomElement};
+pub use web_editor::{Command, MouseCursor, WebEditor, COMPONENT_NAME};
 
 pub use ultron_core;
 

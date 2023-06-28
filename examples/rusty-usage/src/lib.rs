@@ -1,4 +1,5 @@
 use ultron_web::{
+    attributes::{syntax, theme},
     sauron::{html::attributes::*, html::*, *},
     ultron_editor,
 };
@@ -21,7 +22,14 @@ impl Application<Msg> for App {
     fn view(&self) -> Node<Msg> {
         div(
             [class("container")],
-            [ultron_editor([value(&self.content), syntax("rust")], [])],
+            [ultron_editor(
+                [
+                    syntax("rust"),
+                    theme("solarized-light"),
+                    value(&self.content),
+                ],
+                [],
+            )],
         )
     }
 

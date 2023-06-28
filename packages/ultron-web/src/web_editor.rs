@@ -15,11 +15,10 @@ use ultron_core::{
 };
 use selection::SelectionSplits;
 pub use mouse_cursor::MouseCursor;
-pub use custom_element::{WebEditorCustomElement, ultron_editor};
 
 mod selection;
 mod mouse_cursor;
-mod custom_element;
+pub mod custom_element;
 
 pub const COMPONENT_NAME: &str = "ultron";
 pub const CH_WIDTH: u32 = 7;
@@ -30,7 +29,11 @@ pub enum Msg {
     EditorMounted(MountEvent),
     /// Discard current editor content if any, and use this new value
     /// This is triggered from the top-level DOM of this component
-    ValueChanged(String),
+    ChangeValue(String),
+    /// Syntax token is changed
+    ChangeSyntax(String),
+    /// Change the theme of the editor
+    ChangeTheme(String),
     CursorMounted(MountEvent),
     Keydown(web_sys::KeyboardEvent),
     Mouseup(web_sys::MouseEvent),
@@ -129,6 +132,16 @@ impl<XMSG> WebEditor<XMSG> {
             context_menu: Menu::new().on_activate(Msg::MenuAction),
             show_context_menu: false,
         }
+    }
+
+    pub fn set_syntax_token(&mut self, syntax_token: &str){
+        self.text_highlighter.borrow_mut().set_syntax_token(syntax_token);
+        self.rehighlight_all();
+    }
+
+    pub fn set_theme(&mut self, theme_name: &str) {
+        self.text_highlighter.borrow_mut().select_theme(theme_name);
+        self.rehighlight_all();
     }
 
     pub fn add_on_change_listener<F>(&mut self, f: F)
@@ -372,8 +385,16 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 self.editor_element = Some(mount_element);
                 Effects::none()
             }
-            Msg::ValueChanged(content) => {
+            Msg::ChangeValue(content) => {
                 self.process_commands([editor::Command::SetContent(content).into()]);
+                Effects::none()
+            }
+            Msg::ChangeSyntax(syntax_token) => {
+                self.set_syntax_token(&syntax_token);
+                Effects::none()
+            }
+            Msg::ChangeTheme(theme_name) => {
+                self.set_theme(&theme_name);
                 Effects::none()
             }
             Msg::CursorMounted(mount_event) => {
