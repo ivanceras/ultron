@@ -37,6 +37,7 @@ pub enum Msg {
     CursorMounted(MountEvent),
     Keydown(web_sys::KeyboardEvent),
     Mouseup(web_sys::MouseEvent),
+    Click(web_sys::MouseEvent),
     Mousedown(web_sys::MouseEvent),
     Mousemove(web_sys::MouseEvent),
     Measurements(Measurements),
@@ -165,62 +166,6 @@ impl<XMSG> WebEditor<XMSG> {
 
 impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 
-    fn view(&self) -> Node<Msg> {
-        let enable_context_menu = self.options.enable_context_menu;
-        let enable_keypresses = self.options.enable_keypresses;
-        div(
-            [
-                class(COMPONENT_NAME),
-                classes_flag_namespaced(
-                    COMPONENT_NAME,
-                    [("occupy_container", self.options.occupy_container)],
-                ),
-                on_mount(Msg::EditorMounted),
-                attributes::tabindex(1),
-                on_keydown(move|ke| {
-                    if enable_keypresses{
-                        ke.prevent_default();
-                        ke.stop_propagation();
-                        Msg::Keydown(ke)
-                    }else{
-                        Msg::NoOp
-                    }
-                }),
-                tabindex(0),
-                on_focus(Msg::Focused),
-                on_blur(Msg::Blur),
-                on_contextmenu(move|me| {
-                    if enable_context_menu{
-                        me.prevent_default();
-                        me.stop_propagation();
-                        Msg::ContextMenu(me)
-                    }else{
-                        Msg::NoOp
-                    }
-                }),
-                style! {
-                    cursor: self.mouse_cursor.to_str(),
-                },
-            ],
-            [
-                if self.options.use_syntax_highlighter {
-                    self.view_highlighted_lines()
-                } else {
-                    self.plain_view()
-                },
-                view_if(self.options.show_status_line, self.view_status_line()),
-                view_if(
-                    self.is_focused && self.options.show_cursor,
-                    self.view_cursor(),
-                ),
-                view_if(
-                    self.is_focused && self.show_context_menu,
-                    self.context_menu.view().map_msg(Msg::ContextMenuMsg),
-                ),
-            ],
-        )
-    }
-
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
             Msg::EditorMounted(mount_event) => {
@@ -250,6 +195,13 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 let cursor_element: web_sys::Element = mount_event.target_node.unchecked_into();
                 self.cursor_element = Some(cursor_element);
                 Effects::none()
+            }
+            Msg::Click(me) => {
+                let client_x = me.client_x();
+                let client_y = me.client_y();
+                let cursor = self.client_to_grid_clamped(client_x, client_y);
+                let msgs = self.editor.process_commands([editor::Command::SetPosition(cursor)]);
+                Effects::new(vec![], msgs)
             }
             Msg::Mousedown(me) => {
                 log::info!("mouse down event in ultron..");
@@ -397,6 +349,71 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             Msg::NoOp => Effects::none()
         }
     }
+
+    fn view(&self) -> Node<Msg> {
+        let enable_context_menu = self.options.enable_context_menu;
+        let enable_keypresses = self.options.enable_keypresses;
+        let enable_click = self.options.enable_click;
+        div(
+            [
+                class(COMPONENT_NAME),
+                classes_flag_namespaced(
+                    COMPONENT_NAME,
+                    [("occupy_container", self.options.occupy_container)],
+                ),
+                on_mount(Msg::EditorMounted),
+                attributes::tabindex(1),
+                on_keydown(move|ke| {
+                    if enable_keypresses{
+                        ke.prevent_default();
+                        ke.stop_propagation();
+                        Msg::Keydown(ke)
+                    }else{
+                        Msg::NoOp
+                    }
+                }),
+                on_click(move|me|{
+                    if enable_click{
+                        Msg::Click(me)
+                    }else{
+                        Msg::NoOp
+                    }
+                }),
+                tabindex(0),
+                on_focus(Msg::Focused),
+                on_blur(Msg::Blur),
+                on_contextmenu(move|me| {
+                    if enable_context_menu{
+                        me.prevent_default();
+                        me.stop_propagation();
+                        Msg::ContextMenu(me)
+                    }else{
+                        Msg::NoOp
+                    }
+                }),
+                style! {
+                    cursor: self.mouse_cursor.to_str(),
+                },
+            ],
+            [
+                if self.options.use_syntax_highlighter {
+                    self.view_highlighted_lines()
+                } else {
+                    self.plain_view()
+                },
+                view_if(self.options.show_status_line, self.view_status_line()),
+                view_if(
+                    self.is_focused && self.options.show_cursor,
+                    self.view_cursor(),
+                ),
+                view_if(
+                    self.is_focused && self.show_context_menu,
+                    self.context_menu.view().map_msg(Msg::ContextMenuMsg),
+                ),
+            ],
+        )
+    }
+
 
     fn style(&self) -> String {
         let user_select = if self.options.allow_text_selection {

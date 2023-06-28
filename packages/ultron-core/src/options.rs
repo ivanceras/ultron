@@ -48,6 +48,8 @@ pub struct Options {
     /// if disabled, it will not react to keypresses
     /// default: true
     pub enable_keypresses: bool,
+    /// clicking on the editor will set the cursor location at the click location
+    pub enable_click: bool,
 }
 
 impl Default for Options {
@@ -72,6 +74,7 @@ impl Default for Options {
             scroll_cursor_into_view: false,
             enable_context_menu: false,
             enable_keypresses: true,
+            enable_click: true,
         }
     }
 }
