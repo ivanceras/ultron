@@ -1,0 +1,16 @@
+build-web:
+    wasm-pack build --target web --release 
+
+build-web-dev:
+    wasm-pack build --target web --debug
+
+test-all: 
+    cargo test --all
+
+serve: build-web
+    basic-http-server  -a 127.0.0.1:4403 .
+
+serve-dev: build-web-dev
+    basic-http-server  -a 127.0.0.1:4404 .
+
+

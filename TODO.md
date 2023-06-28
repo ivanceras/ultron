@@ -133,6 +133,10 @@
 - [X] replace addition and subtraction operation with saturating_add and saturating_sub.
 - [X] If the top level view of a Program changes, then the original root_node is not set, which causes
     - [ X Add a test for replacing the top-level root-node and confirm it is changed
+- [ ] When using the selection tool, the app will just crash due to borrowing error (Rc<RefCell>)
+- [ ] Cursor color and gutter color and number has wrong pairing
+    - [ ] Detect the color selected color from the theme and check to see if it is light or dark
+        - contrast the color for the cursor number line and gutter
 
 ## Tests
 - [ ] Add test for undo and redo (editor)

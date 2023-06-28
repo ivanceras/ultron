@@ -9,6 +9,7 @@ members = [
     "packages/ultron-ssg",
     "packages/ultron-app",
     "examples/simple",
+    "examples/rusty-usage",
 ]
 
 [patch.crates-io]
