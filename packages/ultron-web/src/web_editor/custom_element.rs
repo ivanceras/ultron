@@ -4,7 +4,6 @@ use sauron::{
     html::*,
     *,
 };
-use std::collections::BTreeMap;
 
 impl<XMSG> sauron::CustomElement<Msg> for WebEditor<XMSG>
 where
@@ -47,12 +46,6 @@ where
             }
             _ => (),
         }
-    }
-
-    /// This is called when the attributes for the mount is to be set
-    /// this is called every after update
-    fn attributes_for_mount(&self) -> BTreeMap<String, String> {
-        BTreeMap::from_iter([("value".to_string(), self.get_content())])
     }
 }
 
@@ -129,6 +122,10 @@ pub mod attributes {
     pub fn theme<MSG, V: Into<Value>>(value: V) -> Attribute<MSG> {
         attr("theme", value)
     }
+}
+
+pub fn register() {
+    WebEditorCustomElement::register();
 }
 
 pub fn ultron_editor<MSG>(

@@ -44,5 +44,6 @@ impl Application<Msg> for App {
 
 #[wasm_bindgen(start)]
 pub fn main() {
+    ultron_web::register();
     Program::mount_to_body(App::new(include_str!("./lib.rs")));
 }
