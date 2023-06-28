@@ -19,7 +19,8 @@
       }
 
       function editorInput(event){
-        console.log("editor value is changed...",event);
+        let content = event.target.getAttribute("content");
+        console.log("editor value is changed to: ",content);
       }
 
       let editor1 = document.getElementById("editor1");

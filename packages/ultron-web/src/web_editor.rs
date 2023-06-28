@@ -164,157 +164,6 @@ impl<XMSG> WebEditor<XMSG> {
 }
 
 impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
-    fn style(&self) -> String {
-        let user_select = if self.options.allow_text_selection {
-            "text"
-        } else {
-            "none"
-        };
-        let main = jss_ns_pretty! {COMPONENT_NAME,
-            ".": {
-                position: "relative",
-                font_size: px(14),
-                white_space: "normal",
-                user_select: user_select,
-                "-webkit-user-select": user_select,
-            },
-
-            ".occupy_container": {
-                width: percent(100),
-                height: "auto",
-            },
-
-            "pre code":{
-                white_space: "pre",
-                word_spacing: "normal",
-                word_break: "normal",
-                word_wrap: "normal",
-            },
-
-            ".code_wrapper": {
-                margin: 0,
-            },
-
-            ".code": {
-                position: "relative",
-                font_size: px(14),
-                display: "block",
-                // to make the background color extend to the longest line, otherwise only the
-                // longest lines has a background-color leaving the shorter lines ugly
-                min_width: "max-content",
-                user_select: user_select,
-                "-webkit-user-select": user_select,
-                font_family: "Iosevka Fixed",
-            },
-
-            ".line_block": {
-                display: "block",
-                height: px(CH_HEIGHT),
-            },
-
-            // number and line
-            ".number__line": {
-                display: "flex",
-                height: px(CH_HEIGHT),
-            },
-
-            // numbers
-            ".number": {
-                flex: "none", // dont compress the numbers
-                text_align: "right",
-                background_color: "#ddd",
-                padding_right: px(CH_WIDTH as f32 * self.numberline_padding_wide() as f32),
-                height: px(CH_HEIGHT),
-                display: "inline-block",
-                user_select: "none",
-                "-webkit-user-select": "none",
-            },
-            ".number_wide1 .number": {
-                width: px(CH_WIDTH),
-            },
-            // when line number is in between: 10 - 99
-            ".number_wide2 .number": {
-                width: px(2 * CH_WIDTH),
-            },
-            // when total lines is in between 100 - 999
-            ".number_wide3 .number": {
-                width: px(3 * CH_WIDTH),
-            },
-            // when total lines is in between 1000 - 9000
-            ".number_wide4 .number": {
-                width: px(4 * CH_WIDTH),
-            },
-            // 10000 - 90000
-            ".number_wide5 .number": {
-                width: px(5 * CH_WIDTH),
-            },
-
-            // line content
-            ".line": {
-                flex: "none", // dont compress lines
-                height: px(CH_HEIGHT),
-                display: "block",
-                user_select: user_select,
-                "-webkit-user-select": user_select,
-            },
-
-            ".line span::selection": {
-                background_color: self.selection_background().to_css(),
-            },
-
-            ".line .selected": {
-               background_color: self.selection_background().to_css(),
-               //background_color: rgba(221, 72, 20, 1.0).to_css(),
-            },
-
-            ".status": {
-                position: "fixed",
-                bottom: 0,
-                display: "flex",
-                flex_direction: "row",
-                user_select: "none",
-                font_family: "Iosevka Fixed",
-            },
-
-            ".virtual_cursor": {
-                position: "absolute",
-                width: px(CH_WIDTH),
-                height: px(CH_HEIGHT),
-                border_width: px(1),
-                border_color: self.cursor_border().to_css(),
-                opacity: 1,
-                border_style: "solid",
-            },
-
-            ".cursor_center":{
-                width: percent(100),
-                height: percent(100),
-                background_color: self.cursor_color().to_css(),
-                opacity: percent(50),
-                animation: "cursor_blink-anim 1000ms step-end infinite",
-            },
-
-            "@keyframes cursor_blink-anim": {
-              "0%": {
-                opacity: percent(0),
-              },
-              "25%": {
-                opacity: percent(25)
-              },
-              "50%": {
-                opacity: percent(100),
-              },
-              "75%": {
-                opacity: percent(75)
-              },
-              "100%": {
-                opacity: percent(0),
-              },
-            },
-        };
-
-        [main, self.context_menu.style()].join("\n")
-    }
 
     fn view(&self) -> Node<Msg> {
         let enable_context_menu = self.options.enable_context_menu;
@@ -547,6 +396,158 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             }
             Msg::NoOp => Effects::none()
         }
+    }
+
+    fn style(&self) -> String {
+        let user_select = if self.options.allow_text_selection {
+            "text"
+        } else {
+            "none"
+        };
+        let main = jss_ns_pretty! {COMPONENT_NAME,
+            ".": {
+                position: "relative",
+                font_size: px(14),
+                white_space: "normal",
+                user_select: user_select,
+                "-webkit-user-select": user_select,
+            },
+
+            ".occupy_container": {
+                width: percent(100),
+                height: "auto",
+            },
+
+            "pre code":{
+                white_space: "pre",
+                word_spacing: "normal",
+                word_break: "normal",
+                word_wrap: "normal",
+            },
+
+            ".code_wrapper": {
+                margin: 0,
+            },
+
+            ".code": {
+                position: "relative",
+                font_size: px(14),
+                display: "block",
+                // to make the background color extend to the longest line, otherwise only the
+                // longest lines has a background-color leaving the shorter lines ugly
+                min_width: "max-content",
+                user_select: user_select,
+                "-webkit-user-select": user_select,
+                font_family: "Iosevka Fixed",
+            },
+
+            ".line_block": {
+                display: "block",
+                height: px(CH_HEIGHT),
+            },
+
+            // number and line
+            ".number__line": {
+                display: "flex",
+                height: px(CH_HEIGHT),
+            },
+
+            // numbers
+            ".number": {
+                flex: "none", // dont compress the numbers
+                text_align: "right",
+                background_color: "#ddd",
+                padding_right: px(CH_WIDTH as f32 * self.numberline_padding_wide() as f32),
+                height: px(CH_HEIGHT),
+                display: "inline-block",
+                user_select: "none",
+                "-webkit-user-select": "none",
+            },
+            ".number_wide1 .number": {
+                width: px(CH_WIDTH),
+            },
+            // when line number is in between: 10 - 99
+            ".number_wide2 .number": {
+                width: px(2 * CH_WIDTH),
+            },
+            // when total lines is in between 100 - 999
+            ".number_wide3 .number": {
+                width: px(3 * CH_WIDTH),
+            },
+            // when total lines is in between 1000 - 9000
+            ".number_wide4 .number": {
+                width: px(4 * CH_WIDTH),
+            },
+            // 10000 - 90000
+            ".number_wide5 .number": {
+                width: px(5 * CH_WIDTH),
+            },
+
+            // line content
+            ".line": {
+                flex: "none", // dont compress lines
+                height: px(CH_HEIGHT),
+                display: "block",
+                user_select: user_select,
+                "-webkit-user-select": user_select,
+            },
+
+            ".line span::selection": {
+                background_color: self.selection_background().to_css(),
+            },
+
+            ".line .selected": {
+               background_color: self.selection_background().to_css(),
+               //background_color: rgba(221, 72, 20, 1.0).to_css(),
+            },
+
+            ".status": {
+                position: "fixed",
+                bottom: 0,
+                display: "flex",
+                flex_direction: "row",
+                user_select: "none",
+                font_family: "Iosevka Fixed",
+            },
+
+            ".virtual_cursor": {
+                position: "absolute",
+                width: px(CH_WIDTH),
+                height: px(CH_HEIGHT),
+                border_width: px(1),
+                border_color: self.cursor_border().to_css(),
+                opacity: 1,
+                border_style: "solid",
+            },
+
+            ".cursor_center":{
+                width: percent(100),
+                height: percent(100),
+                background_color: self.cursor_color().to_css(),
+                opacity: percent(50),
+                animation: "cursor_blink-anim 1000ms step-end infinite",
+            },
+
+            "@keyframes cursor_blink-anim": {
+              "0%": {
+                opacity: percent(0),
+              },
+              "25%": {
+                opacity: percent(25)
+              },
+              "50%": {
+                opacity: percent(100),
+              },
+              "75%": {
+                opacity: percent(75)
+              },
+              "100%": {
+                opacity: percent(0),
+              },
+            },
+        };
+
+        [main, self.context_menu.style()].join("\n")
     }
 }
 
