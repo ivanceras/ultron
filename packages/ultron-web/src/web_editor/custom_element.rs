@@ -17,13 +17,13 @@ where
     }
 
     /// this is called when the attributes in the mount is changed
-    fn attribute_changed<DSP>(
-        program: &DSP,
+    fn attribute_changed<APP>(
+        program: &Program<APP, Msg>,
         attr_name: &str,
         _old_value: JsValue,
         new_value: JsValue,
     ) where
-        DSP: Dispatch<Msg> + Clone + 'static,
+        APP: Application<Msg> + 'static,
     {
         match &*attr_name {
             "value" => {
