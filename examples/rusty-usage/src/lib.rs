@@ -1,10 +1,12 @@
 use ultron_web::{
     attributes::{syntax, theme},
-    sauron::{html::attributes::*, html::*, *},
+    sauron::{html::attributes::*, html::events::*, html::*, *},
     ultron_editor,
 };
 
-enum Msg {}
+enum Msg {
+    ContentChanged(String),
+}
 
 struct App {
     content: String,
@@ -27,6 +29,7 @@ impl Application<Msg> for App {
                     syntax("rust"),
                     theme("solarized-light"),
                     value(&self.content),
+                    on_input(|input| Msg::ContentChanged(input.value)),
                 ],
                 [],
             )],
@@ -34,11 +37,20 @@ impl Application<Msg> for App {
     }
 
     fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
-        Cmd::none()
+        match msg {
+            Msg::ContentChanged(new_content) => {
+                log::info!("Content has been changed to: \n{new_content}");
+                Cmd::none()
+            }
+        }
     }
 
     fn style(&self) -> String {
-        "".to_string()
+        jss_pretty! {
+            body: {
+                margin: 0,
+            }
+        }
     }
 }
 

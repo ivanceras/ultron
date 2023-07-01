@@ -47,6 +47,10 @@ where
             _ => (),
         }
     }
+
+    fn connected_callback(&mut self) {}
+    fn disconnected_callback(&mut self) {}
+    fn adopted_callback(&mut self) {}
 }
 
 #[wasm_bindgen]

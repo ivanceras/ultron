@@ -13,3 +13,8 @@ cargo install basic-http-server
 cargo install just
 ```
 
+## Running the simple example webapp
+```sh
+just serve
+```
+

@@ -8,4 +8,5 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+log = "0.4.19"
 ultron-web = { path = "../../packages/ultron-web" }
