@@ -20,10 +20,9 @@ jobs:
       run: RUSTFLAGS=--cfg=web_sys_unstable_apis cargo build --all --all-features
 
     - name: Build
-      run: ./build.sh
-
+      run: RUSTFLAGS=--cfg=web_sys_unstable_apis wasm-pack build packages/ultron-app --target web --release --features "with-navigator-clipboard with-measure with-ric with-raf"
     - name: Run tests
-      run: ./test.sh
+      run: cargo test --all
 
     - name: Build wasmp
       run: RUSTFLAGS=--cfg=web_sys_unstable_apis wasm-pack build packages/ultron-web --target web
