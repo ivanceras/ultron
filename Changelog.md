@@ -1,6 +1,193 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
+- remove the use of Dispatch and use the Program
+- more improvement on custom_element
+- move update up, and view down, enable mouseclick
+- move style down
+- remove unused attributes_for_mount method, expose register at the top level lib
+- add support for changing syntax and theme in the ultron-editor custom tag, attributes is now on the attributes module
+- add more example usage
+- ultron-editor uses value as the source input and content as output for the user to get when input event is triggered
+- use the value attribute for the text content
+- feature: add an option to allow users to have control of the app embedding the editor and the keypresses is controlled in the application
+- use Point2<usize> for almost everything where loc/cursor is used as argument
+- add a simple usage of ultron-editor via custom tag
+- simplify register_custom_element call
+- add an Msg to explicitly set focus on the editor
+- move custom_element code into custom_element module
+- make the editor only occupy the height depending on the content size
+- put back rehighlight_all when there is no visible lines, add options to enable/disable context menu
+- make WebEditor a custom element
+- modularize, show only cursor when the web_editor is focused
+- remove unused function, add rehighlighting behind flag checks
+- add code to implement running highlighting to the rest of the non visible lines in the background
+- insert the fast visual feedback character at the exact location in the range
+- performance improvement, by inserting the newly typed character into the closes range of the cursor position, this will then be corrected with the proper syntax highlighter
+- put the callback in a feature gate for clients that can not use the callback, such as the bevy client
+- add comparison benchmark against ropey
+- fix ultron-ssg imports from sauron
+- fix to the newest sauron version
+- fix: remove bounds checking when interacting with mouse
+- refactor: optimize from_ch function to accept reference, to prevent cloning of vecs
+- refactor: rename variants of SelectionSplits into more descriptive names
+- refactor: move important objects on the top
+- fix: remove debugging color
+- fix: use reorder when in linear mode
+- fix: bug in selection with no syntax highlighting where the selection points are normalized instead of reorder
+- fix: proper way to reorder selection points where the point coordinate is not decoupled from each other
+- feat: add more edgecase of selection
+- improvement on the selection on highlighted algorithm
+- feat: add an optimize constructor for text_buffer from Ch
+- refactor: improve naming of variables
+- add more test, debug the Selection splits with highlight
+- refactor: use SelectionSplits in viewing the highlighted lines
+- fix: remove unused logging
+- refactor: move the statements to where they are only used, rename variables to more concise name
+- refactor: move out SelectionSplits out of the function and as module enum
+- refactor: improve the function to view line in linear mode with the use of SelectionSplits enum to make it clear and shorten the code
+- feat: improvement on the highlighted selection, when range is in between the selection it should be selected
+- feat: use Vec<Ch> for the highlighted line instead of String
+- feat: initial code for showing the selected text in highlighted lines
+- feat: wire up the menu
+- feat: add the scroll_cursor_into_view as an option flag
+- fix: the self.is_selecting interfering with our cursor movement using the mouse it is now decoupled from the other flag is_primary_button, feat: add an initial code to ScrollTheCursor into view automatically via the browser provided method
+- fix: the accurate location of where to show the context menu
+- feat: add showing of context menu
+- fix: move the on_keydown and on_contextmenu into the web_editor instead of from the App
+- feat: show only the cursor if the WebEditor is in focused
+- feat: add Focuse and Blur event behaviour
+- feat: add an optimize syntax highlighting
+- feat: move highlighting into the web_editor as it is more platform specific
+- feat: remove the use of textarea hacks, TODO: add unicode typing support natively
+- feat: add optimization to highlight only the visible lines in the viewport
+- feat: calculate the visible lines
+- feat: use the theme background on the selected line
+- fix: show the context menu, improve the style
+- fix: make editor public
+- fix: record the cut text in block mode as well
+- refactor: move common routine calls into a unified function to return the normalized casted and clamped selection values
+- feat: add block selection
+- feat: use of SelectionMode instead of just flag: is_block_mode
+- refactor: use class differentiation instead of changing the background_color directly when text is selected
+- refactor: use WebEditorMsg instead of EditorWebMsg
+- fix: put back view_text_buffer function to simply make a representation of a text_buffer
+- feat: disable the context menu
+- fix: improve the edge cases when only parts of line is highlighted
+- fix: improvement on the mouse event, doing only selection when it is on the primary button click
+- feat: improvement on text selection and initial code on changing the background for the selected text
+- refactor: rename virtual_cursor to just cursor
+- feat: add fn to test whether a point is part of the text selection or not
+- refactor: more renames using the selection mode
+- rename client_to_cursor fn to client_to_grid for more appropriate naming
+- feat: use the with-interning feature in sauron
+- cargo fmt with default configurations
+- refactor: simplify script, remove the outdated
+- feat: remove the use of async in update functions
+- fix: improve showing of app performance
+- fix: wasm-opt error fixed by uninstalling binaryen
+- add deployment scripts
+- fix: remove the use of await and async in process_commands, etc
+- fix: move merge_text from text_buffer module into text_edit module since it needs to record history
+- fix: make the position of status line fixed
+- remove unused directives
+- refactor: remove the use of throttling
+- feat: add a clear function to clear the editor content
+- feat: implement Undo/Redo for deleted text via cut
+- fix: use the normal selected text
+- feat: implement SelectAll and Copy text to clipboard
+- fix: put back measurement, add cursor movement for Home and End
+- feat: use with-ric feature from sauron, wrap the text line with span in the editor
+- fix: use a span for empty text line otherwise it would cause an error in the next succeeding search for dom to patch since the empty text seems to be not added properly as text node to the DOM
+- feat: move the Throttle object into async-delay crate
+- feat: remove some logging
+- feat: make the process_command function to execute multiple commands to have a faster performance rather than waiting for each command in an async call
+- feat: use the correct logic for checking should_execute, lower the interval to 100 ms
+- feat: organized rehighlight and emit in one function
+- feat: add throttling and use async in the update
+- feat: add feature PasteTextBlock
+- feat: move the bottom_right_non_whitespace method in bob-editor
+- feat: unify BLANK_CH, expose methods to return non blank lines and widths
+- fix: index out of range in selected_text_block_mode, expose the methods up
+- add get_text and cut_text in block mode
+- remove log trace debugging
+- feat: add the number line in the plain text view
+- refactor: remove unused code, add doc comments
+- feat: expose content from the editor
+- feat: move options to it's own module, add options to allow or disallow text selection
+- refactor: improve on getting color from active theme
+- refactor: move the app to ultron-app, while ultron-web remains an ultron editor library for web usage
+- refactor: make code more ergonomic
+- expose some underlying methods
+- fix: expose some struct, supply the the options and content to the WebEditor
+- fix process_command, add conversion code
+- refactor: simplify view
+- move the App css to it's own style method
+- refactor: rename editor_web to web_editor
+- refactor: merge EditorApp and App to just use App
+- refactor: make an EditorWeb and EditorApp
+- refactor: **breaking** move Editor into ultron-core and remove sub package ultron
+- feat: add SetContent command
+- fix: use the published sauron version
+- fix: clamp the cursor when clicking on the number line and padding
+- fix: calculation of client to cursor and back considering the presence of number line and padding
+- refactor: organize arrangement of methods
+- fix: expose editor cursor position
+- refactor: use more consistent naming, add some few docs
+- refactor: use descriptive names
+- refactor: improvements on the undo/redo action history
+- refactor: unify the processing of key events
+- feat: make use of Command in editor
+- refactor: move the hidden textarea in the ultron-web
+- refactor: improve the content_changed and effects aggregation in one place
+- fix: the plain_view should accept a text_buffer
+- feat: use TextEdit in Editor
+- feat: add TextEdit, a lean version of the Editor, which only has selection and history recording for undo/redo
+- feat: fix proper computation of index from cursor position on get_text and cut_text
+- refactor: move text_buffer to ultron-core, as it can be used from any gui platform
+- refactor: clear warnings
+- feat: Make text_buffer more leaner, no more options and view for it
+- feat: coupled selection start and end together into a Selection struct
+- feat: implement selection
+- feat: implement clear selection to clear the selection in the editor
+- feat: implement text selection and cutting in the editor instead of in text_buffer
+- refactor: make text_buffer more lean, the selector should only be in the text editor
+- add get_char method in editor
+- feat: add a feature to set MouseCursor for the editor
+- fix: use a more appropriate method to whitespace char
+- fix: also rehighlight and emit change listener when use presses non-single letter key such as Backspace, Enter, Tabs
+- feat: add smart_replace_insert feature to the editor
+- feat: add get_char method and test for it, remove method add_cell, since it is not used anymore
+- feat: simplify the virtual_cursor using only a 2 divs
+- fix: get the cursor location after deleting a character, instead of before, this also fix the undo/redo of typing/deleting text
+- feat: allow fields to be accessible from outside of the crate
+- feat: make the line not hidden when overflow
+- feature: add relative_client function to calculate client pixel relative to the editor bounding rect
+- feature: partial reimplementation of cut_text
+- feature: reimplement get_text
+- fix: cursor colors and border
+- feature: add animation to the virtual cursor
+- fix: undo and redo with rehighlighting correctly
+- feature: wireup undo
+- make the text non-selectable
+- feat: make 2 version of the view for the text_buffer, the highlighted view and the plain_view
+- feat: refactor the highlighting call to detech the calls from the view and instead, rehighlight only when there are changes in the text_buffer
+- streamline highlighting
+- update to syntect 5, regenerate the dumps and strea_line highlight_line function
+- fix: always add height:100% for html doctype mode
+- fix: make use of Iosevka Fixed font for now
+- fix: don't make use of the hidden textare for now
+- fix: clamped movement
+- fix: moving cursor right
+- fix: make the editor work with break_line
+- feat: implement insert_char and replace_char
+- feat: start reimplementing the text_buffer functions
+- simplify the textbuffer, removing pages, line, range, cell
+- fix some crash on inverted ranges, update to sauron 0.49.2
+- fix: move the profile.release to the root workspace
+- feat: add page_caching to improve the calculation of view, pages that have been changed is stored in a cache
+- fix: improve logic for ensure_line_exist by filling lines to pages before the calculated (page, line_index), use saturating_sub and add flag to use_paging_optimization
+- feat: add use_syntax_highlighter into to Options
 - limit the movement of cursor in arrow keys when virtual edit is turn off.
 - fix: highlighted character line calculation, page_index is now taken into account, fixing multiple highlighting into 1 only
 - Improve the implementation of get_text
