@@ -65,6 +65,7 @@ pub enum Command {
 }
 
 /// rename this to WebEditor
+#[derive(Clone)]
 pub struct WebEditor<XMSG> {
     options: Options,
     pub editor: Editor<XMSG>,
@@ -98,7 +99,7 @@ impl From<editor::Command> for Command {
 }
 
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct Measure {
     average_dispatch: Option<f64>,
     last_dispatch: Option<f64>,

@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 const HISTORY_SIZE: usize = 100;
 const UNDO_SIZE: usize = 100;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Recorded {
     history: VecDeque<ActionList>,
     undone: VecDeque<ActionList>,

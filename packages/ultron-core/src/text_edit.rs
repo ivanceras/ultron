@@ -9,7 +9,7 @@ mod action;
 mod history;
 
 /// A struct with text_buffer, selection commands, and history recording for undo and redo editing
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct TextEdit {
     pub text_buffer: TextBuffer,
     /// for undo and redo
@@ -17,7 +17,7 @@ pub struct TextEdit {
     pub selection: Selection,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Selection {
     pub start: Option<Point2<i32>>,
     pub end: Option<Point2<i32>>,

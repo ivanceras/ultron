@@ -22,6 +22,20 @@ pub struct Editor<XMSG> {
     _phantom: PhantomData<XMSG>,
 }
 
+impl<XMSG> Clone for Editor<XMSG> {
+    fn clone(&self) -> Self {
+        Self {
+            options: self.options.clone(),
+            text_edit: self.text_edit.clone(),
+            #[cfg(feature = "callback")]
+            change_listeners: self.change_listeners.clone(),
+            #[cfg(feature = "callback")]
+            change_notify_listeners: self.change_notify_listeners.clone(),
+            _phantom: self._phantom.clone(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum Command {
     IndentForward,
@@ -62,6 +76,14 @@ where
     fn from(func: F) -> Self {
         Self {
             func: Arc::new(func),
+        }
+    }
+}
+
+impl<IN, OUT> Clone for Callback<IN, OUT> {
+    fn clone(&self) -> Self {
+        Self {
+            func: Arc::clone(&self.func),
         }
     }
 }

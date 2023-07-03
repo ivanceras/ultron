@@ -8,6 +8,7 @@ pub enum Msg {
     ShowAt(Point2<i32>),
 }
 
+#[derive(Clone)]
 pub struct Menu<XMSG> {
     listeners: Vec<Callback<MenuAction, XMSG>>,
     position: Option<Point2<i32>>,
