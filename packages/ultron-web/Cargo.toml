@@ -39,6 +39,9 @@ features = [
     "HtmlDocument",
     "DomRect",
     "Element",
+    "FontFace",
+    "FontFaceSet",
+    "FontFaceSetLoadStatus",
 ]
 
 

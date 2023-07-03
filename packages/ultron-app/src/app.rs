@@ -1,4 +1,5 @@
 #![allow(unused)]
+use crate::wasm_bindgen_futures::JsFuture;
 use ultron_web::{
     editor, sauron,
     sauron::{
@@ -13,10 +14,13 @@ use ultron_web::{
     web_editor, Options, SelectionMode, WebEditor, COMPONENT_NAME,
 };
 use web_sys::HtmlDocument;
+use web_sys::FontFace;
+use crate::wasm_bindgen_futures::spawn_local;
 
 pub enum Msg {
     WebEditorMsg(web_editor::Msg),
     Keydown(web_sys::KeyboardEvent),
+    FontsLoaded,
 }
 
 /// The web editor with text area hacks for listening to typing events
@@ -67,6 +71,10 @@ impl Component<Msg, ()> for App {
                 let effects = self.web_editor.update(emsg);
                 effects.localize(Msg::WebEditorMsg)
             }
+            Msg::FontsLoaded => {
+                let effects = self.web_editor.update(web_editor::Msg::FontsLoaded);
+                effects.localize(Msg::WebEditorMsg)
+            }
         }
     }
 
@@ -95,11 +103,25 @@ impl Component<Msg, ()> for App {
 /// has no external MSG
 impl Application<Msg> for App {
     fn init(&mut self) -> Cmd<Self, Msg> {
-        Cmd::batch([Window::add_event_listeners(vec![
-            on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
-            on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
-            on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
-        ])])
+        Cmd::batch([
+            Window::add_event_listeners(vec![
+                on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
+                on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
+                on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
+            ]),
+            Cmd::new(|program| {
+                spawn_local(async move{
+                    let font_set = document().fonts();
+                    let font_face = FontFace::new_with_str("Iosevka Fixed", "url(fonts/iosevka-fixed-regular.woff2)")
+                        .expect("font face");
+                    font_set.add(&font_face);
+                    // Note: the 14px in-front of the font family is needed for this to work
+                    // properly
+                    JsFuture::from(font_set.load("14px Iosevka Fixed")).await;
+                    program.dispatch(Msg::FontsLoaded);
+                })
+            }),
+        ])
     }
 
     fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {

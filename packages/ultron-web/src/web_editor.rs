@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::context_menu::{self, Menu, MenuAction};
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
@@ -27,6 +28,8 @@ const CH_HEIGHT: u32 = 16;
 #[derive(Debug, Clone)]
 pub enum Msg {
     EditorMounted(MountEvent),
+    FontMeasureMounted(MountEvent),
+    FontsLoaded,
     /// Discard current editor content if any, and use this new value
     /// This is triggered from the top-level DOM of this component
     ChangeValue(String),
@@ -65,11 +68,13 @@ pub enum Command {
 }
 
 /// rename this to WebEditor
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct WebEditor<XMSG> {
     options: Options,
     pub editor: Editor<XMSG>,
     editor_element: Option<web_sys::Element>,
+    font_measure_element: Option<web_sys::Element>,
+    is_fonts_loaded: bool,
     /// the host element the web editor is mounted to, when mounted as a custom web component
     host_element: Option<web_sys::Element>,
     cursor_element: Option<web_sys::Element>,
@@ -84,12 +89,11 @@ pub struct WebEditor<XMSG> {
     pub is_focused: bool,
     context_menu: Menu<Msg>,
     show_context_menu: bool,
-}
-
-impl<XMSG> Default for WebEditor<XMSG>{
-    fn default() -> Self {
-        Self::from_str(Options::default(), "")
-    }
+    /// the calculated width of the character `0` in px
+    /// this is affected by font sized and font used
+    ch_width: Option<f32>,
+    /// the calculated height of the character `0` in px
+    ch_height: Option<f32>,
 }
 
 impl From<editor::Command> for Command {
@@ -121,6 +125,8 @@ impl<XMSG> WebEditor<XMSG> {
             options,
             editor,
             editor_element: None,
+            font_measure_element: None,
+            is_fonts_loaded: false,
             host_element: None,
             cursor_element: None,
             mouse_cursor: MouseCursor::default(),
@@ -133,6 +139,8 @@ impl<XMSG> WebEditor<XMSG> {
             is_focused: false,
             context_menu: Menu::new().on_activate(Msg::MenuAction),
             show_context_menu: false,
+            ch_width: None,
+            ch_height: None,
         }
     }
 
@@ -178,6 +186,22 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     self.host_element = Some(host_element);
                 }
                 self.editor_element = Some(mount_element);
+                Effects::none()
+            }
+            Msg::FontMeasureMounted(mount_event) => {
+                let font_status = document().fonts().status();
+                log::info!("font status: {font_status:?}");
+                log::info!("font measure is mounted");
+                let font_elm: web_sys::Element = mount_event.target_node.unchecked_into();
+                self.font_measure_element = Some(font_elm);
+                log::info!("measure font: {:?}", self.measure_font());
+                self.try_measure_font();
+                Effects::none()
+            }
+            Msg::FontsLoaded => {
+                self.is_fonts_loaded = true;
+                log::info!("Fonts are now loaded...");
+                self.try_measure_font();
                 Effects::none()
             }
             Msg::ChangeValue(content) => {
@@ -411,6 +435,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     self.is_focused && self.show_context_menu,
                     self.context_menu.view().map_msg(Msg::ContextMenuMsg),
                 ),
+                self.view_font_measure(),
             ],
         )
     }
@@ -449,14 +474,21 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 
             ".code": {
                 position: "relative",
-                font_size: px(14),
                 display: "block",
                 // to make the background color extend to the longest line, otherwise only the
                 // longest lines has a background-color leaving the shorter lines ugly
                 min_width: "max-content",
                 user_select: user_select,
                 "-webkit-user-select": user_select,
+                font_size: px(14),
                 font_family: "Iosevka Fixed",
+            },
+
+            ".font_measure": {
+                font_size: px(14),
+                font_family: "Iosevka Fixed",
+                display: "inline-block",
+                height: px(16),
             },
 
             ".line_block": {
@@ -519,6 +551,11 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                //background_color: rgba(221, 72, 20, 1.0).to_css(),
             },
 
+            "font_measure": {
+                position: "fixed",
+                bottom: px(30),
+            },
+
             ".status": {
                 position: "fixed",
                 bottom: 0,
@@ -576,6 +613,27 @@ impl<XMSG> WebEditor<XMSG> {
     }
     pub fn ch_height(&self) -> f32 {
         CH_HEIGHT as f32
+    }
+
+    fn measure_font(&self) -> Option<(f32, f32)>{
+        self.font_measure_element.as_ref().map(|font_elm|{
+            let rect = font_elm.get_bounding_client_rect();
+            (rect.width() as f32, rect.height() as f32)
+        })
+    }
+
+    fn try_measure_font(&mut self){
+        if self.is_fonts_loaded{
+            if let Some((ch_width, ch_height)) = self.measure_font(){
+                self.ch_width = Some(ch_width);
+                self.ch_height = Some(ch_height);
+                log::info!("font width: {:?}, height: {:?}", self.ch_width, self.ch_height);
+            }else{
+                log::warn!("font measure element hasn't been mounted yet");
+            }
+        }else{
+            log::warn!("fonts hasn't been loaded yet");
+        }
     }
 
     fn update_measure(&mut self, measure: Measurements) {
@@ -1029,6 +1087,13 @@ impl<XMSG> WebEditor<XMSG> {
             ],
             [div([class_ns("cursor_center")], [])],
         )
+    }
+
+    fn view_font_measure(&self) -> Node<Msg>{
+        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        span([class_ns("font_measure"),
+            on_mount(Msg::FontMeasureMounted),
+        ],[text("0")])
     }
 
     /// the view for the status line
