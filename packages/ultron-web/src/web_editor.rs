@@ -1097,10 +1097,12 @@ impl<XMSG> WebEditor<XMSG> {
 
     fn view_font_measure(&self) -> Node<Msg>{
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        code([],[
-            span([class_ns("font_measure"),
-                on_mount(Msg::FontMeasureMounted),
-            ],[text("0")])
+        pre([],[
+            code([],[
+                span([class_ns("font_measure"),
+                    on_mount(Msg::FontMeasureMounted),
+                ],[text("0")])
+            ])
         ])
     }
 
