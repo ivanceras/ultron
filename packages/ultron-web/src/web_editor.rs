@@ -466,6 +466,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 word_spacing: "normal",
                 word_break: "normal",
                 word_wrap: "normal",
+                font_size: px(14),
+                font_family: "Iosevka Fixed",
             },
 
             ".code_wrapper": {
@@ -480,13 +482,9 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 min_width: "max-content",
                 user_select: user_select,
                 "-webkit-user-select": user_select,
-                font_size: px(14),
-                font_family: "Iosevka Fixed",
             },
 
             ".font_measure": {
-                font_size: px(14),
-                font_family: "Iosevka Fixed",
                 display: "inline-block",
                 height: px(16),
             },
@@ -609,10 +607,18 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 impl<XMSG> WebEditor<XMSG> {
 
     pub fn ch_width(&self) -> f32 {
-        CH_WIDTH as f32
+        if let Some(ch_width) = self.ch_width{
+            ch_width
+        }else{
+            CH_WIDTH as f32
+        }
     }
     pub fn ch_height(&self) -> f32 {
-        CH_HEIGHT as f32
+        if let Some(ch_height) = self.ch_height{
+            ch_height
+        }else{
+            CH_HEIGHT as f32
+        }
     }
 
     fn measure_font(&self) -> Option<(f32, f32)>{
@@ -1091,9 +1097,11 @@ impl<XMSG> WebEditor<XMSG> {
 
     fn view_font_measure(&self) -> Node<Msg>{
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        span([class_ns("font_measure"),
-            on_mount(Msg::FontMeasureMounted),
-        ],[text("0")])
+        code([],[
+            span([class_ns("font_measure"),
+                on_mount(Msg::FontMeasureMounted),
+            ],[text("0")])
+        ])
     }
 
     /// the view for the status line
