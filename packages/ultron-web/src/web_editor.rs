@@ -21,8 +21,8 @@ mod mouse_cursor;
 pub mod custom_element;
 
 pub const COMPONENT_NAME: &str = "ultron";
-pub const CH_WIDTH: u32 = 7;
-pub const CH_HEIGHT: u32 = 16;
+const CH_WIDTH: u32 = 7;
+const CH_HEIGHT: u32 = 16;
 
 #[derive(Debug, Clone)]
 pub enum Msg {
