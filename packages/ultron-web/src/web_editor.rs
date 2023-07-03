@@ -570,6 +570,14 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 }
 
 impl<XMSG> WebEditor<XMSG> {
+
+    pub fn ch_width(&self) -> f32 {
+        CH_WIDTH as f32
+    }
+    pub fn ch_height(&self) -> f32 {
+        CH_HEIGHT as f32
+    }
+
     fn update_measure(&mut self, measure: Measurements) {
         if let Some(average_dispatch) = self.measure.average_dispatch.as_mut() {
             *average_dispatch = (*average_dispatch + measure.total_time) / 2.0;
