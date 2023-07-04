@@ -22,6 +22,12 @@ mod mouse_cursor;
 pub mod custom_element;
 
 pub const COMPONENT_NAME: &str = "ultron";
+pub const FONT_SIZE: usize = 14;
+
+pub const FONT_NAME: &str = "Iosevka Fixed";
+//pub const FONT_NAME: &str = "BerkeleyMono";
+pub const FONT_URL: &str = "url(fonts/iosevka-fixed-regular.woff2)";
+//pub const FONT_URL: &str = "url(fonts/BerkeleyMono-Regular.woff2)";
 
 #[derive(Debug, Clone)]
 pub enum Msg {
@@ -448,7 +454,6 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
         let main = jss_ns_pretty! {COMPONENT_NAME,
             ".": {
                 position: "relative",
-                font_size: px(14),
                 white_space: "normal",
                 user_select: user_select,
                 "-webkit-user-select": user_select,
@@ -464,8 +469,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 word_spacing: "normal",
                 word_break: "normal",
                 word_wrap: "normal",
-                font_size: px(14),
-                font_family: "Iosevka Fixed",
+                font_size: px(FONT_SIZE),
+                font_family: FONT_NAME,
             },
 
             ".code_wrapper": {
@@ -520,7 +525,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 display: "flex",
                 flex_direction: "row",
                 user_select: "none",
-                font_family: "Iosevka Fixed",
+                font_family: FONT_NAME,
             },
 
             ".virtual_cursor": {
@@ -928,11 +933,11 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     /// calculate the points relative to the editor bounding box
-    pub fn relative_client(&self, client_x: i32, client_y: i32) -> Point2<i32> {
+    pub fn relative_client(&self, client_x: i32, client_y: i32) -> Point2<f32> {
         let editor = self.editor_offset().expect("must have an editor offset");
         let x = client_x as f32 - editor.x;
         let y = client_y as f32 - editor.y;
-        Point2::new(x.round() as i32, y.round() as i32)
+        Point2::new(x, y)
     }
 
     /// the padding of the number line width

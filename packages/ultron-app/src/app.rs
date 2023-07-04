@@ -16,6 +16,8 @@ use ultron_web::{
 use web_sys::HtmlDocument;
 use web_sys::FontFace;
 use crate::wasm_bindgen_futures::spawn_local;
+use ultron_web::web_editor::{FONT_NAME,FONT_URL,FONT_SIZE};
+
 
 pub enum Msg {
     WebEditorMsg(web_editor::Msg),
@@ -112,12 +114,12 @@ impl Application<Msg> for App {
             Cmd::new(|program| {
                 spawn_local(async move{
                     let font_set = document().fonts();
-                    let font_face = FontFace::new_with_str("Iosevka Fixed", "url(fonts/iosevka-fixed-regular.woff2)")
+                    let font_face = FontFace::new_with_str(FONT_NAME, FONT_URL)
                         .expect("font face");
                     font_set.add(&font_face);
                     // Note: the 14px in-front of the font family is needed for this to work
                     // properly
-                    JsFuture::from(font_set.load("14px Iosevka Fixed")).await;
+                    JsFuture::from(font_set.load(&format!("{FONT_SIZE}px {FONT_NAME}"))).await;
                     program.dispatch(Msg::FontsLoaded);
                 })
             }),
