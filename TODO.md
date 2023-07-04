@@ -138,6 +138,7 @@
 - [ ] Cursor color and gutter color and number has wrong pairing
     - [ ] Detect the color selected color from the theme and check to see if it is light or dark
         - contrast the color for the cursor number line and gutter
+- [ ] Avoid FOUC by waiting for the fonts to be loaded before mounting the application, this way the calculation of pixels from font size would be accurate
 
 ## Tests
 - [ ] Add test for undo and redo (editor)

@@ -25,9 +25,7 @@ pub const COMPONENT_NAME: &str = "ultron";
 pub const FONT_SIZE: usize = 14;
 
 pub const FONT_NAME: &str = "Iosevka Fixed";
-//pub const FONT_NAME: &str = "BerkeleyMono";
 pub const FONT_URL: &str = "url(fonts/iosevka-fixed-regular.woff2)";
-//pub const FONT_URL: &str = "url(fonts/BerkeleyMono-Regular.woff2)";
 
 #[derive(Debug, Clone)]
 pub enum Msg {
@@ -1284,12 +1282,11 @@ impl<XMSG> WebEditor<XMSG> {
     // highlighted view
     pub fn view_highlighted_lines<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let class_number_wide = format!("number_wide{}", self.editor.numberline_wide());
-
         let code_attributes = [
             class_ns("code"),
-            class_ns(&class_number_wide),
-            style! {background: self.theme_background().to_css()},
+            style! {
+                background: self.theme_background().to_css(),
+            },
         ];
 
         let highlighted_lines = self.highlighted_lines.borrow();
@@ -1297,12 +1294,16 @@ impl<XMSG> WebEditor<XMSG> {
             .iter()
             .enumerate()
             .map(|(line_index, line)| {
-                div([class_ns("line")], {
-                    [self.view_line_number(line_index + 1)]
+                div([class_ns("line"),
+                // needed to put the height here, since for some reason it add 1px to the
+                // parent div, not a margin, not border,
+                     style!{height: px(self.ch_height())}
+                    ],
+                   {[self.view_line_number(line_index + 1)]
                         .into_iter()
                         .chain(self.view_highlighted_line(line_index, line))
                         .collect::<Vec<_>>()
-                })
+                   })
             });
 
         if self.options.use_for_ssg {
@@ -1422,9 +1423,7 @@ impl<XMSG> WebEditor<XMSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let text_edit = &self.editor.text_edit;
 
-        let class_number_wide = format!("number_wide{}", text_edit.numberline_wide());
-
-        let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
+        let code_attributes = [class_ns("code")];
         let rendered_lines = text_edit
             .lines()
             .into_iter()
@@ -1469,9 +1468,8 @@ impl<XMSG> WebEditor<XMSG> {
 pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Node<MSG> {
     let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
 
-    let class_number_wide = format!("number_wide{}", text_buffer.numberline_wide());
 
-    let code_attributes = [class_ns("code"), class_ns(&class_number_wide)];
+    let code_attributes = [class_ns("code")];
     let rendered_lines = text_buffer
         .lines()
         .into_iter()
@@ -1479,7 +1477,7 @@ pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Nod
         .map(|(line_index, line)| {
             let line_number = line_index + 1;
             div(
-                [class_ns("line")],
+                [class_ns("line"), class("simple")],
                 [
                     view_if(
                         options.show_line_numbers,
@@ -1501,7 +1499,7 @@ pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Nod
         // but in firefox, it creates a double line when select-copying the text
         // whe need to use <pre><code> in order for typing whitespace works.
         pre(
-            [class_ns("code_wrapper")],
+            [class_ns("code_wrapper"), style!{position:"absolute"}],
             [code(code_attributes, rendered_lines)],
         )
     }
