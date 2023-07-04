@@ -22,8 +22,6 @@ mod mouse_cursor;
 pub mod custom_element;
 
 pub const COMPONENT_NAME: &str = "ultron";
-const CH_WIDTH: u32 = 7;
-const CH_HEIGHT: u32 = 16;
 
 #[derive(Debug, Clone)]
 pub enum Msg {
@@ -484,57 +482,20 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 "-webkit-user-select": user_select,
             },
 
-            ".font_measure": {
-                display: "inline-block",
-                height: px(16),
-            },
-
-            ".line_block": {
-                display: "block",
-                height: px(CH_HEIGHT),
-            },
-
-            // number and line
-            ".number__line": {
-                display: "flex",
-                height: px(CH_HEIGHT),
-            },
 
             // numbers
             ".number": {
                 flex: "none", // dont compress the numbers
                 text_align: "right",
                 background_color: "#ddd",
-                padding_right: px(CH_WIDTH as f32 * self.numberline_padding_wide() as f32),
-                height: px(CH_HEIGHT),
                 display: "inline-block",
                 user_select: "none",
                 "-webkit-user-select": "none",
-            },
-            ".number_wide1 .number": {
-                width: px(CH_WIDTH),
-            },
-            // when line number is in between: 10 - 99
-            ".number_wide2 .number": {
-                width: px(2 * CH_WIDTH),
-            },
-            // when total lines is in between 100 - 999
-            ".number_wide3 .number": {
-                width: px(3 * CH_WIDTH),
-            },
-            // when total lines is in between 1000 - 9000
-            ".number_wide4 .number": {
-                width: px(4 * CH_WIDTH),
-            },
-            // 10000 - 90000
-            ".number_wide5 .number": {
-                width: px(5 * CH_WIDTH),
             },
 
             // line content
             ".line": {
                 flex: "none", // dont compress lines
-                height: px(CH_HEIGHT),
                 display: "block",
                 user_select: user_select,
                 "-webkit-user-select": user_select,
@@ -546,12 +507,11 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 
             ".line .selected": {
                background_color: self.selection_background().to_css(),
-               //background_color: rgba(221, 72, 20, 1.0).to_css(),
             },
 
             "font_measure": {
-                position: "fixed",
                 bottom: px(30),
+                display: "inline-block",
             },
 
             ".status": {
@@ -565,8 +525,6 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 
             ".virtual_cursor": {
                 position: "absolute",
-                width: px(CH_WIDTH),
-                height: px(CH_HEIGHT),
                 border_width: px(1),
                 border_color: self.cursor_border().to_css(),
                 opacity: 1,
@@ -610,14 +568,14 @@ impl<XMSG> WebEditor<XMSG> {
         if let Some(ch_width) = self.ch_width{
             ch_width
         }else{
-            CH_WIDTH as f32
+            0.0
         }
     }
     pub fn ch_height(&self) -> f32 {
         if let Some(ch_height) = self.ch_height{
             ch_height
         }else{
-            CH_HEIGHT as f32
+            0.0
         }
     }
 
@@ -942,10 +900,10 @@ impl<XMSG> WebEditor<XMSG> {
     pub fn bounding_rect(&self) -> Option<(Point2<f32>, Point2<f32>)> {
         if let Some(ref editor_element) = self.editor_element {
             let rect = editor_element.get_bounding_client_rect();
-            let editor_x = rect.x().round() as f32;
-            let editor_y = rect.y().round() as f32;
-            let bottom = rect.bottom().round() as f32;
-            let right = rect.right().round() as f32;
+            let editor_x = rect.x() as f32;
+            let editor_y = rect.y() as f32;
+            let bottom = rect.bottom() as f32;
+            let right = rect.right() as f32;
             Some((Point2::new(editor_x, editor_y), Point2::new(right, bottom)))
         } else {
             None
@@ -1051,8 +1009,8 @@ impl<XMSG> WebEditor<XMSG> {
     pub fn client_to_grid(&self, client_x: i32, client_y: i32) -> Point2<i32> {
         let numberline_wide_with_padding = self.numberline_wide_with_padding() as f32;
         let editor = self.editor_offset().expect("must have an editor offset");
-        let col = (client_x as f32 - editor.x) / CH_WIDTH as f32 - numberline_wide_with_padding;
-        let line = (client_y as f32 - editor.y) / CH_HEIGHT as f32;
+        let col = (client_x as f32 - editor.x) / self.ch_width() - numberline_wide_with_padding;
+        let line = (client_y as f32 - editor.y) / self.ch_height();
         let x = col.floor() as i32;
         let y = line.floor() as i32;
         Point2::new(x, y)
@@ -1069,14 +1027,14 @@ impl<XMSG> WebEditor<XMSG> {
     pub fn cursor_to_client(&self) -> Point2<f32> {
         let cursor = self.editor.get_position();
         Point2::new(
-            (cursor.x + self.numberline_wide_with_padding()) as f32 * CH_WIDTH as f32,
-            cursor.y as f32 * CH_HEIGHT as f32,
+            (cursor.x + self.numberline_wide_with_padding()) as f32 * self.ch_width(),
+            cursor.y as f32 * self.ch_height(),
         )
     }
 
     /// calculate the width of the numberline including the padding
     fn number_line_with_padding_width(&self) -> f32 {
-        self.numberline_wide_with_padding() as f32 * CH_WIDTH as f32
+        self.numberline_wide_with_padding() as f32 * self.ch_width()
     }
 
     fn view_cursor(&self) -> Node<Msg> {
@@ -1088,6 +1046,8 @@ impl<XMSG> WebEditor<XMSG> {
                 style! {
                     top: px(cursor.y),
                     left: px(cursor.x),
+                    width: px(self.ch_width()),
+                    height: px(self.ch_height()),
                 },
                 on_mount(Msg::CursorMounted),
             ],
@@ -1165,6 +1125,9 @@ impl<XMSG> WebEditor<XMSG> {
                     style! {
                         background_color: self.gutter_background().to_css(),
                         color: self.gutter_foreground().to_css(),
+                        width: px(self.ch_width() * self.editor.numberline_wide() as f32),
+                        height: px(self.ch_height()),
+                        padding_right: px(self.ch_width() * self.numberline_padding_wide() as f32),
                     },
                 ],
                 [text(line_number)],
@@ -1175,7 +1138,7 @@ impl<XMSG> WebEditor<XMSG> {
     /// calculate the maximum number of visible lines
     fn max_visible_lines(&self) -> Option<usize> {
         if let Some((start, end)) = self.bounding_rect() {
-            Some(((end.y - start.y) / CH_HEIGHT as f32).round() as usize)
+            Some(((end.y - start.y) / self.ch_height()) as usize)
         } else {
             None
         }
@@ -1184,7 +1147,7 @@ impl<XMSG> WebEditor<XMSG> {
     /// calculate which lines are visible in the editor
     fn visible_lines(&self) -> Option<(usize, usize)> {
         if let Some((start, end)) = self.bounding_rect() {
-            let ch_height = CH_HEIGHT as f32;
+            let ch_height = self.ch_height();
             let top = ((0.0 - start.y) / ch_height) as usize;
             let bottom = ((end.y - 2.0 * start.y) / ch_height) as usize;
             Some((top, bottom))
@@ -1198,7 +1161,6 @@ impl<XMSG> WebEditor<XMSG> {
         line_index: usize,
         line: &[(Style, Vec<Ch>)],
     ) -> Vec<Node<MSG>> {
-        //let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         let mut range_x: usize = 0;
         line.iter()
             .map(|(style, range)| {
