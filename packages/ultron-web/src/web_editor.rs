@@ -76,7 +76,10 @@ pub struct WebEditor<XMSG> {
     pub editor: Editor<XMSG>,
     editor_element: Option<web_sys::Element>,
     font_measure_element: Option<web_sys::Element>,
+    /// if the fonts has been loaded
     is_fonts_loaded: bool,
+    /// are the loaded fonts has been measured
+    is_fonts_measured: bool,
     /// the host element the web editor is mounted to, when mounted as a custom web component
     host_element: Option<web_sys::Element>,
     cursor_element: Option<web_sys::Element>,
@@ -129,6 +132,9 @@ impl<XMSG> WebEditor<XMSG> {
             editor_element: None,
             font_measure_element: None,
             is_fonts_loaded: false,
+            is_fonts_measured: false,
+            ch_width: None,
+            ch_height: None,
             host_element: None,
             cursor_element: None,
             mouse_cursor: MouseCursor::default(),
@@ -141,9 +147,11 @@ impl<XMSG> WebEditor<XMSG> {
             is_focused: false,
             context_menu: Menu::new().on_activate(Msg::MenuAction),
             show_context_menu: false,
-            ch_width: None,
-            ch_height: None,
         }
+    }
+
+    fn is_editor_mounted(&self) -> bool {
+        self.editor_element.is_some()
     }
 
     pub fn set_syntax_token(&mut self, syntax_token: &str){
@@ -224,76 +232,92 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 Effects::none()
             }
             Msg::Click(me) => {
-                let client_x = me.client_x();
-                let client_y = me.client_y();
-                let cursor = self.client_to_grid_clamped(client_x, client_y);
-                let msgs = self.editor.process_commands([editor::Command::SetPosition(cursor)]);
-                Effects::new(vec![], msgs)
-            }
-            Msg::Mousedown(me) => {
-                log::info!("mouse down event in ultron..");
-                let client_x = me.client_x();
-                let client_y = me.client_y();
-                let is_primary_btn = me.button() == 0;
-                if is_primary_btn {
-                    //self.editor.clear_selection();
-                    self.is_selecting = true;
+                if self.is_editor_mounted(){
+                    let client_x = me.client_x();
+                    let client_y = me.client_y();
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
-                    if self.is_selecting && !self.show_context_menu {
-                        self.editor.set_selection_start(cursor);
-                    }
-                    let msgs = self
-                        .editor
-                        .process_commands([editor::Command::SetPosition(cursor)]);
-                    Effects::new(vec![], msgs).measure()
-                } else {
+                    let msgs = self.editor.process_commands([editor::Command::SetPosition(cursor)]);
+                    Effects::new(vec![], msgs)
+                }else{
                     Effects::none()
                 }
             }
-            Msg::Mousemove(me) => {
-                let client_x = me.client_x();
-                let client_y = me.client_y();
-                let cursor = self.client_to_grid_clamped(client_x, client_y);
-                if self.is_selecting && !self.show_context_menu {
-                    let selection = self.editor.selection();
-                    if let Some(start) = selection.start {
-                        self.editor.set_selection_end(cursor);
+            Msg::Mousedown(me) => {
+                if self.is_editor_mounted(){
+                    log::info!("mouse down event in ultron..");
+                    let client_x = me.client_x();
+                    let client_y = me.client_y();
+                    let is_primary_btn = me.button() == 0;
+                    if is_primary_btn {
+                        //self.editor.clear_selection();
+                        self.is_selecting = true;
+                        let cursor = self.client_to_grid_clamped(client_x, client_y);
+                        if self.is_selecting && !self.show_context_menu {
+                            self.editor.set_selection_start(cursor);
+                        }
                         let msgs = self
                             .editor
-                            .process_commands([editor::Command::SetSelection(start, cursor)]);
+                            .process_commands([editor::Command::SetPosition(cursor)]);
                         Effects::new(vec![], msgs).measure()
                     } else {
                         Effects::none()
                     }
-                } else {
+                }else{
                     Effects::none()
                 }
             }
-            Msg::Mouseup(me) => {
-                let client_x = me.client_x();
-                let client_y = me.client_y();
-                let is_primary_btn = me.button() == 0;
-                if is_primary_btn {
+            Msg::Mousemove(me) => {
+                if self.is_editor_mounted(){
+                    let client_x = me.client_x();
+                    let client_y = me.client_y();
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
-                    self.editor
-                        .process_commands([editor::Command::SetPosition(cursor)]);
-
-                    if self.is_selecting {
-                        self.is_selecting = false;
-                        self.editor.set_selection_end(cursor);
+                    if self.is_selecting && !self.show_context_menu {
                         let selection = self.editor.selection();
-                        if let (Some(start), Some(end)) = (selection.start, selection.end) {
+                        if let Some(start) = selection.start {
+                            self.editor.set_selection_end(cursor);
                             let msgs = self
                                 .editor
-                                .process_commands([editor::Command::SetSelection(start, end)]);
-                            Effects::new(vec![], msgs)
+                                .process_commands([editor::Command::SetSelection(start, cursor)]);
+                            Effects::new(vec![], msgs).measure()
                         } else {
                             Effects::none()
                         }
                     } else {
                         Effects::none()
                     }
-                } else {
+                }else{
+                    Effects::none()
+                }
+            }
+            Msg::Mouseup(me) => {
+                if self.is_editor_mounted(){
+                    let client_x = me.client_x();
+                    let client_y = me.client_y();
+                    let is_primary_btn = me.button() == 0;
+                    if is_primary_btn {
+                        let cursor = self.client_to_grid_clamped(client_x, client_y);
+                        self.editor
+                            .process_commands([editor::Command::SetPosition(cursor)]);
+
+                        if self.is_selecting {
+                            self.is_selecting = false;
+                            self.editor.set_selection_end(cursor);
+                            let selection = self.editor.selection();
+                            if let (Some(start), Some(end)) = (selection.start, selection.end) {
+                                let msgs = self
+                                    .editor
+                                    .process_commands([editor::Command::SetSelection(start, end)]);
+                                Effects::new(vec![], msgs)
+                            } else {
+                                Effects::none()
+                            }
+                        } else {
+                            Effects::none()
+                        }
+                    } else {
+                        Effects::none()
+                    }
+                }else{
                     Effects::none()
                 }
             }
@@ -378,68 +402,75 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
     }
 
     fn view(&self) -> Node<Msg> {
-        let enable_context_menu = self.options.enable_context_menu;
-        let enable_keypresses = self.options.enable_keypresses;
-        let enable_click = self.options.enable_click;
-        div(
-            [
-                class(COMPONENT_NAME),
-                classes_flag_namespaced(
-                    COMPONENT_NAME,
-                    [("occupy_container", self.options.occupy_container)],
-                ),
-                on_mount(Msg::EditorMounted),
-                attributes::tabindex(1),
-                on_keydown(move|ke| {
-                    if enable_keypresses{
-                        ke.prevent_default();
-                        ke.stop_propagation();
-                        Msg::Keydown(ke)
-                    }else{
-                        Msg::NoOp
-                    }
-                }),
-                on_click(move|me|{
-                    if enable_click{
-                        Msg::Click(me)
-                    }else{
-                        Msg::NoOp
-                    }
-                }),
-                tabindex(0),
-                on_focus(Msg::Focused),
-                on_blur(Msg::Blur),
-                on_contextmenu(move|me| {
-                    if enable_context_menu{
-                        me.prevent_default();
-                        me.stop_propagation();
-                        Msg::ContextMenu(me)
-                    }else{
-                        Msg::NoOp
-                    }
-                }),
-                style! {
-                    cursor: self.mouse_cursor.to_str(),
-                },
-            ],
-            [
-                if self.options.use_syntax_highlighter {
-                    self.view_highlighted_lines()
-                } else {
-                    self.plain_view()
-                },
-                view_if(self.options.show_status_line, self.view_status_line()),
-                view_if(
-                    self.is_focused && self.options.show_cursor,
-                    self.view_cursor(),
-                ),
-                view_if(
-                    self.is_focused && self.show_context_menu,
-                    self.context_menu.view().map_msg(Msg::ContextMenuMsg),
-                ),
+        if !self.is_fonts_measured{
+            div([key("measuring")],
+                [text("measuring font"),
                 self.view_font_measure(),
-            ],
-        )
+            ])
+        }else{
+            let enable_context_menu = self.options.enable_context_menu;
+            let enable_keypresses = self.options.enable_keypresses;
+            let enable_click = self.options.enable_click;
+            div(
+                [
+                    class(COMPONENT_NAME),
+                    key("editor-main"),
+                    classes_flag_namespaced(
+                        COMPONENT_NAME,
+                        [("occupy_container", self.options.occupy_container)],
+                    ),
+                    on_mount(Msg::EditorMounted),
+                    attributes::tabindex(1),
+                    on_keydown(move|ke| {
+                        if enable_keypresses{
+                            ke.prevent_default();
+                            ke.stop_propagation();
+                            Msg::Keydown(ke)
+                        }else{
+                            Msg::NoOp
+                        }
+                    }),
+                    on_click(move|me|{
+                        if enable_click{
+                            Msg::Click(me)
+                        }else{
+                            Msg::NoOp
+                        }
+                    }),
+                    tabindex(0),
+                    on_focus(Msg::Focused),
+                    on_blur(Msg::Blur),
+                    on_contextmenu(move|me| {
+                        if enable_context_menu{
+                            me.prevent_default();
+                            me.stop_propagation();
+                            Msg::ContextMenu(me)
+                        }else{
+                            Msg::NoOp
+                        }
+                    }),
+                    style! {
+                        cursor: self.mouse_cursor.to_str(),
+                    },
+                ],
+                [
+                    if self.options.use_syntax_highlighter {
+                        self.view_highlighted_lines()
+                    } else {
+                        self.plain_view()
+                    },
+                    view_if(self.options.show_status_line, self.view_status_line()),
+                    view_if(
+                        self.is_focused && self.options.show_cursor,
+                        self.view_cursor(),
+                    ),
+                    view_if(
+                        self.is_focused && self.show_context_menu,
+                        self.context_menu.view().map_msg(Msg::ContextMenuMsg),
+                    ),
+                ],
+            )
+        }
     }
 
 
@@ -568,17 +599,17 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 impl<XMSG> WebEditor<XMSG> {
 
     pub fn ch_width(&self) -> f32 {
-        if let Some(ch_width) = self.ch_width{
-            ch_width
+        if self.is_fonts_measured {
+            self.ch_width.expect("must have already measured")
         }else{
-            0.0
+            panic!("fonts hasn't been measured");
         }
     }
     pub fn ch_height(&self) -> f32 {
-        if let Some(ch_height) = self.ch_height{
-            ch_height
+        if self.is_fonts_measured{
+            self.ch_height.expect("must have already measured")
         }else{
-            0.0
+            panic!("fonts hasn't been measured");
         }
     }
 
@@ -595,6 +626,7 @@ impl<XMSG> WebEditor<XMSG> {
                 self.ch_width = Some(ch_width);
                 self.ch_height = Some(ch_height);
                 log::info!("font width: {:?}, height: {:?}", self.ch_width, self.ch_height);
+                self.is_fonts_measured = true;
             }else{
                 log::warn!("font measure element hasn't been mounted yet");
             }
@@ -1012,8 +1044,13 @@ impl<XMSG> WebEditor<XMSG> {
     pub fn client_to_grid(&self, client_x: i32, client_y: i32) -> Point2<i32> {
         let numberline_wide_with_padding = self.numberline_wide_with_padding() as f32;
         let editor = self.editor_offset().expect("must have an editor offset");
-        let col = (client_x as f32 - editor.x) / self.ch_width() - numberline_wide_with_padding;
-        let line = (client_y as f32 - editor.y) / self.ch_height();
+        let ch_width = self.ch_width();
+        let ch_height = self.ch_height();
+        assert!(ch_width > 0.);
+        assert!(ch_height > 0.);
+        let col = (client_x as f32 - editor.x) / ch_width - numberline_wide_with_padding;
+        let line = (client_y as f32 - editor.y) / ch_height;
+        log::info!("col: {col}, line: {line}");
         let x = col.floor() as i32;
         let y = line.floor() as i32;
         Point2::new(x, y)
