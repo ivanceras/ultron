@@ -12,11 +12,14 @@ members = [
     "examples/rusty-usage",
 ]
 
-[patch.crates-io]
-
 [profile.release]
-opt-level = "z"
+# https://doc.rust-lang.org/cargo/reference/profiles.html
+opt-level = 3 
 lto = true
-panic = "abort"
-codegen-units = 1
-strip = true  
+panic = "unwind"
+strip = true
+
+[profile.dev]
+debug = 2
+panic = "unwind"
+strip = "none"

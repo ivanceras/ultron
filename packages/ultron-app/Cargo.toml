@@ -27,3 +27,16 @@ with-raf = ["ultron-web/with-raf"]
 with-measure = ["ultron-web/with-measure"]
 with-debug = ["ultron-web/with-debug"]
 with-navigator-clipboard = ["ultron-web/with-navigator-clipboard"]
+
+
+[profile.release]
+# https://doc.rust-lang.org/cargo/reference/profiles.html
+opt-level = 3 
+lto = true
+panic = "unwind"
+strip = true
+
+[profile.dev]
+debug = 2
+panic = "unwind"
+strip = "none"
