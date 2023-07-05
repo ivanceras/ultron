@@ -13,6 +13,7 @@ pub use ultron_core;
 use ultron_core::{
     editor, nalgebra::Point2, Ch, Editor, Options, SelectionMode, Style, TextBuffer, TextEdit,
     TextHighlighter,
+    editor::Callback,
 };
 use selection::SelectionSplits;
 pub use mouse_cursor::MouseCursor;
@@ -80,6 +81,11 @@ pub struct WebEditor<XMSG> {
     is_fonts_loaded: bool,
     /// are the loaded fonts has been measured
     is_fonts_measured: bool,
+    /// the calculated width of the character `0` in px
+    /// this is affected by font sized and font used
+    ch_width: Option<f32>,
+    /// the calculated height of the character `0` in px
+    ch_height: Option<f32>,
     /// the host element the web editor is mounted to, when mounted as a custom web component
     host_element: Option<web_sys::Element>,
     cursor_element: Option<web_sys::Element>,
@@ -94,11 +100,7 @@ pub struct WebEditor<XMSG> {
     pub is_focused: bool,
     context_menu: Menu<Msg>,
     show_context_menu: bool,
-    /// the calculated width of the character `0` in px
-    /// this is affected by font sized and font used
-    ch_width: Option<f32>,
-    /// the calculated height of the character `0` in px
-    ch_height: Option<f32>,
+    fonts_ready_listener: Vec<Callback<(), XMSG>>,
 }
 
 impl From<editor::Command> for Command {
@@ -147,6 +149,7 @@ impl<XMSG> WebEditor<XMSG> {
             is_focused: false,
             context_menu: Menu::new().on_activate(Msg::MenuAction),
             show_context_menu: false,
+            fonts_ready_listener: vec![],
         }
     }
 
@@ -169,6 +172,13 @@ impl<XMSG> WebEditor<XMSG> {
         F: Fn(String) -> XMSG + 'static,
     {
         self.editor.add_on_change_listener(f);
+    }
+
+    /// add a callback to be called when the fonts has already been loaded and measured
+    pub fn on_fonts_ready<F>(&mut self, f: F)
+    where F: Fn(()) -> XMSG + 'static,
+    {
+        self.fonts_ready_listener.push(Callback::from(f));
     }
 
     pub fn add_on_change_notify<F>(&mut self, f: F)
@@ -205,14 +215,14 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 let font_elm: web_sys::Element = mount_event.target_node.unchecked_into();
                 self.font_measure_element = Some(font_elm);
                 log::info!("measure font: {:?}", self.measure_font());
-                self.try_measure_font();
-                Effects::none()
+                let xmsgs = self.try_measure_font();
+                Effects::with_external(xmsgs)
             }
             Msg::FontsLoaded => {
                 self.is_fonts_loaded = true;
                 log::info!("Fonts are now loaded...");
-                self.try_measure_font();
-                Effects::none()
+                let xmsgs = self.try_measure_font();
+                Effects::with_external(xmsgs)
             }
             Msg::ChangeValue(content) => {
                 self.process_commands([editor::Command::SetContent(content).into()]);
@@ -620,18 +630,21 @@ impl<XMSG> WebEditor<XMSG> {
         })
     }
 
-    fn try_measure_font(&mut self){
+    fn try_measure_font(&mut self) -> Vec<XMSG>{
         if self.is_fonts_loaded{
             if let Some((ch_width, ch_height)) = self.measure_font(){
                 self.ch_width = Some(ch_width);
                 self.ch_height = Some(ch_height);
                 log::info!("font width: {:?}, height: {:?}", self.ch_width, self.ch_height);
                 self.is_fonts_measured = true;
+                self.fonts_ready_listener.iter().map(|c|c.emit(())).collect()
             }else{
                 log::warn!("font measure element hasn't been mounted yet");
+                vec![]
             }
         }else{
             log::warn!("fonts hasn't been loaded yet");
+            vec![]
         }
     }
 

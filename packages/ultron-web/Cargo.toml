@@ -20,7 +20,7 @@ ultron-core = { version = "0.3.0", path = "../ultron-core", features = ["callbac
 #sauron = "0.55.0"
 sauron = { path = "../../../sauron"}
 log = "0.4"
-console_log = { version = "0.2", features = ["color"]}
+console_log = { version = "1", features = ["color"]}
 console_error_panic_hook = "0.1"
 css-colors = "1"
 async-trait = "0.1.58"
