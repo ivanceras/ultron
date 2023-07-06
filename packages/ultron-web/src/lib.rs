@@ -2,9 +2,9 @@
 pub use font_loader::FontLoader;
 pub use sauron;
 use sauron::*;
-pub use ultron_core::{base_editor, nalgebra, Options, SelectionMode, TextBuffer};
+pub use ultron_core::{base_editor, nalgebra, SelectionMode, TextBuffer};
 pub use web_editor::custom_element::{attributes, register, ultron_editor, WebEditorCustomElement};
-pub use web_editor::{Command, MouseCursor, WebEditor, COMPONENT_NAME};
+pub use web_editor::{BaseOptions, Command, MouseCursor, Options, WebEditor, COMPONENT_NAME};
 
 pub use ultron_core;
 

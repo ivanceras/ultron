@@ -11,17 +11,20 @@ use std::cell::RefCell;
 use std::rc::Rc;
 pub use ultron_core;
 use ultron_core::{
-    base_editor, nalgebra::Point2, Ch, BaseEditor, Options, SelectionMode, Style, TextBuffer, TextEdit,
+    base_editor, nalgebra::Point2, Ch, BaseEditor, SelectionMode, Style, TextBuffer, TextEdit,
     BaseCommand,
     TextHighlighter,
     base_editor::Callback,
 };
 use selection::SelectionSplits;
 pub use mouse_cursor::MouseCursor;
+pub use options::Options;
+pub use ultron_core::BaseOptions;
 
 mod selection;
 mod mouse_cursor;
 pub mod custom_element;
+mod options;
 
 pub const COMPONENT_NAME: &str = "ultron";
 pub const FONT_SIZE: usize = 14;
@@ -105,8 +108,8 @@ struct Measure {
 }
 
 impl<XMSG> WebEditor<XMSG> {
-    pub fn from_str(options: Options, content: &str) -> Self {
-        let base_editor = BaseEditor::from_str(options.clone(), content);
+    pub fn from_str(options: &Options, content: &str) -> Self {
+        let base_editor = BaseEditor::from_str(&options.base_options, content);
         let mut text_highlighter = TextHighlighter::default();
         if let Some(theme_name) = &options.theme_name {
             text_highlighter.select_theme(theme_name);
@@ -117,7 +120,7 @@ impl<XMSG> WebEditor<XMSG> {
             &mut text_highlighter,
         )));
         WebEditor {
-            options,
+            options: options.clone(),
             base_editor,
             editor_element: None,
             host_element: None,
@@ -1398,7 +1401,7 @@ impl<XMSG> WebEditor<XMSG> {
                             self.options.show_line_numbers,
                             span([class_ns("number")], [text(line_number)]),
                         ),
-                        match self.options.selection_mode {
+                        match self.options.base_options.selection_mode {
                             SelectionMode::Linear => {
                                 self.view_line_with_linear_selection(line_index, line)
                             }

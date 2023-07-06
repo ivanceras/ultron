@@ -1,7 +1,13 @@
 #![allow(unused)]
 use crate::wasm_bindgen_futures::spawn_local;
 use crate::wasm_bindgen_futures::JsFuture;
-use sauron::{dom::{Callback, Task}, html::attributes::*, html::events::*, html::*, *};
+use sauron::{
+    dom::{Callback, Task},
+    html::attributes::*,
+    html::events::*,
+    html::*,
+    *,
+};
 use web_sys::FontFace;
 
 pub enum Msg {
@@ -26,7 +32,6 @@ pub struct FontLoader<XMSG> {
     pub ch_height: Option<f32>,
 }
 
-
 impl<XMSG> FontLoader<XMSG> {
     pub fn new(font_size: f32, font_name: &str, font_url: &str) -> Self {
         Self {
@@ -44,7 +49,8 @@ impl<XMSG> FontLoader<XMSG> {
 
     /// add a callback to be called when the fonts has already been loaded and measured
     pub fn on_fonts_ready<F>(&mut self, f: F)
-    where F: Fn(()) -> XMSG + 'static,
+    where
+        F: Fn(()) -> XMSG + 'static,
     {
         self.fonts_ready_listener.push(Callback::from(f));
     }
@@ -81,22 +87,6 @@ impl<XMSG> FontLoader<XMSG> {
         }
     }
 
-    pub fn init(&mut self) -> Task<Msg>{
-        let font_name = self.font_name.clone();
-        let font_url = self.font_url.clone();
-        let font_size = self.font_size;
-        Task::new(async move{
-            let font_set = document().fonts();
-            let font_face = FontFace::new_with_str(&font_name, &font_url)
-                .expect("font face");
-            font_set.add(&font_face);
-            // Note: the 14px in-front of the font family is needed for this to work
-            // properly
-            JsFuture::from(font_set.load(&format!("{}px {}", font_size,font_name))).await;
-            Msg::FontsLoaded
-        })
-    }
-
     pub fn is_ready(&self) -> bool {
         self.is_fonts_loaded && self.is_fonts_measured
     }
@@ -106,6 +96,25 @@ impl<XMSG> Component<Msg, XMSG> for FontLoader<XMSG>
 where
     XMSG: 'static,
 {
+    fn init(&mut self) -> Vec<Task<Msg>> {
+        log::info!("initializing font loader");
+        let font_name = self.font_name.clone();
+        let font_url = self.font_url.clone();
+        let font_size = self.font_size;
+        vec![Task::new(async move{
+            let font_set = document().fonts();
+            let font_face = FontFace::new_with_str(&font_name, &font_url)
+                .expect("font face");
+            font_set.add(&font_face);
+            // Note: the 14px in-front of the font family is needed for this to work
+            // properly
+            JsFuture::from(font_set.load(&format!("{} {}", px(font_size),font_name))).await;
+            log::info!("awaited the fonts loading...");
+            Msg::FontsLoaded
+        })
+        ]
+    }
+
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
             Msg::FontMeasureMounted(mount_event) => {
@@ -128,17 +137,27 @@ where
     }
 
     fn view(&self) -> Node<Msg> {
+        let font_size = self.font_size;
+        let font_name = self.font_name.clone();
         pre(
             [],
             [
-            text("font loader is loading"),
-            code(
-                [],
-                [span(
-                    [class("font_measure"), on_mount(Msg::FontMeasureMounted)],
-                    [text("0")],
-                )],
-            )],
+                text("font loader is loading"),
+                code(
+                    [],
+                    [span(
+                        [
+                            class("font_measure"),
+                            style! {
+                                font_size: px(font_size),
+                                font_family: font_name,
+                            },
+                            on_mount(Msg::FontMeasureMounted),
+                        ],
+                        [text("0")],
+                    )],
+                ),
+            ],
         )
     }
 

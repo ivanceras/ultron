@@ -6,7 +6,7 @@ use ultron_web::web_editor::{FONT_NAME, FONT_SIZE, FONT_URL};
 use ultron_web::{
     base_editor, sauron,
     sauron::{
-        dom::{self, Measurements, Window},
+        dom::{self, Measurements, Task, Window},
         html::attributes::*,
         html::events::*,
         html::*,
@@ -14,7 +14,7 @@ use ultron_web::{
         wasm_bindgen::JsCast,
         *,
     },
-    web_editor, Options, SelectionMode, WebEditor, COMPONENT_NAME,
+    web_editor, BaseOptions, Options, SelectionMode, WebEditor, COMPONENT_NAME,
 };
 use web_sys::FontFace;
 use web_sys::HtmlDocument;
@@ -41,12 +41,15 @@ impl App {
             theme_name: Some("solarized-light".to_string()),
             use_syntax_highlighter: true,
             allow_text_selection: false,
-            selection_mode: SelectionMode::Linear,
+            base_options: BaseOptions {
+                selection_mode: SelectionMode::Linear,
+                ..Default::default()
+            },
             ch_width,
             ch_height,
             ..Default::default()
         };
-        let web_editor: WebEditor<Msg> = WebEditor::from_str(options, content);
+        let web_editor: WebEditor<Msg> = WebEditor::from_str(&options, content);
         dom::inject_style(&web_editor.style());
         self.web_editor = Some(web_editor);
     }
@@ -76,6 +79,14 @@ impl App {
 }
 
 impl Component<Msg, ()> for App {
+    fn init(&mut self) -> Vec<Task<Msg>> {
+        self.font_loader
+            .init()
+            .into_iter()
+            .map(|task| task.map_msg(Msg::FontLoaderMsg))
+            .collect()
+    }
+
     fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
         match msg {
             Msg::Keydown(ke) => {
@@ -148,7 +159,12 @@ impl Application<Msg> for App {
                 on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
                 on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
             ]),
-            Cmd::from(self.font_loader.init().map_msg(Msg::FontLoaderMsg)),
+            //Cmd::from(self.font_loader.init().map_msg(Msg::FontLoaderMsg)),
+            Cmd::batch(
+                <Self as crate::Component<Msg, ()>>::init(self)
+                    .into_iter()
+                    .map(Cmd::from),
+            ),
         ])
     }
 
