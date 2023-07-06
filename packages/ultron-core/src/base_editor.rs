@@ -1,6 +1,6 @@
 #![allow(unused)]
 pub use crate::Selection;
-use crate::{Options, SelectionMode, TextBuffer, TextEdit};
+use crate::{BaseOptions, SelectionMode, TextBuffer, TextEdit};
 use nalgebra::Point2;
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -9,7 +9,7 @@ pub use ultron_syntaxes_themes::{Style, TextHighlighter};
 /// An editor with core functionality platform specific UI
 #[derive(Default)]
 pub struct BaseEditor<XMSG> {
-    options: Options,
+    options: BaseOptions,
     pub text_edit: TextEdit,
     /// Other components can listen to the an event.
     /// When the content of the text editor changes, the change listener will be emitted
@@ -96,11 +96,11 @@ impl<IN, OUT> Callback<IN, OUT> {
 }
 
 impl<XMSG> BaseEditor<XMSG> {
-    pub fn from_str(options: Options, content: &str) -> Self {
+    pub fn from_str(options: &BaseOptions, content: &str) -> Self {
         let text_edit = TextEdit::from_str(content);
 
         BaseEditor {
-            options,
+            options: options.clone(),
             text_edit,
             #[cfg(feature = "callback")]
             change_listeners: vec![],
