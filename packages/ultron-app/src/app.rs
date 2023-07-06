@@ -4,7 +4,7 @@ use crate::wasm_bindgen_futures::JsFuture;
 use ultron_web::font_loader::{self, FontLoader};
 use ultron_web::web_editor::{FONT_NAME, FONT_SIZE, FONT_URL};
 use ultron_web::{
-    editor, sauron,
+    base_editor, sauron,
     sauron::{
         dom::{self, Measurements, Window},
         html::attributes::*,

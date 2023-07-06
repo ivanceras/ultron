@@ -11,9 +11,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 pub use ultron_core;
 use ultron_core::{
-    editor, nalgebra::Point2, Ch, Editor, Options, SelectionMode, Style, TextBuffer, TextEdit,
+    base_editor, nalgebra::Point2, Ch, BaseEditor, Options, SelectionMode, Style, TextBuffer, TextEdit,
     TextHighlighter,
-    editor::Callback,
+    base_editor::Callback,
 };
 use selection::SelectionSplits;
 pub use mouse_cursor::MouseCursor;
@@ -58,7 +58,7 @@ pub enum Msg {
 
 #[derive(Debug)]
 pub enum Command {
-    EditorCommand(editor::Command),
+    EditorCommand(base_editor::Command),
     /// execute paste text
     PasteTextBlock(String),
     MergeText(String),
@@ -72,7 +72,7 @@ pub enum Command {
 #[derive(Clone, Default)]
 pub struct WebEditor<XMSG> {
     options: Options,
-    pub editor: Editor<XMSG>,
+    pub base_editor: BaseEditor<XMSG>,
     editor_element: Option<web_sys::Element>,
     /// the host element the web editor is mounted to, when mounted as a custom web component
     host_element: Option<web_sys::Element>,
@@ -90,8 +90,8 @@ pub struct WebEditor<XMSG> {
     show_context_menu: bool,
 }
 
-impl From<editor::Command> for Command {
-    fn from(ecommand: editor::Command) -> Self {
+impl From<base_editor::Command> for Command {
+    fn from(ecommand: base_editor::Command) -> Self {
         Self::EditorCommand(ecommand)
     }
 }
@@ -105,19 +105,19 @@ struct Measure {
 
 impl<XMSG> WebEditor<XMSG> {
     pub fn from_str(options: Options, content: &str) -> Self {
-        let editor = Editor::from_str(options.clone(), content);
+        let base_editor = BaseEditor::from_str(options.clone(), content);
         let mut text_highlighter = TextHighlighter::default();
         if let Some(theme_name) = &options.theme_name {
             text_highlighter.select_theme(theme_name);
         }
         text_highlighter.set_syntax_token(&options.syntax_token);
         let highlighted_lines = Rc::new(RefCell::new(Self::highlight_lines(
-            &editor.text_edit,
+            &base_editor.text_edit,
             &mut text_highlighter,
         )));
         WebEditor {
             options,
-            editor,
+            base_editor,
             editor_element: None,
             host_element: None,
             cursor_element: None,
@@ -152,7 +152,7 @@ impl<XMSG> WebEditor<XMSG> {
     where
         F: Fn(String) -> XMSG + 'static,
     {
-        self.editor.add_on_change_listener(f);
+        self.base_editor.add_on_change_listener(f);
     }
 
 
@@ -160,11 +160,11 @@ impl<XMSG> WebEditor<XMSG> {
     where
         F: Fn(()) -> XMSG + 'static,
     {
-        self.editor.add_on_change_notify(f);
+        self.base_editor.add_on_change_notify(f);
     }
 
     pub fn get_content(&self) -> String {
-        self.editor.get_content()
+        self.base_editor.get_content()
     }
 }
 
@@ -184,7 +184,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 Effects::none()
             }
             Msg::ChangeValue(content) => {
-                self.process_commands([editor::Command::SetContent(content).into()]);
+                self.process_commands([base_editor::Command::SetContent(content).into()]);
                 Effects::none()
             }
             Msg::ChangeSyntax(syntax_token) => {
@@ -205,7 +205,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     let client_x = me.client_x();
                     let client_y = me.client_y();
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
-                    let msgs = self.editor.process_commands([editor::Command::SetPosition(cursor)]);
+                    let msgs = self.base_editor.process_commands([base_editor::Command::SetPosition(cursor)]);
                     Effects::new(vec![], msgs)
                 }else{
                     Effects::none()
@@ -218,15 +218,15 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     let client_y = me.client_y();
                     let is_primary_btn = me.button() == 0;
                     if is_primary_btn {
-                        //self.editor.clear_selection();
+                        //self.base_editor.clear_selection();
                         self.is_selecting = true;
                         let cursor = self.client_to_grid_clamped(client_x, client_y);
                         if self.is_selecting && !self.show_context_menu {
-                            self.editor.set_selection_start(cursor);
+                            self.base_editor.set_selection_start(cursor);
                         }
                         let msgs = self
-                            .editor
-                            .process_commands([editor::Command::SetPosition(cursor)]);
+                            .base_editor
+                            .process_commands([base_editor::Command::SetPosition(cursor)]);
                         Effects::new(vec![], msgs).measure()
                     } else {
                         Effects::none()
@@ -241,12 +241,12 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     let client_y = me.client_y();
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
                     if self.is_selecting && !self.show_context_menu {
-                        let selection = self.editor.selection();
+                        let selection = self.base_editor.selection();
                         if let Some(start) = selection.start {
-                            self.editor.set_selection_end(cursor);
+                            self.base_editor.set_selection_end(cursor);
                             let msgs = self
-                                .editor
-                                .process_commands([editor::Command::SetSelection(start, cursor)]);
+                                .base_editor
+                                .process_commands([base_editor::Command::SetSelection(start, cursor)]);
                             Effects::new(vec![], msgs).measure()
                         } else {
                             Effects::none()
@@ -265,17 +265,17 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     let is_primary_btn = me.button() == 0;
                     if is_primary_btn {
                         let cursor = self.client_to_grid_clamped(client_x, client_y);
-                        self.editor
-                            .process_commands([editor::Command::SetPosition(cursor)]);
+                        self.base_editor
+                            .process_commands([base_editor::Command::SetPosition(cursor)]);
 
                         if self.is_selecting {
                             self.is_selecting = false;
-                            self.editor.set_selection_end(cursor);
-                            let selection = self.editor.selection();
+                            self.base_editor.set_selection_end(cursor);
+                            let selection = self.base_editor.selection();
                             if let (Some(start), Some(end)) = (selection.start, selection.end) {
                                 let msgs = self
-                                    .editor
-                                    .process_commands([editor::Command::SetSelection(start, end)]);
+                                    .base_editor
+                                    .process_commands([base_editor::Command::SetSelection(start, end)]);
                                 Effects::new(vec![], msgs)
                             } else {
                                 Effects::none()
@@ -346,10 +346,10 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 self.show_context_menu = false;
                 match menu_action {
                     MenuAction::Undo => {
-                        self.process_command(Command::EditorCommand(editor::Command::Undo));
+                        self.process_command(Command::EditorCommand(base_editor::Command::Undo));
                     }
                     MenuAction::Redo => {
-                        self.process_command(Command::EditorCommand(editor::Command::Redo));
+                        self.process_command(Command::EditorCommand(base_editor::Command::Redo));
                     }
                     MenuAction::Cut => {
                         self.cut_selected_text_to_clipboard();
@@ -360,7 +360,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     MenuAction::Paste => todo!(),
                     MenuAction::Delete => todo!(),
                     MenuAction::SelectAll => {
-                        self.process_command(Command::EditorCommand(editor::Command::SelectAll));
+                        self.process_command(Command::EditorCommand(base_editor::Command::SelectAll));
                         log::info!("selected text: {:?}", self.selected_text());
                     }
                 }
@@ -582,18 +582,18 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     pub fn get_char(&self,loc: Point2<usize>) -> Option<char> {
-        self.editor.get_char(loc)
+        self.base_editor.get_char(loc)
     }
 
     pub fn get_position(&self) -> Point2<usize> {
-        self.editor.get_position()
+        self.base_editor.get_position()
     }
 
 
   fn rehighlight_all(&mut self) {
         self.text_highlighter.borrow_mut().reset();
         *self.highlighted_lines.borrow_mut() = Self::highlight_lines(
-            &self.editor.text_edit,
+            &self.base_editor.text_edit,
             &mut self.text_highlighter.borrow_mut(),
         );
     }
@@ -603,7 +603,7 @@ impl<XMSG> WebEditor<XMSG> {
         if let Some((_top, end)) = self.visible_lines(){
             let text_highlighter = self.text_highlighter.clone();
             let highlighted_lines = self.highlighted_lines.clone();
-            let lines = self.editor.text_edit.lines();
+            let lines = self.base_editor.text_edit.lines();
             for handle in self.animation_frame_handles.drain(..) {
                 //cancel the old ones
                 sauron::dom::util::cancel_animation_frame(handle).expect("must cancel");
@@ -652,7 +652,7 @@ impl<XMSG> WebEditor<XMSG> {
             }
             let text_highlighter = self.text_highlighter.clone();
             let highlighted_lines = self.highlighted_lines.clone();
-            let lines = self.editor.text_edit.lines();
+            let lines = self.base_editor.text_edit.lines();
             let closure = move || {
                 let mut text_highlighter = text_highlighter.borrow_mut();
 
@@ -700,29 +700,29 @@ impl<XMSG> WebEditor<XMSG> {
                 }
                 'z' | 'Z' if is_ctrl => {
                     if is_shift {
-                        Command::EditorCommand(editor::Command::Redo)
+                        Command::EditorCommand(base_editor::Command::Redo)
                     } else {
-                        Command::EditorCommand(editor::Command::Undo)
+                        Command::EditorCommand(base_editor::Command::Undo)
                     }
                 }
-                'r' if is_ctrl => Command::EditorCommand(editor::Command::Redo),
-                'a' if is_ctrl => Command::EditorCommand(editor::Command::SelectAll),
-                _ => Command::EditorCommand(editor::Command::InsertChar(c)),
+                'r' if is_ctrl => Command::EditorCommand(base_editor::Command::Redo),
+                'a' if is_ctrl => Command::EditorCommand(base_editor::Command::SelectAll),
+                _ => Command::EditorCommand(base_editor::Command::InsertChar(c)),
             };
 
             Some(command)
         } else {
             let editor_command = match &*key {
-                "Tab" => Some(editor::Command::IndentForward),
-                "Enter" => Some(editor::Command::BreakLine),
-                "Backspace" => Some(editor::Command::DeleteBack),
-                "Delete" => Some(editor::Command::DeleteForward),
-                "ArrowUp" => Some(editor::Command::MoveUp),
-                "ArrowDown" => Some(editor::Command::MoveDown),
-                "ArrowLeft" => Some(editor::Command::MoveLeft),
-                "ArrowRight" => Some(editor::Command::MoveRight),
-                "Home" => Some(editor::Command::MoveLeftStart),
-                "End" => Some(editor::Command::MoveRightEnd),
+                "Tab" => Some(base_editor::Command::IndentForward),
+                "Enter" => Some(base_editor::Command::BreakLine),
+                "Backspace" => Some(base_editor::Command::DeleteBack),
+                "Delete" => Some(base_editor::Command::DeleteForward),
+                "ArrowUp" => Some(base_editor::Command::MoveUp),
+                "ArrowDown" => Some(base_editor::Command::MoveDown),
+                "ArrowLeft" => Some(base_editor::Command::MoveLeft),
+                "ArrowRight" => Some(base_editor::Command::MoveRight),
+                "Home" => Some(base_editor::Command::MoveLeftStart),
+                "End" => Some(base_editor::Command::MoveRightEnd),
                 _ => None,
             };
             editor_command.map(Command::EditorCommand)
@@ -745,7 +745,7 @@ impl<XMSG> WebEditor<XMSG> {
             .map(|command| self.process_command(command))
             .collect();
         if results.into_iter().any(|v| v) {
-            let xmsgs = self.editor.emit_on_change_listeners();
+            let xmsgs = self.base_editor.emit_on_change_listeners();
             if self.options.use_syntax_highlighter{
                 self.rehighlight_visible_lines();
                 self.rehighlight_non_visible_lines_in_background();
@@ -801,41 +801,41 @@ impl<XMSG> WebEditor<XMSG> {
     pub fn process_command(&mut self, command: Command) -> bool {
         match command {
             Command::EditorCommand(ecommand) => match ecommand {
-                editor::Command::InsertChar(ch) => {
+                base_editor::Command::InsertChar(ch) => {
                     self.insert_to_highlighted_line(ch);
-                    self.editor.process_command(ecommand)
+                    self.base_editor.process_command(ecommand)
                 }
-                _ => self.editor.process_command(ecommand),
+                _ => self.base_editor.process_command(ecommand),
             },
             Command::PasteTextBlock(text_block) => self
-                .editor
-                .process_command(editor::Command::PasteTextBlock(text_block)),
+                .base_editor
+                .process_command(base_editor::Command::PasteTextBlock(text_block)),
             Command::MergeText(text_block) => self
-                .editor
-                .process_command(editor::Command::MergeText(text_block)),
+                .base_editor
+                .process_command(base_editor::Command::MergeText(text_block)),
             Command::CopyText => self.copy_selected_text_to_clipboard(),
             Command::CutText => self.cut_selected_text_to_clipboard(),
         }
     }
 
     pub fn selected_text(&self) -> Option<String> {
-        self.editor.selected_text()
+        self.base_editor.selected_text()
     }
 
     pub fn is_selected(&self, loc: Point2<i32>) -> bool {
-        self.editor.is_selected(loc)
+        self.base_editor.is_selected(loc)
     }
 
     pub fn cut_selected_text(&mut self) -> Option<String> {
-        self.editor.cut_selected_text()
+        self.base_editor.cut_selected_text()
     }
 
     pub fn clear(&mut self) {
-        self.editor.clear()
+        self.base_editor.clear()
     }
 
     pub fn set_selection(&mut self, start: Point2<i32>, end: Point2<i32>) {
-        self.editor.set_selection(start, end);
+        self.base_editor.set_selection(start, end);
     }
 
     pub fn copy_selected_text_to_clipboard(&self) -> bool {
@@ -864,7 +864,7 @@ impl<XMSG> WebEditor<XMSG> {
         ret
     }
 
-    /// calculate the bounding rect of the editor using a DOM call [getBoundingClientRect](https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect)
+    /// calculate the bounding rect of the base_editor using a DOM call [getBoundingClientRect](https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect)
     pub fn bounding_rect(&self) -> Option<(Point2<f32>, Point2<f32>)> {
         if let Some(ref editor_element) = self.editor_element {
             let rect = editor_element.get_bounding_client_rect();
@@ -963,14 +963,14 @@ impl<XMSG> WebEditor<XMSG> {
     /// how wide the numberline based on the character lengths of the number
     fn numberline_wide_with_padding(&self) -> usize {
         if self.options.show_line_numbers {
-            self.editor.total_lines().to_string().len() + self.numberline_padding_wide()
+            self.base_editor.total_lines().to_string().len() + self.numberline_padding_wide()
         } else {
             0
         }
     }
 
     pub fn total_lines(&self) -> usize {
-        self.editor.total_lines()
+        self.base_editor.total_lines()
     }
 
     /// convert screen coordinate to grid coordinate taking into account the editor element
@@ -998,7 +998,7 @@ impl<XMSG> WebEditor<XMSG> {
 
     /// convert current cursor position to client coordinate relative to the editor div
     pub fn cursor_to_client(&self) -> Point2<f32> {
-        let cursor = self.editor.get_position();
+        let cursor = self.base_editor.get_position();
         Point2::new(
             (cursor.x + self.numberline_wide_with_padding()) as f32 * self.ch_width(),
             cursor.y as f32 * self.ch_height(),
@@ -1032,7 +1032,7 @@ impl<XMSG> WebEditor<XMSG> {
     /// the view for the status line
     pub fn view_status_line<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let cursor = self.editor.get_position();
+        let cursor = self.base_editor.get_position();
 
         div(
             [
@@ -1047,7 +1047,7 @@ impl<XMSG> WebEditor<XMSG> {
             [
                 text!(" |> line: {}, col: {} ", cursor.y + 1, cursor.x + 1),
                 text!(" |> version:{}", env!("CARGO_PKG_VERSION")),
-                text!(" |> lines: {}", self.editor.total_lines()),
+                text!(" |> lines: {}", self.base_editor.total_lines()),
                 if let Some((start, end)) = self.bounding_rect() {
                     text!(" |> bounding rect: {}->{}", start, end)
                 } else {
@@ -1063,7 +1063,7 @@ impl<XMSG> WebEditor<XMSG> {
                 } else {
                     text!("")
                 },
-                text!(" |> selection: {:?}", self.editor.selection()),
+                text!(" |> selection: {:?}", self.base_editor.selection()),
                 if let Some(average_dispatch) = self.measure.average_dispatch {
                     text!(" |> average dispatch: {}ms", average_dispatch.round())
                 } else {
@@ -1088,7 +1088,7 @@ impl<XMSG> WebEditor<XMSG> {
                     style! {
                         background_color: self.gutter_background().to_css(),
                         color: self.gutter_foreground().to_css(),
-                        width: px(self.ch_width() * self.editor.numberline_wide() as f32),
+                        width: px(self.ch_width() * self.base_editor.numberline_wide() as f32),
                         height: px(self.ch_height()),
                         padding_right: px(self.ch_width() * self.numberline_padding_wide() as f32),
                     },
@@ -1135,7 +1135,7 @@ impl<XMSG> WebEditor<XMSG> {
 
                 let foreground = util::to_rgba(style.foreground).to_css();
 
-                let selection_splits = match self.editor.text_edit.selection_reorder_casted() {
+                let selection_splits = match self.base_editor.text_edit.selection_reorder_casted() {
                     Some((start, end)) => {
                         // selection end points is only on the same line
                         let selection_in_same_line = start.y == end.y;
@@ -1291,10 +1291,10 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     fn view_line_with_linear_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
-        let line_width = self.editor.text_edit.text_buffer.line_width(line_index);
+        let line_width = self.base_editor.text_edit.text_buffer.line_width(line_index);
         let line_end = Point2::new(line_width, line_index);
 
-        let selection_splits = match self.editor.text_edit.selection_reorder_casted() {
+        let selection_splits = match self.base_editor.text_edit.selection_reorder_casted() {
             Some((start, end)) => {
                 // this line is in between the selection end points
                 let in_inner_line = line_index > start.y && line_index < end.y;
@@ -1308,7 +1308,7 @@ impl<XMSG> WebEditor<XMSG> {
                     let in_first_line = line_index == start.y;
                     // this line is on the last line of selection
                     let in_last_line = line_index == end.y;
-                    let text_buffer = &self.editor.text_edit.text_buffer;
+                    let text_buffer = &self.base_editor.text_edit.text_buffer;
                     if in_first_line {
                         // the first part is the plain
                         // the second part is the highlighted
@@ -1347,9 +1347,9 @@ impl<XMSG> WebEditor<XMSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
 
         let default_view = span([], [text(&line)]);
-        match self.editor.text_edit.selection_normalized_casted() {
+        match self.base_editor.text_edit.selection_normalized_casted() {
             Some((start, end)) => {
-                let text_buffer = &self.editor.text_edit.text_buffer;
+                let text_buffer = &self.base_editor.text_edit.text_buffer;
 
                 // there will be 3 parts
                 // the first one is plain
@@ -1381,7 +1381,7 @@ impl<XMSG> WebEditor<XMSG> {
 
     pub fn view_text_edit<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        let text_edit = &self.editor.text_edit;
+        let text_edit = &self.base_editor.text_edit;
 
         let code_attributes = [class_ns("code")];
         let rendered_lines = text_edit

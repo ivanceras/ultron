@@ -8,7 +8,7 @@ pub use ultron_syntaxes_themes::{Style, TextHighlighter};
 
 /// An editor with core functionality platform specific UI
 #[derive(Default)]
-pub struct Editor<XMSG> {
+pub struct BaseEditor<XMSG> {
     options: Options,
     pub text_edit: TextEdit,
     /// Other components can listen to the an event.
@@ -22,7 +22,7 @@ pub struct Editor<XMSG> {
     _phantom: PhantomData<XMSG>,
 }
 
-impl<XMSG> Clone for Editor<XMSG> {
+impl<XMSG> Clone for BaseEditor<XMSG> {
     fn clone(&self) -> Self {
         Self {
             options: self.options.clone(),
@@ -95,11 +95,11 @@ impl<IN, OUT> Callback<IN, OUT> {
     }
 }
 
-impl<XMSG> Editor<XMSG> {
+impl<XMSG> BaseEditor<XMSG> {
     pub fn from_str(options: Options, content: &str) -> Self {
         let text_edit = TextEdit::from_str(content);
 
-        Editor {
+        BaseEditor {
             options,
             text_edit,
             #[cfg(feature = "callback")]
@@ -172,7 +172,7 @@ impl<XMSG> Editor<XMSG> {
     }
 }
 
-impl<XMSG> Editor<XMSG> {
+impl<XMSG> BaseEditor<XMSG> {
     pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG> {
         let results: Vec<bool> = commands
             .into_iter()
@@ -361,7 +361,7 @@ impl<XMSG> Editor<XMSG> {
     }
 
     /// Attach an callback to this editor where it is invoked when the content is changed.
-    /// The callback function just notifies the parent component that uses the Editor component.
+    /// The callback function just notifies the parent component that uses the BaseEditor component.
     /// It will be up to the parent component to extract the content of the editor manually.
     ///
     /// This is intended to be used in a debounced or throttled functionality where the component
