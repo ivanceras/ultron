@@ -1,4 +1,4 @@
-use sauron::dom::Callback;
+use sauron::dom::{Callback, Task};
 use sauron::{html::attributes::*, html::events::*, html::*, *};
 use ultron_core::nalgebra::Point2;
 
@@ -54,6 +54,9 @@ impl<XMSG> Menu<XMSG> {
 }
 
 impl<XMSG> Component<Msg, XMSG> for Menu<XMSG> {
+    fn init(&mut self) -> Vec<Task<Msg>> {
+        vec![]
+    }
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
             Msg::SelectAction(menu_action) => {
@@ -119,8 +122,8 @@ impl<XMSG> Component<Msg, XMSG> for Menu<XMSG> {
         )
     }
 
-    fn style(&self) -> String {
-        jss! {
+    fn style(&self) -> Vec<String> {
+        vec![jss_pretty! {
             ".context_menu": {
                 background_color: "#eee",
                 display: "flex",
@@ -169,6 +172,6 @@ impl<XMSG> Component<Msg, XMSG> for Menu<XMSG> {
             ".context_menu details li:hover": {
                 background_color: "#ddd",
             },
-        }
+        }]
     }
 }

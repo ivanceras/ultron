@@ -161,7 +161,7 @@ where
         )
     }
 
-    fn style(&self) -> String {
-        String::new()
+    fn style(&self) -> Vec<String> {
+        vec![]
     }
 }

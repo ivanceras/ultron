@@ -12,6 +12,7 @@ members = [
     "examples/rusty-usage",
 ]
 
+
 [profile.release]
 # https://doc.rust-lang.org/cargo/reference/profiles.html
 opt-level = 3 
@@ -23,3 +24,4 @@ strip = true
 debug = 2
 panic = "unwind"
 strip = "none"
+

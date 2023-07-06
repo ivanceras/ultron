@@ -3,7 +3,7 @@ use crate::context_menu::{self, Menu, MenuAction};
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::{
-    dom::Measurements, html::attributes::*, html::events::*, html::*, jss_ns_pretty,
+    dom::{Measurements, Task}, html::attributes::*, html::events::*, html::*, jss_ns_pretty,
     wasm_bindgen::JsCast, wasm_bindgen_futures::JsFuture, *,
     web_sys::HtmlElement,
 };
@@ -173,6 +173,10 @@ impl<XMSG> WebEditor<XMSG> {
 }
 
 impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
+
+    fn init(&mut self) -> Vec<Task<Msg>> {
+        vec![]
+    }
 
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
@@ -440,7 +444,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
     }
 
 
-    fn style(&self) -> String {
+    fn style(&self) -> Vec<String> {
         let user_select = if self.options.allow_text_selection {
             "text"
         } else {
@@ -558,7 +562,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             },
         };
 
-        [main, self.context_menu.style()].join("\n")
+        [vec![main], self.context_menu.style()].concat()
     }
 }
 

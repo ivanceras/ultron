@@ -50,7 +50,7 @@ impl App {
             ..Default::default()
         };
         let web_editor: WebEditor<Msg> = WebEditor::from_str(&options, content);
-        dom::inject_style(&web_editor.style());
+        dom::inject_style(&web_editor.style().join(""));
         self.web_editor = Some(web_editor);
     }
     pub fn new() -> Self {
@@ -136,7 +136,7 @@ impl Component<Msg, ()> for App {
         }
     }
 
-    fn style(&self) -> String {
+    fn style(&self) -> Vec<String> {
         let css = jss_ns_pretty! {COMPONENT_NAME,
             ".app": {
                 display: "flex",
@@ -145,27 +145,26 @@ impl Component<Msg, ()> for App {
                 height: percent(100),
             },
         };
-        [css].join("\n")
+        vec![css]
     }
 }
 
 /// Auto implementation of Application trait for Component that
 /// has no external MSG
 impl Application<Msg> for App {
-    fn init(&mut self) -> Cmd<Self, Msg> {
-        Cmd::batch([
+    fn init(&mut self) -> Vec<Cmd<Self, Msg>> {
+        vec![
             Window::add_event_listeners(vec![
                 on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
                 on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
                 on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
             ]),
-            //Cmd::from(self.font_loader.init().map_msg(Msg::FontLoaderMsg)),
             Cmd::batch(
                 <Self as crate::Component<Msg, ()>>::init(self)
                     .into_iter()
                     .map(Cmd::from),
             ),
-        ])
+        ]
     }
 
     fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
@@ -177,7 +176,7 @@ impl Application<Msg> for App {
         <Self as crate::Component<Msg, ()>>::view(self)
     }
 
-    fn style(&self) -> String {
+    fn style(&self) -> Vec<String> {
         <Self as crate::Component<Msg, ()>>::style(self)
     }
 

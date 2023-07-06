@@ -95,7 +95,7 @@ impl WebEditorCustomElement {
     pub fn connected_callback(&mut self) {
         self.program.mount();
         let component_style =
-            <WebEditor<()> as Application<Msg>>::style(&self.program.app.borrow());
+            <WebEditor<()> as Application<Msg>>::style(&self.program.app.borrow()).join("");
         self.program.inject_style_to_mount(&component_style);
         self.program.update_dom().expect("must update dom");
     }
