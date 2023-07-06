@@ -1,5 +1,5 @@
 #![deny(warnings)]
-pub use base_editor::{BaseEditor, Command};
+pub use base_editor::{BaseCommand, BaseEditor};
 pub use nalgebra::Point2;
 pub use options::Options;
 pub use text_buffer::{Ch, TextBuffer, BLANK_CH};

@@ -37,7 +37,7 @@ impl<XMSG> Clone for BaseEditor<XMSG> {
 }
 
 #[derive(Debug)]
-pub enum Command {
+pub enum BaseCommand {
     IndentForward,
     IndentBackward,
     BreakLine,
@@ -173,7 +173,10 @@ impl<XMSG> BaseEditor<XMSG> {
 }
 
 impl<XMSG> BaseEditor<XMSG> {
-    pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG> {
+    pub fn process_commands(
+        &mut self,
+        commands: impl IntoIterator<Item = BaseCommand>,
+    ) -> Vec<XMSG> {
         let results: Vec<bool> = commands
             .into_iter()
             .map(|command| self.process_command(command))
@@ -197,99 +200,99 @@ impl<XMSG> BaseEditor<XMSG> {
     /// TODO option2: have a boolean flag, for each of the command to determine
     /// if the editor content changed or not
     ///
-    pub fn process_command(&mut self, command: Command) -> bool {
+    pub fn process_command(&mut self, command: BaseCommand) -> bool {
         match command {
-            Command::IndentForward => {
+            BaseCommand::IndentForward => {
                 let indent = "    ";
                 self.text_edit.command_insert_text(indent);
                 true
             }
-            Command::IndentBackward => true,
-            Command::BreakLine => {
+            BaseCommand::IndentBackward => true,
+            BaseCommand::BreakLine => {
                 self.text_edit.command_break_line();
                 true
             }
-            Command::DeleteBack => {
+            BaseCommand::DeleteBack => {
                 self.text_edit.command_delete_back();
                 true
             }
-            Command::DeleteForward => {
+            BaseCommand::DeleteForward => {
                 self.text_edit.command_delete_forward();
                 true
             }
-            Command::MoveUp => {
+            BaseCommand::MoveUp => {
                 self.command_move_up();
                 false
             }
-            Command::MoveDown => {
+            BaseCommand::MoveDown => {
                 self.command_move_down();
                 false
             }
-            Command::PasteTextBlock(text) => {
+            BaseCommand::PasteTextBlock(text) => {
                 self.text_edit.paste_text_in_block_mode(text);
                 true
             }
-            Command::MergeText(text) => {
+            BaseCommand::MergeText(text) => {
                 self.text_edit.command_merge_text(text);
                 true
             }
-            Command::MoveLeft => {
+            BaseCommand::MoveLeft => {
                 self.text_edit.command_move_left();
                 false
             }
-            Command::MoveLeftStart => {
+            BaseCommand::MoveLeftStart => {
                 self.text_edit.command_move_left_start();
                 false
             }
-            Command::MoveRightEnd => {
+            BaseCommand::MoveRightEnd => {
                 self.text_edit.command_move_right_end();
                 false
             }
-            Command::MoveRight => {
+            BaseCommand::MoveRight => {
                 self.command_move_right();
                 false
             }
-            Command::InsertChar(c) => {
+            BaseCommand::InsertChar(c) => {
                 self.text_edit.command_insert_char(c);
                 true
             }
-            Command::ReplaceChar(c) => {
+            BaseCommand::ReplaceChar(c) => {
                 self.text_edit.command_replace_char(c);
                 true
             }
-            Command::InsertText(text) => {
+            BaseCommand::InsertText(text) => {
                 self.text_edit.command_insert_text(&text);
                 true
             }
-            Command::SetContent(content) => {
+            BaseCommand::SetContent(content) => {
                 self.text_edit = TextEdit::from_str(&content);
                 true
             }
-            Command::Undo => {
+            BaseCommand::Undo => {
                 self.text_edit.command_undo();
                 true
             }
-            Command::Redo => {
+            BaseCommand::Redo => {
                 self.text_edit.command_redo();
                 true
             }
-            Command::BumpHistory => {
+            BaseCommand::BumpHistory => {
                 self.text_edit.bump_history();
                 false
             }
-            Command::SetSelection(start, end) => {
+            BaseCommand::SetSelection(start, end) => {
                 self.text_edit.command_set_selection(start, end);
                 false
             }
-            Command::SelectAll => {
+            BaseCommand::SelectAll => {
                 self.text_edit.command_select_all();
                 false
             }
-            Command::ClearSelection => {
+            BaseCommand::ClearSelection => {
                 self.text_edit.clear_selection();
                 false
             }
-            Command::SetPosition(pos) => {
+            BaseCommand::SetPosition(pos) => {
                 self.command_set_position(pos);
                 false
             }
