@@ -1,9 +1,12 @@
 #![allow(unused)]
+use crate::wasm_bindgen_futures::spawn_local;
 use crate::wasm_bindgen_futures::JsFuture;
+use ultron_web::font_loader::{self, FontLoader};
+use ultron_web::web_editor::{FONT_NAME, FONT_SIZE, FONT_URL};
 use ultron_web::{
     editor, sauron,
     sauron::{
-        dom::{Measurements, Window},
+        dom::{self, Measurements, Window},
         html::attributes::*,
         html::events::*,
         html::*,
@@ -13,41 +16,47 @@ use ultron_web::{
     },
     web_editor, Options, SelectionMode, WebEditor, COMPONENT_NAME,
 };
-use web_sys::HtmlDocument;
 use web_sys::FontFace;
-use crate::wasm_bindgen_futures::spawn_local;
-use ultron_web::web_editor::{FONT_NAME,FONT_URL,FONT_SIZE};
-
+use web_sys::HtmlDocument;
 
 pub enum Msg {
     WebEditorMsg(web_editor::Msg),
     Keydown(web_sys::KeyboardEvent),
-    FontsLoaded,
+    FontLoaderMsg(font_loader::Msg),
+    /// when the font is ready
+    FontReady,
 }
 
 /// The web editor with text area hacks for listening to typing events
 pub struct App {
-    web_editor: WebEditor<Msg>,
+    font_loader: FontLoader<Msg>,
+    web_editor: Option<WebEditor<Msg>>,
 }
 
 impl App {
-    pub fn new() -> Self {
-        //let content = include_str!("../test_data/hello.rs");
-        //let content = include_str!("../test_data/long.rs");
+    pub fn create_web_editor(&mut self, ch_width: Option<f32>, ch_height: Option<f32>) {
         let content = include_str!("../../ultron-web/src/web_editor.rs");
-        //let content = include_str!("../test_data/svgbob.md");
-
         let options = Options {
             syntax_token: "rust".to_string(),
             theme_name: Some("solarized-light".to_string()),
-            //theme_name: Some("gruvbox-dark".to_string()),
             use_syntax_highlighter: true,
             allow_text_selection: false,
             selection_mode: SelectionMode::Linear,
+            ch_width,
+            ch_height,
             ..Default::default()
         };
+        let web_editor: WebEditor<Msg> = WebEditor::from_str(options, content);
+        dom::inject_style(&web_editor.style());
+        self.web_editor = Some(web_editor);
+    }
+    pub fn new() -> Self {
+        let mut font_loader = FontLoader::new(FONT_SIZE as f32, &FONT_NAME, &FONT_URL);
+        font_loader.on_fonts_ready(|_| Msg::FontReady);
+
         Self {
-            web_editor: WebEditor::from_str(options, content),
+            web_editor: None,
+            font_loader,
         }
     }
 
@@ -55,10 +64,14 @@ impl App {
         &mut self,
         wcommands: impl IntoIterator<Item = impl Into<web_editor::Command>>,
     ) -> Vec<Msg> {
-        self.web_editor
-            .process_commands(wcommands.into_iter().map(|wcommand| wcommand.into()))
-            .into_iter()
-            .collect()
+        if let Some(web_editor) = self.web_editor.as_mut() {
+            web_editor
+                .process_commands(wcommands.into_iter().map(|wcommand| wcommand.into()))
+                .into_iter()
+                .collect()
+        } else {
+            vec![]
+        }
     }
 }
 
@@ -66,26 +79,50 @@ impl Component<Msg, ()> for App {
     fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
         match msg {
             Msg::Keydown(ke) => {
-                let effects = self.web_editor.update(web_editor::Msg::Keydown(ke));
-                effects.localize(Msg::WebEditorMsg)
+                if let Some(web_editor) = self.web_editor.as_mut() {
+                    let effects = web_editor.update(web_editor::Msg::Keydown(ke));
+                    effects.localize(Msg::WebEditorMsg)
+                } else {
+                    Effects::none()
+                }
             }
             Msg::WebEditorMsg(emsg) => {
-                let effects = self.web_editor.update(emsg);
-                effects.localize(Msg::WebEditorMsg)
+                if let Some(web_editor) = self.web_editor.as_mut() {
+                    let effects = web_editor.update(emsg);
+                    effects.localize(Msg::WebEditorMsg)
+                } else {
+                    Effects::none()
+                }
             }
-            Msg::FontsLoaded => {
-                let effects = self.web_editor.update(web_editor::Msg::FontsLoaded);
-                effects.localize(Msg::WebEditorMsg)
+            Msg::FontLoaderMsg(fmsg) => {
+                let effects = self.font_loader.update(fmsg);
+                effects.localize(Msg::FontLoaderMsg)
+            }
+            Msg::FontReady => {
+                let ch_width = self.font_loader.ch_width;
+                let ch_height = self.font_loader.ch_height;
+                self.create_web_editor(ch_width, ch_height);
+                Effects::none()
             }
         }
     }
 
     fn view(&self) -> Node<Msg> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        div(
-            [class_ns("app")],
-            [self.web_editor.view().map_msg(Msg::WebEditorMsg)],
-        )
+        if let Some(web_editor) = self.web_editor.as_ref() {
+            div(
+                [class_ns("app")],
+                [web_editor.view().map_msg(Msg::WebEditorMsg)],
+            )
+        } else {
+            div(
+                [],
+                [
+                    text("Loading fonts...."),
+                    self.font_loader.view().map_msg(Msg::FontLoaderMsg),
+                ],
+            )
+        }
     }
 
     fn style(&self) -> String {
@@ -97,7 +134,7 @@ impl Component<Msg, ()> for App {
                 height: percent(100),
             },
         };
-        [css, self.web_editor.style()].join("\n")
+        [css].join("\n")
     }
 }
 
@@ -111,18 +148,7 @@ impl Application<Msg> for App {
                 on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
                 on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
             ]),
-            Cmd::new(|program| {
-                spawn_local(async move{
-                    let font_set = document().fonts();
-                    let font_face = FontFace::new_with_str(FONT_NAME, FONT_URL)
-                        .expect("font face");
-                    font_set.add(&font_face);
-                    // Note: the 14px in-front of the font family is needed for this to work
-                    // properly
-                    JsFuture::from(font_set.load(&format!("{FONT_SIZE}px {FONT_NAME}"))).await;
-                    program.dispatch(Msg::FontsLoaded);
-                })
-            }),
+            Cmd::from(self.font_loader.init().map_msg(Msg::FontLoaderMsg)),
         ])
     }
 

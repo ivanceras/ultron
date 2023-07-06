@@ -1,5 +1,6 @@
 use crate::SelectionMode;
 
+/// TODO: split this options into CoreOption and WebOption
 #[derive(Clone, Debug)]
 pub struct Options {
     /// block selection uses rectangular text selection
@@ -50,6 +51,11 @@ pub struct Options {
     pub enable_keypresses: bool,
     /// clicking on the editor will set the cursor location at the click location
     pub enable_click: bool,
+    /// the calculated width of the character `0` in px
+    /// this is affected by font sized and font used
+    pub ch_width: Option<f32>,
+    /// the calculated height of the character `0` in px
+    pub ch_height: Option<f32>,
 }
 
 impl Default for Options {
@@ -75,6 +81,8 @@ impl Default for Options {
             enable_context_menu: false,
             enable_keypresses: true,
             enable_click: true,
+            ch_width: None,
+            ch_height: None,
         }
     }
 }

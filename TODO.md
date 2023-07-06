@@ -146,3 +146,4 @@
 ## Performance improvement
 - [X] For every last typed character, add it to the most probable range in the highlighted line
     - It will be corrected once the highlighting is run
+- [ ] Test to see if the CACHED_ELEMENT and the cached WINDOW and DOCUMENT in sauron is an improvement

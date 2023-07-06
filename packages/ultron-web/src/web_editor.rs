@@ -31,8 +31,6 @@ pub const FONT_URL: &str = "url(fonts/iosevka-fixed-regular.woff2)";
 #[derive(Debug, Clone)]
 pub enum Msg {
     EditorMounted(MountEvent),
-    FontMeasureMounted(MountEvent),
-    FontsLoaded,
     /// Discard current editor content if any, and use this new value
     /// This is triggered from the top-level DOM of this component
     ChangeValue(String),
@@ -76,16 +74,6 @@ pub struct WebEditor<XMSG> {
     options: Options,
     pub editor: Editor<XMSG>,
     editor_element: Option<web_sys::Element>,
-    font_measure_element: Option<web_sys::Element>,
-    /// if the fonts has been loaded
-    is_fonts_loaded: bool,
-    /// are the loaded fonts has been measured
-    is_fonts_measured: bool,
-    /// the calculated width of the character `0` in px
-    /// this is affected by font sized and font used
-    ch_width: Option<f32>,
-    /// the calculated height of the character `0` in px
-    ch_height: Option<f32>,
     /// the host element the web editor is mounted to, when mounted as a custom web component
     host_element: Option<web_sys::Element>,
     cursor_element: Option<web_sys::Element>,
@@ -100,7 +88,6 @@ pub struct WebEditor<XMSG> {
     pub is_focused: bool,
     context_menu: Menu<Msg>,
     show_context_menu: bool,
-    fonts_ready_listener: Vec<Callback<(), XMSG>>,
 }
 
 impl From<editor::Command> for Command {
@@ -132,11 +119,6 @@ impl<XMSG> WebEditor<XMSG> {
             options,
             editor,
             editor_element: None,
-            font_measure_element: None,
-            is_fonts_loaded: false,
-            is_fonts_measured: false,
-            ch_width: None,
-            ch_height: None,
             host_element: None,
             cursor_element: None,
             mouse_cursor: MouseCursor::default(),
@@ -149,7 +131,6 @@ impl<XMSG> WebEditor<XMSG> {
             is_focused: false,
             context_menu: Menu::new().on_activate(Msg::MenuAction),
             show_context_menu: false,
-            fonts_ready_listener: vec![],
         }
     }
 
@@ -174,12 +155,6 @@ impl<XMSG> WebEditor<XMSG> {
         self.editor.add_on_change_listener(f);
     }
 
-    /// add a callback to be called when the fonts has already been loaded and measured
-    pub fn on_fonts_ready<F>(&mut self, f: F)
-    where F: Fn(()) -> XMSG + 'static,
-    {
-        self.fonts_ready_listener.push(Callback::from(f));
-    }
 
     pub fn add_on_change_notify<F>(&mut self, f: F)
     where
@@ -207,22 +182,6 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 }
                 self.editor_element = Some(mount_element);
                 Effects::none()
-            }
-            Msg::FontMeasureMounted(mount_event) => {
-                let font_status = document().fonts().status();
-                log::info!("font status: {font_status:?}");
-                log::info!("font measure is mounted");
-                let font_elm: web_sys::Element = mount_event.target_node.unchecked_into();
-                self.font_measure_element = Some(font_elm);
-                log::info!("measure font: {:?}", self.measure_font());
-                let xmsgs = self.try_measure_font();
-                Effects::with_external(xmsgs)
-            }
-            Msg::FontsLoaded => {
-                self.is_fonts_loaded = true;
-                log::info!("Fonts are now loaded...");
-                let xmsgs = self.try_measure_font();
-                Effects::with_external(xmsgs)
             }
             Msg::ChangeValue(content) => {
                 self.process_commands([editor::Command::SetContent(content).into()]);
@@ -412,12 +371,6 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
     }
 
     fn view(&self) -> Node<Msg> {
-        if !self.is_fonts_measured{
-            div([key("measuring")],
-                [text("measuring font"),
-                self.view_font_measure(),
-            ])
-        }else{
             let enable_context_menu = self.options.enable_context_menu;
             let enable_keypresses = self.options.enable_keypresses;
             let enable_click = self.options.enable_click;
@@ -480,7 +433,6 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     ),
                 ],
             )
-        }
     }
 
 
@@ -609,44 +561,12 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 impl<XMSG> WebEditor<XMSG> {
 
     pub fn ch_width(&self) -> f32 {
-        if self.is_fonts_measured {
-            self.ch_width.expect("must have already measured")
-        }else{
-            panic!("fonts hasn't been measured");
-        }
+       self.options.ch_width.expect("must have already measured")
     }
     pub fn ch_height(&self) -> f32 {
-        if self.is_fonts_measured{
-            self.ch_height.expect("must have already measured")
-        }else{
-            panic!("fonts hasn't been measured");
-        }
+        self.options.ch_height.expect("must have already measured")
     }
 
-    fn measure_font(&self) -> Option<(f32, f32)>{
-        self.font_measure_element.as_ref().map(|font_elm|{
-            let rect = font_elm.get_bounding_client_rect();
-            (rect.width() as f32, rect.height() as f32)
-        })
-    }
-
-    fn try_measure_font(&mut self) -> Vec<XMSG>{
-        if self.is_fonts_loaded{
-            if let Some((ch_width, ch_height)) = self.measure_font(){
-                self.ch_width = Some(ch_width);
-                self.ch_height = Some(ch_height);
-                log::info!("font width: {:?}, height: {:?}", self.ch_width, self.ch_height);
-                self.is_fonts_measured = true;
-                self.fonts_ready_listener.iter().map(|c|c.emit(())).collect()
-            }else{
-                log::warn!("font measure element hasn't been mounted yet");
-                vec![]
-            }
-        }else{
-            log::warn!("fonts hasn't been loaded yet");
-            vec![]
-        }
-    }
 
     fn update_measure(&mut self, measure: Measurements) {
         if let Some(average_dispatch) = self.measure.average_dispatch.as_mut() {
@@ -1108,16 +1028,6 @@ impl<XMSG> WebEditor<XMSG> {
         )
     }
 
-    fn view_font_measure(&self) -> Node<Msg>{
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        pre([],[
-            code([],[
-                span([class_ns("font_measure"),
-                    on_mount(Msg::FontMeasureMounted),
-                ],[text("0")])
-            ])
-        ])
-    }
 
     /// the view for the status line
     pub fn view_status_line<MSG>(&self) -> Node<MSG> {
