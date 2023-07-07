@@ -74,7 +74,6 @@ impl Component<Msg, ()> for App {
     fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
         match msg {
             Msg::EditorReady => {
-                //dom::inject_style(&web_editor.style().join(""));
                 log::info!("Editor is now ready..");
                 Effects::none()
             }

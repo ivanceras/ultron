@@ -1515,7 +1515,6 @@ pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Nod
     let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
 
 
-    let code_attributes = [class_ns("code")];
     let rendered_lines = text_buffer
         .lines()
         .into_iter()
@@ -1539,14 +1538,14 @@ pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Nod
     if options.use_for_ssg {
         // using div works well when select-copying for both chrome and firefox
         // this is ideal for static site generation highlighting
-        div(code_attributes, rendered_lines)
+        div(vec![], rendered_lines)
     } else {
         // using <pre><code> works well when copying in chrome
         // but in firefox, it creates a double line when select-copying the text
         // whe need to use <pre><code> in order for typing whitespace works.
         pre(
-            [class_ns("code_wrapper"), style!{position:"absolute"}],
-            [code(code_attributes, rendered_lines)],
+            [class_ns("code_wrapper")],
+            [code(vec![], rendered_lines)],
         )
     }
 }
