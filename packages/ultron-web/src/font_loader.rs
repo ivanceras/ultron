@@ -8,6 +8,7 @@ use sauron::{
     html::*,
     *,
 };
+use wasm_bindgen::JsCast;
 use web_sys::FontFace;
 
 pub enum Msg {

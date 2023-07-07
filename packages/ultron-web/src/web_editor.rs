@@ -12,14 +12,13 @@ use std::rc::Rc;
 pub use ultron_core;
 use ultron_core::{
     base_editor, nalgebra::Point2, Ch, BaseEditor, SelectionMode, Style, TextBuffer, TextEdit,
-    BaseCommand,
     TextHighlighter,
     base_editor::Callback,
 };
 use selection::SelectionSplits;
 pub use mouse_cursor::MouseCursor;
 pub use options::Options;
-pub use ultron_core::BaseOptions;
+pub use ultron_core::{BaseOptions,BaseCommand};
 
 mod selection;
 mod mouse_cursor;
