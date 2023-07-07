@@ -3,7 +3,7 @@ use crate::context_menu::{self, Menu, MenuAction};
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::{
-    dom::{Measurements, Task}, html::attributes::*, html::events::*, html::*, jss_ns_pretty,
+    dom::{Measurements, Task, AnimationFrameHandle, TimeoutCallbackHandle}, html::attributes::*, html::events::*, html::*, jss_ns_pretty,
     wasm_bindgen::JsCast, wasm_bindgen_futures::JsFuture, *,
     web_sys::HtmlElement,
 };
@@ -73,7 +73,7 @@ pub enum Command {
 }
 
 /// rename this to WebEditor
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct WebEditor<XMSG> {
     options: Options,
     pub base_editor: BaseEditor<XMSG>,
@@ -87,8 +87,8 @@ pub struct WebEditor<XMSG> {
     text_highlighter: Rc<RefCell<TextHighlighter>>,
     /// lines of highlighted ranges
     highlighted_lines: Rc<RefCell<Vec<Vec<(Style, Vec<Ch>)>>>>,
-    animation_frame_handles: Vec<i32>,
-    background_task_handles: Vec<i32>,
+    animation_frame_handles: Vec<AnimationFrameHandle>,
+    background_task_handles: Vec<TimeoutCallbackHandle>,
     pub is_focused: bool,
     context_menu: Menu<Msg>,
     show_context_menu: bool,
@@ -614,7 +614,8 @@ impl<XMSG> WebEditor<XMSG> {
             let lines = self.base_editor.text_edit.lines();
             for handle in self.animation_frame_handles.drain(..) {
                 //cancel the old ones
-                sauron::dom::util::cancel_animation_frame(handle).expect("must cancel");
+                //sauron::dom::util::cancel_animation_frame(handle).expect("must cancel");
+                drop(handle);
             }
             let closure = move || {
                 let mut text_highlighter = text_highlighter.borrow_mut();
@@ -644,7 +645,7 @@ impl<XMSG> WebEditor<XMSG> {
             };
 
             let handle =
-                sauron::dom::util::request_animation_frame(closure).expect("must have a handle");
+                sauron::dom::request_animation_frame(closure).expect("must have a handle");
 
             self.animation_frame_handles.push(handle);
         }else{
@@ -656,7 +657,7 @@ impl<XMSG> WebEditor<XMSG> {
     pub fn rehighlight_non_visible_lines_in_background(&mut self) {
         if let Some((_top, end)) = self.visible_lines(){
             for handle in self.background_task_handles.drain(..) {
-                sauron::dom::util::cancel_timeout_callback(handle).expect("cancel timeout");
+                drop(handle);
             }
             let text_highlighter = self.text_highlighter.clone();
             let highlighted_lines = self.highlighted_lines.clone();
@@ -686,7 +687,7 @@ impl<XMSG> WebEditor<XMSG> {
             };
 
             let handle =
-                sauron::dom::util::request_timeout_callback(closure, 1_000).expect("timeout handle");
+                sauron::dom::request_timeout_callback(closure, 1_000).expect("timeout handle");
             self.background_task_handles.push(handle);
         }else{
             self.rehighlight_all();
