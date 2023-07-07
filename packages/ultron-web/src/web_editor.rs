@@ -1341,8 +1341,8 @@ impl<XMSG> WebEditor<XMSG> {
             .enumerate()
             .map(|(line_index, line)| {
                 div([class_ns("line"),
-                // needed to put the height here, since for some reason it add 1px to the
-                // parent div, not a margin, not border,
+                    // needed to put the height here, since for some reason it add 1px to the
+                    // parent div, not a margin, not border,
                      style!{height: px(self.ch_height())}
                     ],
                    {[self.view_line_number(line_index + 1)]
@@ -1477,7 +1477,11 @@ impl<XMSG> WebEditor<XMSG> {
             .map(|(line_index, line)| {
                 let line_number = line_index + 1;
                 div(
-                    [class_ns("line")],
+                    [class_ns("line"),
+                      // Important! This is needed to render blank lines with same height as the
+                      // non blank ones
+                      style!{height: px(self.ch_height())},
+                    ],
                     [
                         view_if(
                             self.options.show_line_numbers,
@@ -1514,6 +1518,7 @@ impl<XMSG> WebEditor<XMSG> {
 pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Node<MSG> {
     let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
 
+    let ch_height = options.ch_height.expect("error1: must have a ch_height in the options");
 
     let rendered_lines = text_buffer
         .lines()
@@ -1522,7 +1527,11 @@ pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Nod
         .map(|(line_index, line)| {
             let line_number = line_index + 1;
             div(
-                [class_ns("line"), class("simple")],
+                [class_ns("line"), class("simple"),
+                  // Important! This is needed to render blank lines with same height as the
+                  // non blank ones
+                  style!{height: px(ch_height)},
+                ],
                 [
                     view_if(
                         options.show_line_numbers,
