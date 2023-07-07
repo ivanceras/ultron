@@ -120,20 +120,20 @@ impl Component<Msg, ()> for App {
 
     fn view(&self) -> Node<Msg> {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
-        if let Some(web_editor) = self.web_editor.as_ref() {
-            div(
-                [class_ns("app")],
-                [web_editor.view().map_msg(Msg::WebEditorMsg)],
-            )
-        } else {
-            div(
-                [],
-                [
-                    text("Loading fonts...."),
-                    self.font_loader.view().map_msg(Msg::FontLoaderMsg),
-                ],
-            )
-        }
+        div(
+            [class_ns("app")],
+            [if let Some(web_editor) = self.web_editor.as_ref() {
+                web_editor.view().map_msg(Msg::WebEditorMsg)
+            } else {
+                div(
+                    [],
+                    [
+                        text("Loading fonts...."),
+                        self.font_loader.view().map_msg(Msg::FontLoaderMsg),
+                    ],
+                )
+            }],
+        )
     }
 
     fn style(&self) -> Vec<String> {

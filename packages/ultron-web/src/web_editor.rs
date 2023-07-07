@@ -1049,18 +1049,14 @@ impl<XMSG> WebEditor<XMSG> {
                     background_color: self.gutter_background().to_css(),
                     color: self.gutter_foreground().to_css(),
                     height: px(self.status_line_height()),
-                    left: px(self.number_line_with_padding_width())
+                    left: px(self.number_line_with_padding_width()),
+                    font_size: px(FONT_SIZE),
                 },
             ],
             [
                 text!(" |> line: {}, col: {} ", cursor.y + 1, cursor.x + 1),
                 text!(" |> version:{}", env!("CARGO_PKG_VERSION")),
                 text!(" |> lines: {}", self.base_editor.total_lines()),
-                if let Some((start, end)) = self.bounding_rect() {
-                    text!(" |> bounding rect: {}->{}", start, end)
-                } else {
-                    text!("")
-                },
                 if let Some(visible_lines) = self.max_visible_lines() {
                     text!(" |> visible lines: {}", visible_lines)
                 } else {
@@ -1295,7 +1291,7 @@ impl<XMSG> WebEditor<XMSG> {
 
     /// height of the status line which displays editor infor such as cursor location
     pub fn status_line_height(&self) -> i32 {
-        30
+        50
     }
 
     fn view_line_with_linear_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
