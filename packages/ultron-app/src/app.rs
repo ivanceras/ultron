@@ -6,7 +6,7 @@ use ultron_web::web_editor::{FONT_NAME, FONT_SIZE, FONT_URL};
 use ultron_web::{
     base_editor, sauron,
     sauron::{
-        dom::{self, Measurements, Task, Window},
+        dom::{self, Measurements, Task},
         html::attributes::*,
         html::events::*,
         html::*,
@@ -154,11 +154,13 @@ impl Component<Msg, ()> for App {
 impl Application<Msg> for App {
     fn init(&mut self) -> Vec<Cmd<Self, Msg>> {
         vec![
-            Window::add_event_listeners(vec![
-                on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
-                on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
-                on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
-            ]),
+            Cmd::new(|program| {
+                program.add_event_listeners(vec![
+                    on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
+                    on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
+                    on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
+                ])
+            }),
             Cmd::batch(
                 <Self as crate::Component<Msg, ()>>::init(self)
                     .into_iter()
