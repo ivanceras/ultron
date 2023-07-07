@@ -19,6 +19,7 @@ use selection::SelectionSplits;
 pub use mouse_cursor::MouseCursor;
 pub use options::Options;
 pub use ultron_core::{BaseOptions,BaseCommand};
+use crate::{font_loader,FontLoader};
 
 mod selection;
 mod mouse_cursor;
@@ -31,9 +32,11 @@ pub const FONT_SIZE: usize = 14;
 pub const FONT_NAME: &str = "Iosevka Fixed";
 pub const FONT_URL: &str = "url(fonts/iosevka-fixed-regular.woff2)";
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Msg {
     EditorMounted(MountEvent),
+    FontReady,
+    FontLoaderMsg(font_loader::Msg),
     /// Discard current editor content if any, and use this new value
     /// This is triggered from the top-level DOM of this component
     ChangeValue(String),
@@ -72,9 +75,9 @@ pub enum Command {
 }
 
 /// rename this to WebEditor
-#[derive(Default)]
 pub struct WebEditor<XMSG> {
     options: Options,
+    font_loader: FontLoader<Msg>,
     pub base_editor: BaseEditor<XMSG>,
     editor_element: Option<web_sys::Element>,
     /// the host element the web editor is mounted to, when mounted as a custom web component
@@ -91,11 +94,45 @@ pub struct WebEditor<XMSG> {
     pub is_focused: bool,
     context_menu: Menu<Msg>,
     show_context_menu: bool,
+    is_fonts_ready: bool,
+    /// emitted when the editor is ready
+    /// meaning the fonts has been loaded and the editor has been mounted
+    ready_listener:Vec<Callback<(),XMSG>>,
 }
 
 impl From<BaseCommand> for Command {
     fn from(ecommand: BaseCommand) -> Self {
         Self::EditorCommand(ecommand)
+    }
+}
+impl<XMSG> Default for WebEditor<XMSG>{
+
+    fn default() -> Self {
+
+        let options = Options::default();
+        let mut text_highlighter = TextHighlighter::default();
+        text_highlighter.set_syntax_token(&options.syntax_token);
+
+        Self{
+            options,
+            font_loader: FontLoader::new(FONT_SIZE as f32,FONT_NAME,FONT_URL),
+            base_editor: BaseEditor::default(),
+            editor_element: None,
+            host_element: None,
+            cursor_element: None,
+            mouse_cursor: MouseCursor::default(),
+            measure: Measure::default(),
+            is_selecting: false,
+            text_highlighter: Rc::new(RefCell::new(text_highlighter)),
+            highlighted_lines: Rc::new(RefCell::new(vec![])),
+            animation_frame_handles: vec![],
+            background_task_handles: vec![],
+            is_focused: false,
+            context_menu: Menu::new(),
+            show_context_menu: false,
+            is_fonts_ready: false,
+            ready_listener: vec![],
+        }
     }
 }
 
@@ -118,23 +155,27 @@ impl<XMSG> WebEditor<XMSG> {
             &base_editor.text_edit,
             &mut text_highlighter,
         )));
+
+        let mut font_loader = FontLoader::new(FONT_SIZE as f32, &FONT_NAME, &FONT_URL);
+        font_loader.on_fonts_ready(|_| Msg::FontReady);
+
         WebEditor {
             options: options.clone(),
+            font_loader,
             base_editor,
-            editor_element: None,
-            host_element: None,
-            cursor_element: None,
-            mouse_cursor: MouseCursor::default(),
-            measure: Measure::default(),
-            is_selecting: false,
             text_highlighter: Rc::new(RefCell::new(text_highlighter)),
             highlighted_lines,
-            animation_frame_handles: vec![],
-            background_task_handles: vec![],
-            is_focused: false,
             context_menu: Menu::new().on_activate(Msg::MenuAction),
             show_context_menu: false,
+            ..Default::default()
         }
+    }
+
+    pub fn on_ready<F>(&mut self, f: F)
+    where
+        F: Fn(()) -> XMSG + 'static,
+    {
+        self.ready_listener.push(Callback::from(f));
     }
 
     fn is_editor_mounted(&self) -> bool {
@@ -169,12 +210,93 @@ impl<XMSG> WebEditor<XMSG> {
     pub fn get_content(&self) -> String {
         self.base_editor.get_content()
     }
+
+    fn try_ready_listener(&self) -> Vec<XMSG>{
+        if self.is_fonts_ready && self.editor_element.is_some(){
+            log::info!("emitting the ready listener..");
+            self.ready_listener
+                .iter()
+                .map(|c| c.emit(()))
+                .collect()
+        }else{
+            vec![]
+        }
+    }
+
+    fn view_web_editor(&self) -> Node<Msg> {
+            let enable_context_menu = self.options.enable_context_menu;
+            let enable_keypresses = self.options.enable_keypresses;
+            let enable_click = self.options.enable_click;
+            div(
+                [
+                    class(COMPONENT_NAME),
+                    key("editor-main"),
+                    classes_flag_namespaced(
+                        COMPONENT_NAME,
+                        [("occupy_container", self.options.occupy_container)],
+                    ),
+                    on_mount(Msg::EditorMounted),
+                    attributes::tabindex(1),
+                    on_keydown(move|ke| {
+                        if enable_keypresses{
+                            ke.prevent_default();
+                            ke.stop_propagation();
+                            Msg::Keydown(ke)
+                        }else{
+                            Msg::NoOp
+                        }
+                    }),
+                    on_click(move|me|{
+                        if enable_click{
+                            Msg::Click(me)
+                        }else{
+                            Msg::NoOp
+                        }
+                    }),
+                    tabindex(0),
+                    on_focus(Msg::Focused),
+                    on_blur(Msg::Blur),
+                    on_contextmenu(move|me| {
+                        if enable_context_menu{
+                            me.prevent_default();
+                            me.stop_propagation();
+                            Msg::ContextMenu(me)
+                        }else{
+                            Msg::NoOp
+                        }
+                    }),
+                    style! {
+                        cursor: self.mouse_cursor.to_str(),
+                    },
+                ],
+                [
+                    if self.options.use_syntax_highlighter {
+                        self.view_highlighted_lines()
+                    } else {
+                        self.plain_view()
+                    },
+                    view_if(self.options.show_status_line, self.view_status_line()),
+                    view_if(
+                        self.is_focused && self.options.show_cursor,
+                        self.view_cursor(),
+                    ),
+                    view_if(
+                        self.is_focused && self.show_context_menu,
+                        self.context_menu.view().map_msg(Msg::ContextMenuMsg),
+                    ),
+                ],
+            )
+    }
 }
 
 impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 
     fn init(&mut self) -> Vec<Task<Msg>> {
-        vec![]
+        self.font_loader
+            .init()
+            .into_iter()
+            .map(|task| task.map_msg(Msg::FontLoaderMsg))
+            .collect()
     }
 
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
@@ -188,7 +310,23 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     self.host_element = Some(host_element);
                 }
                 self.editor_element = Some(mount_element);
-                Effects::none()
+                let xmsgs = self.try_ready_listener();
+                Effects::new([], xmsgs)
+            }
+            Msg::FontReady =>{
+                log::info!("Fonts is ready in Web editor..");
+                let ch_width = self.font_loader.ch_width;
+                let ch_height = self.font_loader.ch_height;
+                self.options.ch_width = ch_width;
+                self.options.ch_height = ch_height;
+                self.is_fonts_ready = true;
+                let xmsgs = self.try_ready_listener();
+                Effects::new([], xmsgs)
+            }
+            Msg::FontLoaderMsg(fmsg) => {
+                let (local, external) = self.font_loader.update(fmsg).localize(Msg::FontLoaderMsg).unzip();
+                assert!(external.is_empty());
+                Effects::new(local, [])
             }
             Msg::ChangeValue(content) => {
                 self.process_commands([BaseCommand::SetContent(content).into()]);
@@ -377,70 +515,14 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
         }
     }
 
-    fn view(&self) -> Node<Msg> {
-            let enable_context_menu = self.options.enable_context_menu;
-            let enable_keypresses = self.options.enable_keypresses;
-            let enable_click = self.options.enable_click;
-            div(
-                [
-                    class(COMPONENT_NAME),
-                    key("editor-main"),
-                    classes_flag_namespaced(
-                        COMPONENT_NAME,
-                        [("occupy_container", self.options.occupy_container)],
-                    ),
-                    on_mount(Msg::EditorMounted),
-                    attributes::tabindex(1),
-                    on_keydown(move|ke| {
-                        if enable_keypresses{
-                            ke.prevent_default();
-                            ke.stop_propagation();
-                            Msg::Keydown(ke)
-                        }else{
-                            Msg::NoOp
-                        }
-                    }),
-                    on_click(move|me|{
-                        if enable_click{
-                            Msg::Click(me)
-                        }else{
-                            Msg::NoOp
-                        }
-                    }),
-                    tabindex(0),
-                    on_focus(Msg::Focused),
-                    on_blur(Msg::Blur),
-                    on_contextmenu(move|me| {
-                        if enable_context_menu{
-                            me.prevent_default();
-                            me.stop_propagation();
-                            Msg::ContextMenu(me)
-                        }else{
-                            Msg::NoOp
-                        }
-                    }),
-                    style! {
-                        cursor: self.mouse_cursor.to_str(),
-                    },
-                ],
-                [
-                    if self.options.use_syntax_highlighter {
-                        self.view_highlighted_lines()
-                    } else {
-                        self.plain_view()
-                    },
-                    view_if(self.options.show_status_line, self.view_status_line()),
-                    view_if(
-                        self.is_focused && self.options.show_cursor,
-                        self.view_cursor(),
-                    ),
-                    view_if(
-                        self.is_focused && self.show_context_menu,
-                        self.context_menu.view().map_msg(Msg::ContextMenuMsg),
-                    ),
-                ],
-            )
+    fn view(&self) -> Node<Msg>{
+        if self.is_fonts_ready {
+            self.view_web_editor()
+        }else{
+            self.font_loader.view().map_msg(Msg::FontLoaderMsg)
+        }
     }
+
 
 
     fn style(&self) -> Vec<String> {

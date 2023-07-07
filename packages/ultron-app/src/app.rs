@@ -22,19 +22,16 @@ use web_sys::HtmlDocument;
 pub enum Msg {
     WebEditorMsg(web_editor::Msg),
     Keydown(web_sys::KeyboardEvent),
-    FontLoaderMsg(font_loader::Msg),
-    /// when the font is ready
-    FontReady,
+    EditorReady,
 }
 
 /// The web editor with text area hacks for listening to typing events
 pub struct App {
-    font_loader: FontLoader<Msg>,
-    web_editor: Option<WebEditor<Msg>>,
+    web_editor: WebEditor<Msg>,
 }
 
 impl App {
-    pub fn create_web_editor(&mut self, ch_width: Option<f32>, ch_height: Option<f32>) {
+    pub fn new() -> Self {
         let content = include_str!("../../ultron-web/src/web_editor.rs");
         let options = Options {
             syntax_token: "rust".to_string(),
@@ -45,75 +42,49 @@ impl App {
                 selection_mode: SelectionMode::Linear,
                 ..Default::default()
             },
-            ch_width,
-            ch_height,
+            ch_width: None,
+            ch_height: None,
             ..Default::default()
         };
-        let web_editor: WebEditor<Msg> = WebEditor::from_str(&options, content);
-        dom::inject_style(&web_editor.style().join(""));
-        self.web_editor = Some(web_editor);
-    }
-    pub fn new() -> Self {
-        let mut font_loader = FontLoader::new(FONT_SIZE as f32, &FONT_NAME, &FONT_URL);
-        font_loader.on_fonts_ready(|_| Msg::FontReady);
-
-        Self {
-            web_editor: None,
-            font_loader,
-        }
+        let mut web_editor: WebEditor<Msg> = WebEditor::from_str(&options, content);
+        web_editor.on_ready(|_| Msg::EditorReady);
+        Self { web_editor }
     }
 
     fn process_commands(
         &mut self,
         wcommands: impl IntoIterator<Item = impl Into<web_editor::Command>>,
     ) -> Vec<Msg> {
-        if let Some(web_editor) = self.web_editor.as_mut() {
-            web_editor
-                .process_commands(wcommands.into_iter().map(|wcommand| wcommand.into()))
-                .into_iter()
-                .collect()
-        } else {
-            vec![]
-        }
+        self.web_editor
+            .process_commands(wcommands.into_iter().map(|wcommand| wcommand.into()))
+            .into_iter()
+            .collect()
     }
 }
 
 impl Component<Msg, ()> for App {
     fn init(&mut self) -> Vec<Task<Msg>> {
-        self.font_loader
+        self.web_editor
             .init()
             .into_iter()
-            .map(|task| task.map_msg(Msg::FontLoaderMsg))
+            .map(|task| task.map_msg(Msg::WebEditorMsg))
             .collect()
     }
 
     fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
         match msg {
+            Msg::EditorReady => {
+                //dom::inject_style(&web_editor.style().join(""));
+                log::info!("Editor is now ready..");
+                Effects::none()
+            }
             Msg::Keydown(ke) => {
-                if let Some(web_editor) = self.web_editor.as_mut() {
-                    let effects = web_editor.update(web_editor::Msg::Keydown(ke));
-                    effects.localize(Msg::WebEditorMsg)
-                } else {
-                    Effects::none()
-                }
+                let effects = self.web_editor.update(web_editor::Msg::Keydown(ke));
+                effects.localize(Msg::WebEditorMsg)
             }
             Msg::WebEditorMsg(emsg) => {
-                if let Some(web_editor) = self.web_editor.as_mut() {
-                    let effects = web_editor.update(emsg);
-                    effects.localize(Msg::WebEditorMsg)
-                } else {
-                    Effects::none()
-                }
-            }
-            Msg::FontLoaderMsg(fmsg) => {
-                let effects = self.font_loader.update(fmsg);
-                effects.localize(Msg::FontLoaderMsg)
-            }
-            Msg::FontReady => {
-                let ch_width = self.font_loader.ch_width;
-                let ch_height = self.font_loader.ch_height;
-                self.create_web_editor(ch_width, ch_height);
-                Effects::none()
+                let effects = self.web_editor.update(emsg);
+                effects.localize(Msg::WebEditorMsg)
             }
         }
     }
@@ -122,17 +93,7 @@ impl Component<Msg, ()> for App {
         let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
         div(
             [class_ns("app")],
-            [if let Some(web_editor) = self.web_editor.as_ref() {
-                web_editor.view().map_msg(Msg::WebEditorMsg)
-            } else {
-                div(
-                    [],
-                    [
-                        text("Loading fonts...."),
-                        self.font_loader.view().map_msg(Msg::FontLoaderMsg),
-                    ],
-                )
-            }],
+            [self.web_editor.view().map_msg(Msg::WebEditorMsg)],
         )
     }
 
@@ -145,7 +106,7 @@ impl Component<Msg, ()> for App {
                 height: percent(100),
             },
         };
-        vec![css]
+        [vec![css], self.web_editor.style()].concat()
     }
 }
 

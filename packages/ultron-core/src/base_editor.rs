@@ -7,7 +7,6 @@ use std::sync::Arc;
 pub use ultron_syntaxes_themes::{Style, TextHighlighter};
 
 /// An editor with core functionality platform specific UI
-#[derive(Default)]
 pub struct BaseEditor<XMSG> {
     options: BaseOptions,
     pub text_edit: TextEdit,
@@ -20,6 +19,20 @@ pub struct BaseEditor<XMSG> {
     #[cfg(feature = "callback")]
     change_notify_listeners: Vec<Callback<(), XMSG>>,
     _phantom: PhantomData<XMSG>,
+}
+
+impl<XMSG> Default for BaseEditor<XMSG> {
+    fn default() -> Self {
+        Self {
+            options: BaseOptions::default(),
+            text_edit: TextEdit::default(),
+            #[cfg(feature = "callback")]
+            change_listeners: vec![],
+            #[cfg(feature = "callback")]
+            change_notify_listeners: vec![],
+            _phantom: PhantomData,
+        }
+    }
 }
 
 impl<XMSG> Clone for BaseEditor<XMSG> {

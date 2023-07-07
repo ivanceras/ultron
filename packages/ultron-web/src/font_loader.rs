@@ -11,11 +11,11 @@ use sauron::{
 use wasm_bindgen::JsCast;
 use web_sys::FontFace;
 
+#[derive(Debug)]
 pub enum Msg {
     FontsLoaded,
     FontMeasureMounted(MountEvent),
 }
-#[derive(Default)]
 pub struct FontLoader<XMSG> {
     // font size in px
     font_size: f32,
