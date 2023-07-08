@@ -17,13 +17,13 @@ where
     }
 
     /// this is called when the attributes in the mount is changed
-    fn attribute_changed<APP>(
-        program: &Program<APP, Msg>,
+    fn attribute_changed(
+        program: &Program<Self, Msg>,
         attr_name: &str,
         _old_value: JsValue,
         new_value: JsValue,
     ) where
-        APP: Application<Msg> + 'static,
+        Self: Sized + Application<Msg>,
     {
         match &*attr_name {
             "value" => {
