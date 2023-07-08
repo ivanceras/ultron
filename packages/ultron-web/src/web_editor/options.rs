@@ -4,7 +4,7 @@ pub const DEFAULT_FONT_SIZE: usize = 14;
 pub const DEFAULT_FONT_NAME: &str = "Iosevka Fixed";
 pub const DEFAULT_FONT_URL: &str = "url(fonts/iosevka-fixed-regular.woff2)";
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FontSettings {
     pub font_name: String,
     pub font_url: String,
@@ -21,10 +21,10 @@ impl Default for FontSettings {
     }
 }
 
-/// TODO: split this options into CoreOption and WebOption
 #[derive(Clone, Debug)]
 pub struct Options {
     pub base_options: BaseOptions,
+    pub font_settings: FontSettings,
     /// allow the editor to show or hide pages for optimization
     /// Note: set this to false when using the editor as a headless buffer
     pub use_paging_optimization: bool,
@@ -79,6 +79,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             base_options: BaseOptions::default(),
+            font_settings: FontSettings::default(),
             use_paging_optimization: true,
             show_line_numbers: true,
             show_status_line: true,

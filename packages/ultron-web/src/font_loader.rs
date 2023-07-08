@@ -110,6 +110,7 @@ where
             JsFuture::from(font_set.load(&format!("{} {}", px(font_size),font_name))).await
                 .expect("font loaded");
             log::info!("awaited the fonts loading...");
+            log::info!("Loaded fonts: {font_name}");
             Msg::FontsLoaded
         })
         ]

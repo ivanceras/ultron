@@ -151,7 +151,7 @@ impl<XMSG> WebEditor<XMSG> {
             &mut text_highlighter,
         )));
 
-        let mut font_loader = FontLoader::new(&FontSettings::default());
+        let mut font_loader = FontLoader::new(&options.font_settings);
         font_loader.on_fonts_ready(|_| Msg::FontReady);
 
         WebEditor {
