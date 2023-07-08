@@ -324,9 +324,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 Effects::new([], xmsgs)
             }
             Msg::FontLoaderMsg(fmsg) => {
-                let (local, external) = self.font_loader.update(fmsg).localize(Msg::FontLoaderMsg).unzip();
-                assert!(external.is_empty());
-                Effects::new(local, [])
+                self.font_loader.update(fmsg).localize(Msg::FontLoaderMsg)
             }
             Msg::ChangeValue(content) => {
                 self.process_commands([BaseCommand::SetContent(content).into()]);
@@ -461,20 +459,13 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 let (start, _end) = self.bounding_rect().expect("must have a bounding rect");
                 let x = me.client_x() - start.x as i32;
                 let y = me.client_y() - start.y as i32;
-                let (msgs, _) = self
+                self
                     .context_menu
                     .update(context_menu::Msg::ShowAt(Point2::new(x, y)))
-                    .map_msg(Msg::ContextMenuMsg)
-                    .unzip();
-                Effects::new(msgs, [])
+                    .localize(Msg::ContextMenuMsg)
             }
             Msg::ContextMenuMsg(cm_msg) => {
-                let (msgs, xmsg) = self.context_menu.update(cm_msg).unzip();
-                Effects::new(
-                    xmsg.into_iter()
-                        .chain(msgs.into_iter().map(Msg::ContextMenuMsg)),
-                    [],
-                )
+                self.context_menu.update(cm_msg).localize(Msg::ContextMenuMsg)
             }
             Msg::ScrollCursorIntoView => {
                 if self.options.scroll_cursor_into_view {
