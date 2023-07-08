@@ -74,7 +74,7 @@ impl WebEditorCustomElement {
         }
     }
 
-    #[allow(unused)]
+    #[allow(unused_variables)]
     #[wasm_bindgen(getter, static_method_of = Self, js_name = observedAttributes)]
     pub fn observed_attributes() -> JsValue {
         let attributes = WebEditor::<()>::observed_attributes();

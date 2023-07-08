@@ -1,27 +1,15 @@
-#![allow(unused)]
-use crate::wasm_bindgen_futures::spawn_local;
-use crate::wasm_bindgen_futures::JsFuture;
-use ultron_web::font_loader::{self, FontLoader};
-use ultron_web::web_editor::{FONT_NAME, FONT_SIZE, FONT_URL};
 use ultron_web::{
-    base_editor, sauron,
     sauron::{
-        dom::{self, Measurements, Task},
-        html::attributes::*,
+        dom::{Measurements, Task},
         html::events::*,
         html::*,
-        jss_ns_pretty,
-        wasm_bindgen::JsCast,
-        *,
+        jss_ns_pretty, *,
     },
     web_editor, BaseOptions, Options, SelectionMode, WebEditor, COMPONENT_NAME,
 };
-use web_sys::FontFace;
-use web_sys::HtmlDocument;
 
 pub enum Msg {
     WebEditorMsg(web_editor::Msg),
-    Keydown(web_sys::KeyboardEvent),
     EditorReady,
 }
 
@@ -50,16 +38,6 @@ impl App {
         web_editor.on_ready(|_| Msg::EditorReady);
         Self { web_editor }
     }
-
-    fn process_commands(
-        &mut self,
-        wcommands: impl IntoIterator<Item = impl Into<web_editor::Command>>,
-    ) -> Vec<Msg> {
-        self.web_editor
-            .process_commands(wcommands.into_iter().map(|wcommand| wcommand.into()))
-            .into_iter()
-            .collect()
-    }
 }
 
 impl Component<Msg, ()> for App {
@@ -76,10 +54,6 @@ impl Component<Msg, ()> for App {
             Msg::EditorReady => {
                 log::info!("Editor is now ready..");
                 Effects::none()
-            }
-            Msg::Keydown(ke) => {
-                let effects = self.web_editor.update(web_editor::Msg::Keydown(ke));
-                effects.localize(Msg::WebEditorMsg)
             }
             Msg::WebEditorMsg(emsg) => {
                 let effects = self.web_editor.update(emsg);

@@ -1,4 +1,3 @@
-#![allow(unused)]
 pub use crate::Selection;
 use crate::{BaseOptions, SelectionMode, TextBuffer, TextEdit};
 use nalgebra::Point2;
@@ -250,7 +249,7 @@ impl<XMSG> BaseEditor<XMSG> {
                 true
             }
             BaseCommand::MoveLeft => {
-                self.text_edit.command_move_left();
+                self.command_move_left();
                 false
             }
             BaseCommand::MoveLeftStart => {

@@ -1,4 +1,3 @@
-#![allow(unused)]
 use crate::context_menu::{self, Menu, MenuAction};
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
@@ -11,13 +10,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 pub use ultron_core;
 use ultron_core::{
-    base_editor, nalgebra::Point2, Ch, BaseEditor, SelectionMode, Style, TextBuffer, TextEdit,
+    nalgebra::Point2, Ch, BaseEditor, SelectionMode, Style, TextBuffer, TextEdit,
     TextHighlighter,
     base_editor::Callback,
 };
 use selection::SelectionSplits;
 pub use mouse_cursor::MouseCursor;
-pub use options::Options;
+pub use options::{Options, FontSettings};
 pub use ultron_core::{BaseOptions,BaseCommand};
 use crate::{font_loader,FontLoader};
 
@@ -27,10 +26,6 @@ pub mod custom_element;
 mod options;
 
 pub const COMPONENT_NAME: &str = "ultron";
-pub const FONT_SIZE: usize = 14;
-
-pub const FONT_NAME: &str = "Iosevka Fixed";
-pub const FONT_URL: &str = "url(fonts/iosevka-fixed-regular.woff2)";
 
 #[derive(Debug)]
 pub enum Msg {
@@ -115,7 +110,7 @@ impl<XMSG> Default for WebEditor<XMSG>{
 
         Self{
             options,
-            font_loader: FontLoader::new(FONT_SIZE as f32,FONT_NAME,FONT_URL),
+            font_loader: FontLoader::default(),
             base_editor: BaseEditor::default(),
             editor_element: None,
             host_element: None,
@@ -156,7 +151,7 @@ impl<XMSG> WebEditor<XMSG> {
             &mut text_highlighter,
         )));
 
-        let mut font_loader = FontLoader::new(FONT_SIZE as f32, &FONT_NAME, &FONT_URL);
+        let mut font_loader = FontLoader::new(&FontSettings::default());
         font_loader.on_fonts_ready(|_| Msg::FontReady);
 
         WebEditor {
@@ -517,6 +512,9 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 
 
     fn style(&self) -> Vec<String> {
+        let font_name = &self.font_loader.settings.font_name;
+        let font_size = self.font_loader.settings.font_size;
+
         let user_select = if self.options.allow_text_selection {
             "text"
         } else {
@@ -540,8 +538,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 word_spacing: "normal",
                 word_break: "normal",
                 word_wrap: "normal",
-                font_size: px(FONT_SIZE),
-                font_family: FONT_NAME,
+                font_size: px(font_size),
+                font_family: font_name.to_owned(),
             },
 
             ".code_wrapper": {
@@ -596,7 +594,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 display: "flex",
                 flex_direction: "row",
                 user_select: "none",
-                font_family: FONT_NAME,
+                font_family: font_name.to_owned(),
             },
 
             ".virtual_cursor": {
@@ -1123,7 +1121,7 @@ impl<XMSG> WebEditor<XMSG> {
                     color: self.gutter_foreground().to_css(),
                     height: px(self.status_line_height()),
                     left: px(self.number_line_with_padding_width()),
-                    font_size: px(FONT_SIZE),
+                    font_size: px(self.font_loader.settings.font_size),
                 },
             ],
             [

@@ -1,6 +1,5 @@
-#![allow(unused)]
-use crate::wasm_bindgen_futures::spawn_local;
 use crate::wasm_bindgen_futures::JsFuture;
+use crate::web_editor::FontSettings;
 use sauron::{
     dom::{Callback, Task},
     html::attributes::*,
@@ -17,14 +16,9 @@ pub enum Msg {
     FontMeasureMounted(MountEvent),
 }
 pub struct FontLoader<XMSG> {
-    // font size in px
-    font_size: f32,
-    // name of the font to be used in reference in the document
-    font_name: String,
-    // the url of the font
-    font_url: String,
-    fonts_ready_listener: Vec<Callback<(), XMSG>>,
-    font_measure_element: Option<web_sys::Element>,
+    pub settings: FontSettings,
+    ready_listener: Vec<Callback<(), XMSG>>,
+    mount_element: Option<web_sys::Element>,
     /// if the fonts has been loaded
     is_fonts_loaded: bool,
     /// are the loaded fonts has been measured
@@ -33,18 +27,25 @@ pub struct FontLoader<XMSG> {
     pub ch_height: Option<f32>,
 }
 
-impl<XMSG> FontLoader<XMSG> {
-    pub fn new(font_size: f32, font_name: &str, font_url: &str) -> Self {
+impl<XMSG> Default for FontLoader<XMSG> {
+    fn default() -> Self {
         Self {
-            font_size,
-            font_name: font_name.to_string(),
-            font_url: font_url.to_string(),
-            font_measure_element: None,
-            fonts_ready_listener: vec![],
+            settings: FontSettings::default(),
+            mount_element: None,
+            ready_listener: vec![],
             is_fonts_loaded: false,
             is_fonts_measured: false,
             ch_width: None,
             ch_height: None,
+        }
+    }
+}
+
+impl<XMSG> FontLoader<XMSG> {
+    pub fn new(settings: &FontSettings) -> Self {
+        Self {
+            settings: settings.clone(),
+            ..Default::default()
         }
     }
 
@@ -53,12 +54,12 @@ impl<XMSG> FontLoader<XMSG> {
     where
         F: Fn(()) -> XMSG + 'static,
     {
-        self.fonts_ready_listener.push(Callback::from(f));
+        self.ready_listener.push(Callback::from(f));
     }
 
     fn measure_font(&self) -> Option<(f32, f32)> {
-        self.font_measure_element.as_ref().map(|font_elm| {
-            let rect = font_elm.get_bounding_client_rect();
+        self.mount_element.as_ref().map(|elm| {
+            let rect = elm.get_bounding_client_rect();
             (rect.width() as f32, rect.height() as f32)
         })
     }
@@ -74,10 +75,7 @@ impl<XMSG> FontLoader<XMSG> {
                     self.ch_height
                 );
                 self.is_fonts_measured = true;
-                self.fonts_ready_listener
-                    .iter()
-                    .map(|c| c.emit(()))
-                    .collect()
+                self.ready_listener.iter().map(|c| c.emit(())).collect()
             } else {
                 log::warn!("font measure element hasn't been mounted yet");
                 vec![]
@@ -99,17 +97,18 @@ where
 {
     fn init(&mut self) -> Vec<Task<Msg>> {
         log::info!("initializing font loader");
-        let font_name = self.font_name.clone();
-        let font_url = self.font_url.clone();
-        let font_size = self.font_size;
+        let font_name = self.settings.font_name.to_owned();
+        let font_url = self.settings.font_url.to_owned();
+        let font_size = self.settings.font_size;
         vec![Task::new(async move{
             let font_set = document().fonts();
             let font_face = FontFace::new_with_str(&font_name, &font_url)
                 .expect("font face");
-            font_set.add(&font_face);
+            font_set.add(&font_face).expect("font added");
             // Note: the 14px in-front of the font family is needed for this to work
             // properly
-            JsFuture::from(font_set.load(&format!("{} {}", px(font_size),font_name))).await;
+            JsFuture::from(font_set.load(&format!("{} {}", px(font_size),font_name))).await
+                .expect("font loaded");
             log::info!("awaited the fonts loading...");
             Msg::FontsLoaded
         })
@@ -122,8 +121,8 @@ where
                 let font_status = document().fonts().status();
                 log::info!("font status: {font_status:?}");
                 log::info!("font measure is mounted");
-                let font_elm: web_sys::Element = mount_event.target_node.unchecked_into();
-                self.font_measure_element = Some(font_elm);
+                let elm: web_sys::Element = mount_event.target_node.unchecked_into();
+                self.mount_element = Some(elm);
                 log::info!("measure font: {:?}", self.measure_font());
                 let xmsgs = self.try_measure_font();
                 Effects::with_external(xmsgs)
@@ -138,8 +137,8 @@ where
     }
 
     fn view(&self) -> Node<Msg> {
-        let font_size = self.font_size;
-        let font_name = self.font_name.clone();
+        let font_size = self.settings.font_size;
+        let font_name = self.settings.font_name.to_owned();
         pre(
             [],
             [

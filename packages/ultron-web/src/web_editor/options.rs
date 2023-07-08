@@ -1,5 +1,26 @@
 use ultron_core::BaseOptions;
 
+pub const DEFAULT_FONT_SIZE: usize = 14;
+pub const DEFAULT_FONT_NAME: &str = "Iosevka Fixed";
+pub const DEFAULT_FONT_URL: &str = "url(fonts/iosevka-fixed-regular.woff2)";
+
+#[derive(Clone)]
+pub struct FontSettings {
+    pub font_name: String,
+    pub font_url: String,
+    pub font_size: usize,
+}
+
+impl Default for FontSettings {
+    fn default() -> Self {
+        Self {
+            font_name: DEFAULT_FONT_NAME.to_string(),
+            font_url: DEFAULT_FONT_URL.to_string(),
+            font_size: DEFAULT_FONT_SIZE,
+        }
+    }
+}
+
 /// TODO: split this options into CoreOption and WebOption
 #[derive(Clone, Debug)]
 pub struct Options {
