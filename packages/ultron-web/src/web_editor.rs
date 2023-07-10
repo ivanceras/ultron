@@ -16,8 +16,9 @@ use ultron_core::{
 };
 use selection::SelectionSplits;
 pub use mouse_cursor::MouseCursor;
-pub use options::{Options, FontSettings};
+pub use options::Options;
 pub use ultron_core::{BaseOptions,BaseCommand};
+pub use crate::font_loader::FontSettings;
 use crate::{font_loader,FontLoader};
 
 mod selection;
@@ -103,11 +104,9 @@ impl From<BaseCommand> for Command {
 impl<XMSG> Default for WebEditor<XMSG>{
 
     fn default() -> Self {
-
         let options = Options::default();
         let mut text_highlighter = TextHighlighter::default();
         text_highlighter.set_syntax_token(&options.syntax_token);
-
         Self{
             options,
             font_loader: FontLoader::default(),
@@ -151,13 +150,18 @@ impl<XMSG> WebEditor<XMSG> {
             &mut text_highlighter,
         )));
 
-        let mut font_loader = FontLoader::new(&options.font_settings);
+        let mut font_loader = if let Some(font_settings) = &options.font_settings{
+            FontLoader::new(font_settings)
+        }else{
+            // if no font settings is loaded, we use the iosevka font
+            FontLoader::default()
+        };
         font_loader.on_fonts_ready(|_| Msg::FontReady);
 
         WebEditor {
             options: options.clone(),
-            font_loader,
             base_editor,
+            font_loader,
             text_highlighter: Rc::new(RefCell::new(text_highlighter)),
             highlighted_lines,
             context_menu: Menu::new().on_activate(Msg::MenuAction),
@@ -512,7 +516,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 
 
     fn style(&self) -> Vec<String> {
-        let font_name = &self.font_loader.settings.font_name;
+        let font_family = &self.font_loader.settings.font_family;
         let font_size = self.font_loader.settings.font_size;
 
         let user_select = if self.options.allow_text_selection {
@@ -539,7 +543,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 word_break: "normal",
                 word_wrap: "normal",
                 font_size: px(font_size),
-                font_family: font_name.to_owned(),
+                font_family: font_family.to_owned(),
             },
 
             ".code_wrapper": {
@@ -594,7 +598,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 display: "flex",
                 flex_direction: "row",
                 user_select: "none",
-                font_family: font_name.to_owned(),
+                font_family: font_family.to_owned(),
             },
 
             ".virtual_cursor": {
@@ -1062,7 +1066,6 @@ impl<XMSG> WebEditor<XMSG> {
         assert!(ch_height > 0.);
         let col = (client_x as f32 - editor.x) / ch_width - numberline_wide_with_padding;
         let line = (client_y as f32 - editor.y) / ch_height;
-        log::info!("col: {col}, line: {line}");
         let x = col.floor() as i32;
         let y = line.floor() as i32;
         Point2::new(x, y)
