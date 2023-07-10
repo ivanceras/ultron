@@ -21,6 +21,10 @@ impl App {
 }
 
 impl Application<Msg> for App {
+    fn init(&mut self) -> Vec<Cmd<Self, Msg>> {
+        vec![]
+    }
+
     fn view(&self) -> Node<Msg> {
         div(
             [class("container")],
@@ -45,12 +49,12 @@ impl Application<Msg> for App {
         }
     }
 
-    fn style(&self) -> String {
-        jss_pretty! {
+    fn style(&self) -> Vec<String> {
+        vec![jss_pretty! {
             body: {
                 margin: 0,
             }
-        }
+        }]
     }
 }
 

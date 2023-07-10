@@ -107,9 +107,13 @@ impl<XMSG> Default for WebEditor<XMSG>{
         let options = Options::default();
         let mut text_highlighter = TextHighlighter::default();
         text_highlighter.set_syntax_token(&options.syntax_token);
+
+        let mut font_loader =  FontLoader::default();
+        font_loader.on_fonts_ready(|_| Msg::FontReady);
+
         Self{
             options,
-            font_loader: FontLoader::default(),
+            font_loader,
             base_editor: BaseEditor::default(),
             editor_element: None,
             host_element: None,
