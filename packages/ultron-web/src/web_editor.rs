@@ -1,11 +1,7 @@
 use crate::context_menu::{self, Menu, MenuAction};
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
-use sauron::{
-    dom::{Measurements, Task, AnimationFrameHandle, TimeoutCallbackHandle}, html::attributes::*, html::events::*, html::*, jss_ns_pretty,
-    wasm_bindgen::JsCast, wasm_bindgen_futures::JsFuture, *,
-    web_sys::HtmlElement,
-};
+use sauron::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 pub use ultron_core;
@@ -20,6 +16,8 @@ pub use options::Options;
 pub use ultron_core::{BaseOptions,BaseCommand};
 pub use crate::font_loader::FontSettings;
 use crate::{font_loader,FontLoader};
+use crate::wasm_bindgen_futures::JsFuture;
+use crate::wasm_bindgen::JsCast;
 
 mod selection;
 mod mouse_cursor;
@@ -240,7 +238,7 @@ impl<XMSG> WebEditor<XMSG> {
                         [("occupy_container", self.options.occupy_container)],
                     ),
                     on_mount(Msg::EditorMounted),
-                    attributes::tabindex(1),
+                    tabindex(1),
                     on_keydown(move|ke| {
                         if enable_keypresses{
                             ke.prevent_default();
@@ -451,7 +449,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             Msg::SetFocus => {
                 self.is_focused = true;
                 if let Some(editor_element) = &self.editor_element{
-                    let html_elm: &HtmlElement = editor_element.unchecked_ref();
+                    let html_elm: &web_sys::HtmlElement = editor_element.unchecked_ref();
                     html_elm.focus().expect("element must focus");
                 }
                 Effects::none()
@@ -1100,7 +1098,7 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     fn view_cursor(&self) -> Node<Msg> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         let cursor = self.cursor_to_client();
         div(
             [
@@ -1120,7 +1118,7 @@ impl<XMSG> WebEditor<XMSG> {
 
     /// the view for the status line
     pub fn view_status_line<MSG>(&self) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         let cursor = self.base_editor.get_position();
 
         div(
@@ -1164,7 +1162,7 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     fn view_line_number<MSG>(&self, line_number: usize) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         view_if(
             self.options.show_line_numbers,
             span(
@@ -1326,7 +1324,7 @@ impl<XMSG> WebEditor<XMSG> {
 
     // highlighted view
     pub fn view_highlighted_lines<MSG>(&self) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         let code_attributes = [
             class_ns("code"),
             style! {
@@ -1429,7 +1427,7 @@ impl<XMSG> WebEditor<XMSG> {
 
     //TODO: this needs fixing, as we are accessing characters that may not not in the right index
     fn view_line_with_block_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
 
         let default_view = span([], [text(&line)]);
         match self.base_editor.text_edit.selection_normalized_casted() {
@@ -1465,7 +1463,7 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     pub fn view_text_edit<MSG>(&self) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         let text_edit = &self.base_editor.text_edit;
 
         let code_attributes = [class_ns("code")];
@@ -1515,7 +1513,7 @@ impl<XMSG> WebEditor<XMSG> {
 }
 
 pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Node<MSG> {
-    let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+    let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
 
     let ch_height = options.ch_height.expect("error1: must have a ch_height in the options");
 

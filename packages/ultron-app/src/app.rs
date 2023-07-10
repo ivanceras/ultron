@@ -1,11 +1,5 @@
 use ultron_web::{
-    sauron::{
-        dom::{Measurements, Task},
-        html::events::*,
-        html::*,
-        jss_ns_pretty, *,
-    },
-    web_editor, BaseOptions, Options, SelectionMode, WebEditor, COMPONENT_NAME,
+    sauron::prelude::*, web_editor, BaseOptions, Options, SelectionMode, WebEditor, COMPONENT_NAME,
 };
 
 pub enum Msg {
@@ -63,7 +57,7 @@ impl Component<Msg, ()> for App {
     }
 
     fn view(&self) -> Node<Msg> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         div(
             [class_ns("app")],
             [self.web_editor.view().map_msg(Msg::WebEditorMsg)],

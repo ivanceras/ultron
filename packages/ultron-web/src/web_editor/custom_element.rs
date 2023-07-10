@@ -1,9 +1,6 @@
 use super::{Msg, WebEditor};
-use sauron::{
-    dom::{MountAction, MountTarget},
-    html::*,
-    *,
-};
+use sauron::wasm_bindgen::JsCast;
+use sauron::{html::*, *};
 
 impl<XMSG> sauron::CustomElement<Msg> for WebEditor<XMSG>
 where
@@ -62,7 +59,6 @@ pub struct WebEditorCustomElement {
 impl WebEditorCustomElement {
     #[wasm_bindgen(constructor)]
     pub fn new(node: JsValue) -> Self {
-        use sauron::wasm_bindgen::JsCast;
         let mount_node: &web_sys::Node = node.unchecked_ref();
         Self {
             program: Program::new(
