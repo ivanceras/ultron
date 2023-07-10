@@ -89,7 +89,7 @@ impl Application<Msg> for App {
     fn init(&mut self) -> Vec<Cmd<Self, Msg>> {
         vec![
             Cmd::new(|program| {
-                program.add_event_listeners(vec![
+                program.add_window_event_listeners(vec![
                     on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
                     on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
                     on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
