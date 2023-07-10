@@ -11,8 +11,7 @@ use sauron::{
 use wasm_bindgen::JsCast;
 use web_sys::FontFace;
 
-const IOSEVKA_FONT: &[u8] =
-    include_bytes!("../../../packages/ultron-app/fonts/iosevka-fixed-regular.woff2");
+const IOSEVKA_FONT: &[u8] = include_bytes!("../../../fonts/iosevka-fixed-regular.woff2");
 
 #[derive(Clone, Debug)]
 pub struct FontSettings {
