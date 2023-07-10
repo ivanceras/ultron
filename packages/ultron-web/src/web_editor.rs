@@ -1,4 +1,4 @@
-use crate::context_menu::{self, Menu, MenuAction};
+use crate::context_menu::{self, Menu};
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::prelude::*;
@@ -11,6 +11,8 @@ use ultron_core::{
     base_editor::Callback,
 };
 use selection::SelectionSplits;
+
+pub use crate::context_menu::MenuAction;
 pub use mouse_cursor::MouseCursor;
 pub use options::Options;
 pub use ultron_core::{BaseOptions,BaseCommand};
@@ -650,6 +652,7 @@ impl<XMSG> WebEditor<XMSG> {
     pub fn ch_width(&self) -> f32 {
        self.options.ch_width.expect("must have already measured")
     }
+    #[track_caller]
     pub fn ch_height(&self) -> f32 {
         self.options.ch_height.expect("must have already measured")
     }

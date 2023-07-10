@@ -64,6 +64,7 @@ impl<XMSG> Default for FontLoader<XMSG> {
 
 impl<XMSG> FontLoader<XMSG> {
     pub fn new(settings: &FontSettings) -> Self {
+        log::info!("Creating a new font loader with settings: {settings:?}");
         Self {
             settings: settings.clone(),
             ..Default::default()
