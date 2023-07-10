@@ -181,10 +181,6 @@ impl<XMSG> WebEditor<XMSG> {
         self.ready_listener.push(Callback::from(f));
     }
 
-    fn is_editor_mounted(&self) -> bool {
-        self.editor_element.is_some()
-    }
-
     pub fn set_syntax_token(&mut self, syntax_token: &str){
         self.text_highlighter.borrow_mut().set_syntax_token(syntax_token);
         self.rehighlight_all();
@@ -214,8 +210,13 @@ impl<XMSG> WebEditor<XMSG> {
         self.base_editor.get_content()
     }
 
+    /// returns true if the editor is ready
+    fn is_ready(&self) -> bool {
+        self.is_fonts_ready && self.editor_element.is_some()
+    }
+
     fn try_ready_listener(&self) -> Vec<XMSG>{
-        if self.is_fonts_ready && self.editor_element.is_some(){
+        if self.is_ready(){
             log::info!("emitting the ready listener..");
             self.ready_listener
                 .iter()
@@ -256,6 +257,8 @@ impl<XMSG> WebEditor<XMSG> {
                             Msg::NoOp
                         }
                     }),
+                    contenteditable(true),
+                    spellcheck(false),
                     tabindex(0),
                     on_focus(Msg::Focused),
                     on_blur(Msg::Blur),
@@ -347,7 +350,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 Effects::none()
             }
             Msg::Click(me) => {
-                if self.is_editor_mounted(){
+                if self.is_ready(){
                     let client_x = me.client_x();
                     let client_y = me.client_y();
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
@@ -358,7 +361,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 }
             }
             Msg::Mousedown(me) => {
-                if self.is_editor_mounted(){
+                if self.is_ready(){
                     log::info!("mouse down event in ultron..");
                     let client_x = me.client_x();
                     let client_y = me.client_y();
@@ -382,7 +385,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 }
             }
             Msg::Mousemove(me) => {
-                if self.is_editor_mounted(){
+                if self.is_ready(){
                     let client_x = me.client_x();
                     let client_y = me.client_y();
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
@@ -405,7 +408,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 }
             }
             Msg::Mouseup(me) => {
-                if self.is_editor_mounted(){
+                if self.is_ready(){
                     let client_x = me.client_x();
                     let client_y = me.client_y();
                     let is_primary_btn = me.button() == 0;
