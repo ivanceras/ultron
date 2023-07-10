@@ -12,6 +12,10 @@ pub fn render<MSG>(content: &str, syntax_token: &str, theme_name: Option<&str>) 
         show_cursor: false,
         use_spans: true,
         use_for_ssg: true,
+        //Important that this is set,
+        //since it is needed in rendering the line with
+        //a fixed height
+        ch_height: Some(16.),
         theme_name: theme_name.map(|s| s.to_string()),
         syntax_token: syntax_token.to_string(),
         ..Default::default()
