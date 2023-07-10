@@ -16,7 +16,7 @@ pub fn render<MSG>(content: &str, syntax_token: &str, theme_name: Option<&str>) 
         syntax_token: syntax_token.to_string(),
         ..Default::default()
     };
-    let web_editor = WebEditor::from_str(options, content);
+    let web_editor = WebEditor::from_str(&options, content);
     page(web_editor)
 }
 
@@ -31,7 +31,10 @@ fn page<MSG>(web_editor: WebEditor<MSG>) -> Node<MSG> {
         [
             header(
                 [],
-                [style([r#type("text/css")], [text(web_editor.style())])],
+                [style(
+                    [r#type("text/css")],
+                    [text(web_editor.style().join(""))],
+                )],
             ),
             article([], [web_editor.plain_view()]),
         ],
