@@ -109,7 +109,7 @@ impl<XMSG> Default for WebEditor<XMSG>{
         text_highlighter.set_syntax_token(&options.syntax_token);
 
         let mut font_loader =  FontLoader::default();
-        font_loader.on_fonts_ready(|_| Msg::FontReady);
+        font_loader.on_fonts_ready(||Msg::FontReady);
 
         Self{
             options,
@@ -160,7 +160,7 @@ impl<XMSG> WebEditor<XMSG> {
             // if no font settings is loaded, we use the iosevka font
             FontLoader::default()
         };
-        font_loader.on_fonts_ready(|_| Msg::FontReady);
+        font_loader.on_fonts_ready(||Msg::FontReady);
 
         WebEditor {
             options: options.clone(),
@@ -176,9 +176,9 @@ impl<XMSG> WebEditor<XMSG> {
 
     pub fn on_ready<F>(&mut self, f: F)
     where
-        F: Fn(()) -> XMSG + 'static,
+        F: Fn() -> XMSG + 'static,
     {
-        self.ready_listener.push(Callback::from(f));
+        self.ready_listener.push(Callback::from(move|_|f()));
     }
 
     pub fn set_syntax_token(&mut self, syntax_token: &str){

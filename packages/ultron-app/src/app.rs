@@ -29,7 +29,7 @@ impl App {
             ..Default::default()
         };
         let mut web_editor: WebEditor<Msg> = WebEditor::from_str(&options, content);
-        web_editor.on_ready(|_| Msg::EditorReady);
+        web_editor.on_ready(|| Msg::EditorReady);
         Self { web_editor }
     }
 }

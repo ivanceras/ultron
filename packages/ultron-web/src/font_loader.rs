@@ -74,9 +74,9 @@ impl<XMSG> FontLoader<XMSG> {
     /// add a callback to be called when the fonts has already been loaded and measured
     pub fn on_fonts_ready<F>(&mut self, f: F)
     where
-        F: Fn(()) -> XMSG + 'static,
+        F: Fn() -> XMSG + 'static,
     {
-        self.ready_listener.push(Callback::from(f));
+        self.ready_listener.push(Callback::from(move |_| f()));
     }
 
     fn measure_font(&self) -> Option<(f32, f32)> {
@@ -118,7 +118,7 @@ impl<XMSG> FontLoader<XMSG> {
     }
 
     pub fn is_ready(&self) -> bool {
-        self.is_fonts_loaded && self.is_fonts_measured
+        self.is_fonts_loaded && self.is_fonts_measured && self.mount_element.is_some()
     }
 }
 
