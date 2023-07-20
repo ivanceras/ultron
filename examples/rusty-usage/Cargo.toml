@@ -9,4 +9,4 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 log = "0.4.19"
-ultron-web = { path = "../../packages/ultron-web" }
+ultron-web = { path = "../../packages/ultron-web", features = ["custom_element"] }

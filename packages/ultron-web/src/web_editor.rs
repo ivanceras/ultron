@@ -23,6 +23,8 @@ use crate::wasm_bindgen::JsCast;
 
 mod selection;
 mod mouse_cursor;
+
+#[cfg(feature = "custom_element")]
 pub mod custom_element;
 mod options;
 
@@ -368,9 +370,11 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     let is_primary_btn = me.button() == 0;
                     if is_primary_btn {
                         //self.base_editor.clear_selection();
-                        self.is_selecting = true;
+                        if self.options.allow_text_selection{
+                            self.is_selecting = true;
+                        }
                         let cursor = self.client_to_grid_clamped(client_x, client_y);
-                        if self.is_selecting && !self.show_context_menu {
+                        if self.options.allow_text_selection && self.is_selecting && !self.show_context_menu {
                             self.base_editor.set_selection_start(cursor);
                         }
                         let msgs = self
@@ -389,7 +393,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     let client_x = me.client_x();
                     let client_y = me.client_y();
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
-                    if self.is_selecting && !self.show_context_menu {
+                    if self.options.allow_text_selection && self.is_selecting && !self.show_context_menu {
                         let selection = self.base_editor.selection();
                         if let Some(start) = selection.start {
                             self.base_editor.set_selection_end(cursor);
@@ -582,8 +586,8 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             ".line": {
                 flex: "none", // dont compress lines
                 display: "block",
-                user_select: user_select,
                 "-webkit-user-select": user_select,
+                user_select: user_select,
             },
 
             ".line span::selection": {

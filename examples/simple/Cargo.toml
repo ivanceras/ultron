@@ -8,5 +8,5 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-ultron-web = { path = "../../packages/ultron-web" }
+ultron-web = { path = "../../packages/ultron-web", features = ["custom_element"] }
 
