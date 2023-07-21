@@ -34,24 +34,35 @@ impl App {
     }
 }
 
-impl Component<Msg, ()> for App {
-    fn init(&mut self) -> Vec<Task<Msg>> {
-        self.web_editor
-            .init()
-            .into_iter()
-            .map(|task| task.map_msg(Msg::WebEditorMsg))
-            .collect()
+impl Application<Msg> for App {
+    fn init(&mut self) -> Vec<Cmd<Self, Msg>> {
+        [Cmd::new(|program| {
+            program.add_window_event_listeners(vec![
+                on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
+                on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
+                on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
+            ])
+        })]
+        .into_iter()
+        .chain(
+            self.web_editor
+                .init()
+                .into_iter()
+                .map(|task| task.map_msg(Msg::WebEditorMsg))
+                .map(Cmd::from),
+        )
+        .collect()
     }
 
-    fn update(&mut self, msg: Msg) -> Effects<Msg, ()> {
+    fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
         match msg {
             Msg::EditorReady => {
                 log::info!("Editor is now ready..");
-                Effects::none()
+                Cmd::none()
             }
             Msg::WebEditorMsg(emsg) => {
-                let effects = self.web_editor.update(emsg);
-                effects.localize(Msg::WebEditorMsg)
+                let effects = self.web_editor.update(emsg).localize(Msg::WebEditorMsg);
+                Cmd::from(effects)
             }
         }
     }
@@ -77,45 +88,7 @@ impl Component<Msg, ()> for App {
     }
 
     fn style(&self) -> Vec<String> {
-        [self.web_editor.style()].concat()
-    }
-}
-
-/// Auto implementation of Application trait for Component that
-/// has no external MSG
-impl Application<Msg> for App {
-    fn init(&mut self) -> Vec<Cmd<Self, Msg>> {
-        vec![
-            Cmd::new(|program| {
-                program.add_window_event_listeners(vec![
-                    on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
-                    on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
-                    on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
-                ])
-            }),
-            Cmd::batch(
-                <Self as crate::Component<Msg, ()>>::init(self)
-                    .into_iter()
-                    .map(Cmd::from),
-            ),
-        ]
-    }
-
-    fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
-        let effects = <Self as crate::Component<Msg, ()>>::update(self, msg);
-        Cmd::from(effects)
-    }
-
-    fn view(&self) -> Node<Msg> {
-        <Self as crate::Component<Msg, ()>>::view(self)
-    }
-
-    fn stylesheet() -> Vec<String> {
-        <Self as crate::Component<Msg, ()>>::stylesheet()
-    }
-
-    fn style(&self) -> Vec<String> {
-        <Self as crate::Component<Msg, ()>>::style(self)
+        self.web_editor.style()
     }
 
     fn measurements(&self, measurements: Measurements) -> Cmd<Self, Msg> {
