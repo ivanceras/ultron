@@ -122,7 +122,7 @@ impl<XMSG> Component<Msg, XMSG> for Menu<XMSG> {
         )
     }
 
-    fn style(&self) -> Vec<String> {
+    fn stylesheet() -> Vec<String> {
         vec![jss_pretty! {
             ".context_menu": {
                 background_color: "#eee",
@@ -173,5 +173,9 @@ impl<XMSG> Component<Msg, XMSG> for Menu<XMSG> {
                 background_color: "#ddd",
             },
         }]
+    }
+
+    fn style(&self) -> Vec<String> {
+        vec![]
     }
 }

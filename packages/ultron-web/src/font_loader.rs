@@ -194,6 +194,10 @@ where
         )
     }
 
+    fn stylesheet() -> Vec<String> {
+        vec![]
+    }
+
     fn style(&self) -> Vec<String> {
         vec![]
     }

@@ -526,21 +526,12 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
 
 
 
-    fn style(&self) -> Vec<String> {
-        let font_family = &self.font_loader.settings.font_family;
-        let font_size = self.font_loader.settings.font_size;
 
-        let user_select = if self.options.allow_text_selection {
-            "text"
-        } else {
-            "none"
-        };
+    fn stylesheet() -> Vec<String> {
         let main = jss_ns_pretty! {COMPONENT_NAME,
             ".": {
                 position: "relative",
                 white_space: "normal",
-                user_select: user_select,
-                "-webkit-user-select": user_select,
             },
 
             ".occupy_container": {
@@ -553,8 +544,6 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 word_spacing: "normal",
                 word_break: "normal",
                 word_wrap: "normal",
-                font_size: px(font_size),
-                font_family: font_family.to_owned(),
             },
 
             ".code_wrapper": {
@@ -567,8 +556,6 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 // to make the background color extend to the longest line, otherwise only the
                 // longest lines has a background-color leaving the shorter lines ugly
                 min_width: "max-content",
-                user_select: user_select,
-                "-webkit-user-select": user_select,
             },
 
 
@@ -586,16 +573,6 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             ".line": {
                 flex: "none", // dont compress lines
                 display: "block",
-                "-webkit-user-select": user_select,
-                user_select: user_select,
-            },
-
-            ".line span::selection": {
-                background_color: self.selection_background().to_css(),
-            },
-
-            ".line .selected": {
-               background_color: self.selection_background().to_css(),
             },
 
             "font_measure": {
@@ -609,13 +586,11 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 display: "flex",
                 flex_direction: "row",
                 user_select: "none",
-                font_family: font_family.to_owned(),
             },
 
             ".virtual_cursor": {
                 position: "absolute",
                 border_width: px(1),
-                border_color: self.cursor_border().to_css(),
                 opacity: 1,
                 border_style: "solid",
             },
@@ -623,7 +598,6 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             ".cursor_center":{
                 width: percent(100),
                 height: percent(100),
-                background_color: self.cursor_color().to_css(),
                 opacity: percent(50),
                 animation: "cursor_blink-anim 1000ms step-end infinite",
             },
@@ -647,7 +621,61 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             },
         };
 
-        [vec![main], self.context_menu.style()].concat()
+        [vec![main], Menu::<Msg>::stylesheet()].concat()
+    }
+
+    fn style(&self) -> Vec<String>{
+        let font_family = &self.font_loader.settings.font_family;
+        let font_size = self.font_loader.settings.font_size;
+
+        let user_select = if self.options.allow_text_selection {
+            "text"
+        } else {
+            "none"
+        };
+
+        vec![jss_ns_pretty!{COMPONENT_NAME,
+            ".": {
+                user_select: user_select,
+                "-webkit-user-select": user_select,
+            },
+
+            "pre code":{
+                font_family: font_family.to_owned(),
+                font_size: px(font_size),
+            },
+
+            ".code": {
+                user_select: user_select,
+                "-webkit-user-select": user_select,
+            },
+
+            ".line": {
+                "-webkit-user-select": user_select,
+                user_select: user_select,
+            },
+
+            ".line span::selection": {
+                background_color: self.selection_background().to_css(),
+            },
+
+            ".line .selected": {
+               background_color: self.selection_background().to_css(),
+            },
+
+            ".status": {
+                font_family: font_family.to_owned(),
+            },
+
+            ".virtual_cursor": {
+                border_color: self.cursor_border().to_css(),
+            },
+
+            ".cursor_center":{
+                background_color: self.cursor_color().to_css(),
+            },
+
+        }]
     }
 }
 

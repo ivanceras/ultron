@@ -64,7 +64,7 @@ impl Component<Msg, ()> for App {
         )
     }
 
-    fn style(&self) -> Vec<String> {
+    fn stylesheet() -> Vec<String> {
         let css = jss_ns_pretty! {COMPONENT_NAME,
             ".app": {
                 display: "flex",
@@ -73,7 +73,11 @@ impl Component<Msg, ()> for App {
                 height: percent(100),
             },
         };
-        [vec![css], self.web_editor.style()].concat()
+        [vec![css], WebEditor::<Msg>::stylesheet()].concat()
+    }
+
+    fn style(&self) -> Vec<String> {
+        [self.web_editor.style()].concat()
     }
 }
 
@@ -104,6 +108,10 @@ impl Application<Msg> for App {
 
     fn view(&self) -> Node<Msg> {
         <Self as crate::Component<Msg, ()>>::view(self)
+    }
+
+    fn stylesheet() -> Vec<String> {
+        <Self as crate::Component<Msg, ()>>::stylesheet()
     }
 
     fn style(&self) -> Vec<String> {
