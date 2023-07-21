@@ -1162,7 +1162,7 @@ impl<XMSG> WebEditor<XMSG> {
                 style! {
                     background_color: self.gutter_background().to_css(),
                     color: self.gutter_foreground().to_css(),
-                    height: px(self.status_line_height()),
+                    height: px(Self::status_line_height()),
                     left: px(self.number_line_with_padding_width()),
                     font_size: px(self.font_loader.settings.font_size),
                 },
@@ -1404,7 +1404,7 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     /// height of the status line which displays editor infor such as cursor location
-    pub fn status_line_height(&self) -> i32 {
+    pub fn status_line_height() -> i32 {
         50
     }
 
