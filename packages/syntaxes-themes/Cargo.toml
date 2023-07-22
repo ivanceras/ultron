@@ -1,6 +1,6 @@
 [package]
 name = "ultron-syntaxes-themes"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Jovansonlee Cesar <ivanceras@gmail.com>"]
 edition = "2021"
 description = "Syntaxes and themes dump for ultron"

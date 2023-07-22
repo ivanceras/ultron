@@ -1,6 +1,6 @@
 [package]
 name = "ultron-ssg"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Jovansonlee Cesar <ivanceras@gmail.com>"]
 edition = "2021"
 description = "A syntax highlighting library ideal for usage in a static site generator"
@@ -11,5 +11,5 @@ readme = "../../README.md"
 keywords = ["syntax", "highlighting", "monospace"]
 
 [dependencies]
-ultron-web = { version = "0.3.0", path = "../ultron-web" , default-features = false}
+ultron-web = { version = "0.4.0", path = "../ultron-web" , default-features = false}
 

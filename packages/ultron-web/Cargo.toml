@@ -1,6 +1,6 @@
 [package]
 name = "ultron-web"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 description = "Ultron editor variant exposed as a web application"
 license = "MIT"
@@ -16,8 +16,9 @@ crate-type = ["rlib","cdylib"]
 
 
 [dependencies]
-ultron-core = { version = "0.3.0", path = "../ultron-core", features = ["callback"] }
-sauron = { path = "../../../sauron", default-features = false, features = ["with-dom"] }
+ultron-core = { version = "0.4.0", path = "../ultron-core", features = ["callback"] }
+sauron = { version = "0.57.0", default-features = false, features = ["with-dom"] }
+#sauron = { path = "../../../sauron", default-features = false, features = ["with-dom"] }
 log = "0.4"
 console_log = { version = "1", features = ["color"]}
 console_error_panic_hook = "0.1"
