@@ -4,17 +4,19 @@ use css_colors::{rgba, Color, RGBA};
 use sauron::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
-pub use ultron_core;
 use ultron_core::{
     nalgebra::Point2, Ch, BaseEditor, SelectionMode, Style, TextBuffer, TextEdit,
     TextHighlighter,
     base_editor::Callback,
 };
 use selection::SelectionSplits;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 
 pub use crate::context_menu::MenuAction;
 pub use mouse_cursor::MouseCursor;
 pub use options::Options;
+pub use ultron_core;
 pub use ultron_core::{BaseOptions,BaseCommand};
 pub use crate::font_loader::FontSettings;
 use crate::{font_loader,FontLoader};
@@ -96,6 +98,7 @@ pub struct WebEditor<XMSG> {
     /// emitted when the editor is ready
     /// meaning the fonts has been loaded and the editor has been mounted
     ready_listener:Vec<Callback<(),XMSG>>,
+    is_background_highlighting_ongoing: Rc<AtomicBool>,
 }
 
 impl From<BaseCommand> for Command {
@@ -132,6 +135,7 @@ impl<XMSG> Default for WebEditor<XMSG>{
             show_context_menu: false,
             is_fonts_ready: false,
             ready_listener: vec![],
+            is_background_highlighting_ongoing: Rc::new(AtomicBool::new(false)),
         }
     }
 }
@@ -776,28 +780,39 @@ impl<XMSG> WebEditor<XMSG> {
             let text_highlighter = self.text_highlighter.clone();
             let highlighted_lines = self.highlighted_lines.clone();
             let lines = self.base_editor.text_edit.lines();
+            let is_background_highlighting_ongoing = self.is_background_highlighting_ongoing.clone();
             let closure = move || {
-                let mut text_highlighter = text_highlighter.borrow_mut();
+                let text_highlighter = text_highlighter.clone();
+                let highlighted_lines = highlighted_lines.clone();
+                let lines = lines.clone();
+                let is_background_highlighting_ongoing =is_background_highlighting_ongoing.clone();
+                sauron::dom::spawn_local(async move{
+                    log::info!("--->>>background highlighting started...");
+                    is_background_highlighting_ongoing.store(true, Ordering::Relaxed);
+                    let mut text_highlighter = text_highlighter.borrow_mut();
 
-                let new_highlighted_lines = lines.iter().skip(end).map(|line| {
-                    text_highlighter
-                        .highlight_line(line)
-                        .expect("must highlight")
-                        .into_iter()
-                        .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
-                        .collect()
-                });
+                    let new_highlighted_lines = lines.iter().skip(end).map(|line| {
+                        text_highlighter
+                            .highlight_line(line)
+                            .expect("must highlight")
+                            .into_iter()
+                            .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
+                            .collect()
+                    });
 
-                // TODO: there could be a bug here, what if the new and old highlighted lines have
-                // different length, it will only iterate to which ever is the shorted length.
-                for (line, new_highlight) in highlighted_lines
-                    .borrow_mut()
-                    .iter_mut()
-                    .skip(end)
-                    .zip(new_highlighted_lines)
-                {
-                    *line = new_highlight;
-                }
+                    // TODO: there could be a bug here, what if the new and old highlighted lines have
+                    // different length, it will only iterate to which ever is the shorted length.
+                    for (line, new_highlight) in highlighted_lines
+                        .borrow_mut()
+                        .iter_mut()
+                        .skip(end)
+                        .zip(new_highlighted_lines)
+                    {
+                        *line = new_highlight;
+                    }
+                    //is_background_highlighting_ongoing.store(false, Ordering::Relaxed);
+                    log::info!("<<<-------background highlighting DONE!");
+                })
             };
 
             let handle =
@@ -855,19 +870,20 @@ impl<XMSG> WebEditor<XMSG> {
     /// make this into keypress to command
     pub fn process_keypress(&mut self, ke: &web_sys::KeyboardEvent) -> Effects<Msg, XMSG> {
         if let Some(command) = Self::keyevent_to_command(ke) {
-            let msgs = self.process_commands([command]);
-            Effects::new(vec![Msg::ScrollCursorIntoView], msgs).measure()
+            let effects = self.process_commands([command]);
+            effects.append_local([Msg::ScrollCursorIntoView])
         } else {
             Effects::none()
         }
     }
 
-    pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG> {
+    pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Effects<Msg,XMSG> {
         let results: Vec<bool> = commands
             .into_iter()
             .map(|command| self.process_command(command))
             .collect();
-        if results.into_iter().any(|v| v) {
+        let is_content_changed = results.into_iter().any(|v|v);
+        if is_content_changed {
             let xmsgs = self.base_editor.emit_on_change_listeners();
             if self.options.use_syntax_highlighter{
                 self.rehighlight_visible_lines();
@@ -877,9 +893,9 @@ impl<XMSG> WebEditor<XMSG> {
                 host_element.set_attribute("content", &self.get_content()).expect("set attr content");
                 host_element.dispatch_event(&InputEvent::create_web_event_composed()).expect("dispatch event");
             }
-            xmsgs
+            Effects::new([], xmsgs)
         } else {
-            vec![]
+            Effects::none()
         }
     }
 
@@ -1192,6 +1208,11 @@ impl<XMSG> WebEditor<XMSG> {
                 } else {
                     text!("")
                 },
+                if self.is_background_highlighting_ongoing.load(Ordering::Relaxed){
+                    text!(" |> background working")
+                }else{
+                    text!("")
+                }
             ],
         )
     }
