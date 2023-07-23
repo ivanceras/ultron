@@ -731,8 +731,8 @@ impl<XMSG> WebEditor<XMSG> {
             let highlighted_lines = self.highlighted_lines.clone();
             let lines = self.base_editor.text_edit.lines();
             for handle in self.animation_frame_handles.drain(..) {
-                //cancel the old ones
-                //sauron::dom::util::cancel_animation_frame(handle).expect("must cancel");
+                //cancel the old ones, dropping the handle will call on the cancel_animation_frame
+                //for this handle
                 drop(handle);
             }
             let closure = move || {
