@@ -870,7 +870,7 @@ impl<XMSG> WebEditor<XMSG> {
     /// make this into keypress to command
     pub fn process_keypress(&mut self, ke: &web_sys::KeyboardEvent) -> Effects<Msg, XMSG> {
         if let Some(command) = Self::keyevent_to_command(ke) {
-            let effects = self.process_commands([command]);
+            let effects = self.process_commands([command]).measure();
             effects.append_local([Msg::ScrollCursorIntoView])
         } else {
             Effects::none()
