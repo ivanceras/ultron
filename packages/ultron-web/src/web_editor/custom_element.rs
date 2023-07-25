@@ -6,9 +6,6 @@ impl<XMSG> sauron::CustomElement<Msg> for WebEditor<XMSG>
 where
     XMSG: 'static,
 {
-    fn custom_tag() -> &'static str {
-        "ultron-editor"
-    }
     fn observed_attributes() -> Vec<&'static str> {
         vec!["value", "syntax", "theme"]
     }
@@ -17,26 +14,26 @@ where
     fn attribute_changed(
         program: &Program<Self, Msg>,
         attr_name: &str,
-        _old_value: JsValue,
-        new_value: JsValue,
+        _old_value: Option<String>,
+        new_value: Option<String>,
     ) where
         Self: Sized + Application<Msg>,
     {
         match &*attr_name {
             "value" => {
-                if let Some(new_value) = new_value.as_string() {
+                if let Some(new_value) = new_value {
                     log::info!("value is changed.. {new_value}");
                     program.dispatch(Msg::ChangeValue(new_value));
                 }
             }
             "syntax" => {
-                if let Some(new_value) = new_value.as_string() {
+                if let Some(new_value) = new_value {
                     log::info!("syntax token is changed: {new_value}");
                     program.dispatch(Msg::ChangeSyntax(new_value));
                 }
             }
             "theme" => {
-                if let Some(new_value) = new_value.as_string() {
+                if let Some(new_value) = new_value {
                     log::info!("theme is changed: {new_value}");
                     program.dispatch(Msg::ChangeTheme(new_value));
                 }
@@ -84,7 +81,12 @@ impl WebEditorCustomElement {
         old_value: JsValue,
         new_value: JsValue,
     ) {
-        WebEditor::<()>::attribute_changed(&self.program, attr_name, old_value, new_value);
+        WebEditor::<()>::attribute_changed(
+            &self.program,
+            attr_name,
+            old_value.as_string(),
+            new_value.as_string(),
+        );
     }
 
     #[wasm_bindgen(method, js_name = connectedCallback)]
@@ -107,7 +109,7 @@ impl WebEditorCustomElement {
     }
 
     pub fn register() {
-        sauron::dom::register_custom_element(WebEditor::<()>::custom_tag(), Self::struct_name());
+        sauron::dom::register_custom_element("ultron-editor", Self::struct_name());
     }
 }
 
@@ -133,5 +135,5 @@ pub fn ultron_editor<MSG>(
     children: impl IntoIterator<Item = Node<MSG>>,
 ) -> Node<MSG> {
     WebEditorCustomElement::register();
-    html_element(None, WebEditor::<()>::custom_tag(), attrs, children, true)
+    html_element(None, "ultron-editor", attrs, children, true)
 }
