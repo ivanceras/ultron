@@ -245,7 +245,6 @@ impl<XMSG> WebEditor<XMSG> {
                         [("occupy_container", self.options.occupy_container)],
                     ),
                     on_mount(Msg::EditorMounted),
-                    tabindex(1),
                     on_keydown(move|ke| {
                         if enable_keypresses{
                             ke.prevent_default();
@@ -262,7 +261,6 @@ impl<XMSG> WebEditor<XMSG> {
                             Msg::NoOp
                         }
                     }),
-                    contenteditable(true),
                     spellcheck(false),
                     tabindex(0),
                     on_focus(Msg::Focused),
@@ -453,10 +451,13 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             }
             Msg::Focused(_fe) => {
                 self.is_focused = true;
+                log::info!("in Msg::Focused: {}", self.is_focused);
+                log::info!("show cursor: {}", self.options.show_cursor);
                 Effects::none()
             }
             Msg::SetFocus => {
                 self.is_focused = true;
+                log::info!("ultron editor is focused: {}", self.is_focused);
                 if let Some(editor_element) = &self.editor_element{
                     let html_elm: &web_sys::HtmlElement = editor_element.unchecked_ref();
                     html_elm.focus().expect("element must focus");

@@ -1,5 +1,4 @@
 use super::{Msg, WebEditor};
-use sauron::wasm_bindgen::JsCast;
 use sauron::{html::*, *};
 
 impl<XMSG> sauron::CustomElement<Msg> for WebEditor<XMSG>
@@ -92,10 +91,16 @@ impl WebEditorCustomElement {
     #[wasm_bindgen(method, js_name = connectedCallback)]
     pub fn connected_callback(&mut self) {
         self.program.mount();
-        let component_style =
+
+        let static_style = <WebEditor<()> as Application<Msg>>::stylesheet().join("");
+        self.program.inject_style_to_mount(&static_style);
+        let dynamic_style =
             <WebEditor<()> as Application<Msg>>::style(&self.program.app.borrow()).join("");
-        self.program.inject_style_to_mount(&component_style);
-        self.program.update_dom().expect("must update dom");
+        self.program.inject_style_to_mount(&dynamic_style);
+
+        self.program
+            .update_dom(&sauron::dom::Modifier::default())
+            .expect("must update dom");
     }
 
     #[wasm_bindgen(method, js_name = disconnectedCallback)]
@@ -112,6 +117,9 @@ impl WebEditorCustomElement {
         sauron::dom::register_custom_element("ultron-editor", Self::struct_name());
     }
 }
+pub fn register() {
+    WebEditorCustomElement::register();
+}
 
 pub mod attributes {
     use sauron::html::attributes::{attr, Value};
@@ -126,14 +134,13 @@ pub mod attributes {
     }
 }
 
-pub fn register() {
-    WebEditorCustomElement::register();
-}
-
 pub fn ultron_editor<MSG>(
     attrs: impl IntoIterator<Item = Attribute<MSG>>,
     children: impl IntoIterator<Item = Node<MSG>>,
 ) -> Node<MSG> {
-    WebEditorCustomElement::register();
-    html_element(None, "ultron-editor", attrs, children, true)
+    register();
+    if !children.into_iter().collect::<Vec<_>>().is_empty() {
+        log::warn!("ultron editor ignore the passed children nodes");
+    }
+    html_element(None, "ultron-editor", attrs, [], true)
 }
