@@ -204,14 +204,7 @@ impl<XMSG> BaseEditor<XMSG> {
         vec![]
     }
 
-    /// TODO: convert this into process_commands
-    /// where each command marks whether the content has changed or not
-    /// then once all of the commands have been executed,
-    /// the emit and rehighlight will commence
-    ///
-    /// TODO option2: have a boolean flag, for each of the command to determine
-    /// if the editor content changed or not
-    ///
+    /// process the supplied command to text_edit
     pub fn process_command(&mut self, command: BaseCommand) -> bool {
         match command {
             BaseCommand::IndentForward => {
