@@ -15,7 +15,6 @@ unicode-width = "0.1"
 nalgebra = "0.32.2"
 log = "0.4.17"
 ultron-syntaxes-themes = { version = "0.3.0", path = "../syntaxes-themes" }
-async-recursion = "1.0.4"
 
 [features]
 callback = []
