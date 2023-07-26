@@ -63,7 +63,7 @@ pub enum Msg {
 }
 
 #[derive(Debug)]
-pub enum Command {
+pub enum Call {
     EditorCommand(BaseCommand),
     /// execute paste text
     PasteTextBlock(String),
@@ -101,7 +101,7 @@ pub struct WebEditor<XMSG> {
     is_background_highlighting_ongoing: Rc<AtomicBool>,
 }
 
-impl From<BaseCommand> for Command {
+impl From<BaseCommand> for Call {
     fn from(ecommand: BaseCommand) -> Self {
         Self::EditorCommand(ecommand)
     }
@@ -500,10 +500,10 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 self.show_context_menu = false;
                 match menu_action {
                     MenuAction::Undo => {
-                        self.process_command(Command::EditorCommand(BaseCommand::Undo));
+                        self.process_call(Call::EditorCommand(BaseCommand::Undo));
                     }
                     MenuAction::Redo => {
-                        self.process_command(Command::EditorCommand(BaseCommand::Redo));
+                        self.process_call(Call::EditorCommand(BaseCommand::Redo));
                     }
                     MenuAction::Cut => {
                         self.cut_selected_text_to_clipboard();
@@ -514,7 +514,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     MenuAction::Paste => todo!(),
                     MenuAction::Delete => todo!(),
                     MenuAction::SelectAll => {
-                        self.process_command(Command::EditorCommand(BaseCommand::SelectAll));
+                        self.process_call(Call::EditorCommand(BaseCommand::SelectAll));
                         log::info!("selected text: {:?}", self.selected_text());
                     }
                 }
@@ -827,29 +827,29 @@ impl<XMSG> WebEditor<XMSG> {
         }
     }
 
-    pub fn keyevent_to_command(ke: &web_sys::KeyboardEvent) -> Option<Command> {
+    pub fn keyevent_to_command(ke: &web_sys::KeyboardEvent) -> Option<Call> {
         let is_ctrl = ke.ctrl_key();
         let is_shift = ke.shift_key();
         let key = ke.key();
         if key.chars().count() == 1 {
             let c = key.chars().next().expect("must be only 1 chr");
             let command = match c {
-                'c' if is_ctrl => Command::CopyText,
-                'x' if is_ctrl => Command::CutText,
+                'c' if is_ctrl => Call::CopyText,
+                'x' if is_ctrl => Call::CutText,
                 'v' if is_ctrl => {
                     log::trace!("pasting is handled");
-                    Command::PasteTextBlock(String::new())
+                    Call::PasteTextBlock(String::new())
                 }
                 'z' | 'Z' if is_ctrl => {
                     if is_shift {
-                        Command::EditorCommand(BaseCommand::Redo)
+                        Call::EditorCommand(BaseCommand::Redo)
                     } else {
-                        Command::EditorCommand(BaseCommand::Undo)
+                        Call::EditorCommand(BaseCommand::Undo)
                     }
                 }
-                'r' if is_ctrl => Command::EditorCommand(BaseCommand::Redo),
-                'a' if is_ctrl => Command::EditorCommand(BaseCommand::SelectAll),
-                _ => Command::EditorCommand(BaseCommand::InsertChar(c)),
+                'r' if is_ctrl => Call::EditorCommand(BaseCommand::Redo),
+                'a' if is_ctrl => Call::EditorCommand(BaseCommand::SelectAll),
+                _ => Call::EditorCommand(BaseCommand::InsertChar(c)),
             };
 
             Some(command)
@@ -867,7 +867,7 @@ impl<XMSG> WebEditor<XMSG> {
                 "End" => Some(BaseCommand::MoveRightEnd),
                 _ => None,
             };
-            editor_command.map(Command::EditorCommand)
+            editor_command.map(Call::EditorCommand)
         }
     }
 
@@ -881,10 +881,10 @@ impl<XMSG> WebEditor<XMSG> {
         }
     }
 
-    pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Effects<Msg,XMSG> {
+    pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Call>) -> Effects<Msg,XMSG> {
         let results: Vec<bool> = commands
             .into_iter()
-            .map(|command| self.process_command(command))
+            .map(|command| self.process_call(command))
             .collect();
         let is_content_changed = results.into_iter().any(|v|v);
         if is_content_changed {
@@ -941,23 +941,23 @@ impl<XMSG> WebEditor<XMSG> {
         }
     }
 
-    pub fn process_command(&mut self, command: Command) -> bool {
-        match command {
-            Command::EditorCommand(ecommand) => match ecommand {
+    pub fn process_call(&mut self, call: Call) -> bool {
+        match call {
+            Call::EditorCommand(ecommand) => match ecommand {
                 BaseCommand::InsertChar(ch) => {
                     self.insert_to_highlighted_line(ch);
                     self.base_editor.process_command(ecommand)
                 }
                 _ => self.base_editor.process_command(ecommand),
             },
-            Command::PasteTextBlock(text_block) => self
+            Call::PasteTextBlock(text_block) => self
                 .base_editor
                 .process_command(BaseCommand::PasteTextBlock(text_block)),
-            Command::MergeText(text_block) => self
+            Call::MergeText(text_block) => self
                 .base_editor
                 .process_command(BaseCommand::MergeText(text_block)),
-            Command::CopyText => self.copy_selected_text_to_clipboard(),
-            Command::CutText => self.cut_selected_text_to_clipboard(),
+            Call::CopyText => self.copy_selected_text_to_clipboard(),
+            Call::CutText => self.cut_selected_text_to_clipboard(),
         }
     }
 
