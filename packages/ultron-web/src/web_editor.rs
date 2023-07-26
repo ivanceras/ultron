@@ -64,7 +64,7 @@ pub enum Msg {
 
 #[derive(Debug)]
 pub enum Call {
-    EditorCommand(Command),
+    Command(Command),
     /// execute paste text
     PasteTextBlock(String),
     MergeText(String),
@@ -101,11 +101,6 @@ pub struct WebEditor<XMSG> {
     is_background_highlighting_ongoing: Rc<AtomicBool>,
 }
 
-impl From<Command> for Call {
-    fn from(command: Command) -> Self {
-        Self::EditorCommand(command)
-    }
-}
 impl<XMSG> Default for WebEditor<XMSG>{
 
     fn default() -> Self {
@@ -343,7 +338,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 self.font_loader.update(fmsg).localize(Msg::FontLoaderMsg)
             }
             Msg::ChangeValue(content) => {
-                self.process_commands([Command::SetContent(content).into()]);
+                self.process_call(Call::Command(Command::SetContent(content)));
                 Effects::none()
             }
             Msg::ChangeSyntax(syntax_token) => {
@@ -500,10 +495,10 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 self.show_context_menu = false;
                 match menu_action {
                     MenuAction::Undo => {
-                        self.process_call(Call::EditorCommand(Command::Undo));
+                        self.process_call(Call::Command(Command::Undo));
                     }
                     MenuAction::Redo => {
-                        self.process_call(Call::EditorCommand(Command::Redo));
+                        self.process_call(Call::Command(Command::Redo));
                     }
                     MenuAction::Cut => {
                         self.cut_selected_text_to_clipboard();
@@ -514,7 +509,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     MenuAction::Paste => todo!(),
                     MenuAction::Delete => todo!(),
                     MenuAction::SelectAll => {
-                        self.process_call(Call::EditorCommand(Command::SelectAll));
+                        self.process_call(Call::Command(Command::SelectAll));
                         log::info!("selected text: {:?}", self.selected_text());
                     }
                 }
@@ -827,7 +822,7 @@ impl<XMSG> WebEditor<XMSG> {
         }
     }
 
-    pub fn keyevent_to_command(ke: &web_sys::KeyboardEvent) -> Option<Call> {
+    pub fn keyevent_to_call(ke: &web_sys::KeyboardEvent) -> Option<Call> {
         let is_ctrl = ke.ctrl_key();
         let is_shift = ke.shift_key();
         let key = ke.key();
@@ -842,14 +837,14 @@ impl<XMSG> WebEditor<XMSG> {
                 }
                 'z' | 'Z' if is_ctrl => {
                     if is_shift {
-                        Call::EditorCommand(Command::Redo)
+                        Call::Command(Command::Redo)
                     } else {
-                        Call::EditorCommand(Command::Undo)
+                        Call::Command(Command::Undo)
                     }
                 }
-                'r' if is_ctrl => Call::EditorCommand(Command::Redo),
-                'a' if is_ctrl => Call::EditorCommand(Command::SelectAll),
-                _ => Call::EditorCommand(Command::InsertChar(c)),
+                'r' if is_ctrl => Call::Command(Command::Redo),
+                'a' if is_ctrl => Call::Command(Command::SelectAll),
+                _ => Call::Command(Command::InsertChar(c)),
             };
 
             Some(command)
@@ -867,21 +862,21 @@ impl<XMSG> WebEditor<XMSG> {
                 "End" => Some(Command::MoveRightEnd),
                 _ => None,
             };
-            editor_command.map(Call::EditorCommand)
+            editor_command.map(Call::Command)
         }
     }
 
     /// make this into keypress to command
     pub fn process_keypress(&mut self, ke: &web_sys::KeyboardEvent) -> Effects<Msg, XMSG> {
-        if let Some(command) = Self::keyevent_to_command(ke) {
-            let effects = self.process_commands([command]).measure();
+        if let Some(command) = Self::keyevent_to_call(ke) {
+            let effects = self.process_calls([command]).measure();
             effects.append_local([Msg::ScrollCursorIntoView])
         } else {
             Effects::none()
         }
     }
 
-    pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Call>) -> Effects<Msg,XMSG> {
+    pub fn process_calls(&mut self, commands: impl IntoIterator<Item = Call>) -> Effects<Msg,XMSG> {
         let results: Vec<bool> = commands
             .into_iter()
             .map(|command| self.process_call(command))
@@ -943,7 +938,7 @@ impl<XMSG> WebEditor<XMSG> {
 
     pub fn process_call(&mut self, call: Call) -> bool {
         match call {
-            Call::EditorCommand(command) => match command {
+            Call::Command(command) => match command {
                 Command::InsertChar(ch) => {
                     self.insert_to_highlighted_line(ch);
                     self.base_editor.process_command(command)
