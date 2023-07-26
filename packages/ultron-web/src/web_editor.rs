@@ -704,7 +704,7 @@ impl<XMSG> WebEditor<XMSG> {
                 self.measure.last_dispatch = Some(measure.total_time);
             }
             _ => {
-                panic!("unexpected measurement name from: {measure:?}");
+                log::trace!("unexpected measurement name from: {measure:?}");
             }
         }
     }
