@@ -17,7 +17,7 @@ pub use crate::context_menu::MenuAction;
 pub use mouse_cursor::MouseCursor;
 pub use options::Options;
 pub use ultron_core;
-pub use ultron_core::{BaseOptions,BaseCommand};
+pub use ultron_core::{BaseOptions,Command};
 pub use crate::font_loader::FontSettings;
 use crate::{font_loader,FontLoader};
 use crate::wasm_bindgen_futures::JsFuture;
@@ -64,7 +64,7 @@ pub enum Msg {
 
 #[derive(Debug)]
 pub enum Call {
-    EditorCommand(BaseCommand),
+    EditorCommand(Command),
     /// execute paste text
     PasteTextBlock(String),
     MergeText(String),
@@ -101,9 +101,9 @@ pub struct WebEditor<XMSG> {
     is_background_highlighting_ongoing: Rc<AtomicBool>,
 }
 
-impl From<BaseCommand> for Call {
-    fn from(ecommand: BaseCommand) -> Self {
-        Self::EditorCommand(ecommand)
+impl From<Command> for Call {
+    fn from(command: Command) -> Self {
+        Self::EditorCommand(command)
     }
 }
 impl<XMSG> Default for WebEditor<XMSG>{
@@ -343,7 +343,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 self.font_loader.update(fmsg).localize(Msg::FontLoaderMsg)
             }
             Msg::ChangeValue(content) => {
-                self.process_commands([BaseCommand::SetContent(content).into()]);
+                self.process_commands([Command::SetContent(content).into()]);
                 Effects::none()
             }
             Msg::ChangeSyntax(syntax_token) => {
@@ -364,7 +364,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     let client_x = me.client_x();
                     let client_y = me.client_y();
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
-                    let msgs = self.base_editor.process_commands([BaseCommand::SetPosition(cursor)]);
+                    let msgs = self.base_editor.process_commands([Command::SetPosition(cursor)]);
                     Effects::new(vec![], msgs)
                 }else{
                     Effects::none()
@@ -387,7 +387,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                         }
                         let msgs = self
                             .base_editor
-                            .process_commands([BaseCommand::SetPosition(cursor)]);
+                            .process_commands([Command::SetPosition(cursor)]);
                         Effects::new(vec![], msgs).measure()
                     } else {
                         Effects::none()
@@ -407,7 +407,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                             self.base_editor.set_selection_end(cursor);
                             let msgs = self
                                 .base_editor
-                                .process_commands([BaseCommand::SetSelection(start, cursor)]);
+                                .process_commands([Command::SetSelection(start, cursor)]);
                             Effects::new(vec![], msgs).measure()
                         } else {
                             Effects::none()
@@ -427,7 +427,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     if is_primary_btn {
                         let cursor = self.client_to_grid_clamped(client_x, client_y);
                         self.base_editor
-                            .process_commands([BaseCommand::SetPosition(cursor)]);
+                            .process_commands([Command::SetPosition(cursor)]);
 
                         if self.is_selecting {
                             self.is_selecting = false;
@@ -436,7 +436,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                             if let (Some(start), Some(end)) = (selection.start, selection.end) {
                                 let msgs = self
                                     .base_editor
-                                    .process_commands([BaseCommand::SetSelection(start, end)]);
+                                    .process_commands([Command::SetSelection(start, end)]);
                                 Effects::new(vec![], msgs)
                             } else {
                                 Effects::none()
@@ -500,10 +500,10 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 self.show_context_menu = false;
                 match menu_action {
                     MenuAction::Undo => {
-                        self.process_call(Call::EditorCommand(BaseCommand::Undo));
+                        self.process_call(Call::EditorCommand(Command::Undo));
                     }
                     MenuAction::Redo => {
-                        self.process_call(Call::EditorCommand(BaseCommand::Redo));
+                        self.process_call(Call::EditorCommand(Command::Redo));
                     }
                     MenuAction::Cut => {
                         self.cut_selected_text_to_clipboard();
@@ -514,7 +514,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     MenuAction::Paste => todo!(),
                     MenuAction::Delete => todo!(),
                     MenuAction::SelectAll => {
-                        self.process_call(Call::EditorCommand(BaseCommand::SelectAll));
+                        self.process_call(Call::EditorCommand(Command::SelectAll));
                         log::info!("selected text: {:?}", self.selected_text());
                     }
                 }
@@ -842,29 +842,29 @@ impl<XMSG> WebEditor<XMSG> {
                 }
                 'z' | 'Z' if is_ctrl => {
                     if is_shift {
-                        Call::EditorCommand(BaseCommand::Redo)
+                        Call::EditorCommand(Command::Redo)
                     } else {
-                        Call::EditorCommand(BaseCommand::Undo)
+                        Call::EditorCommand(Command::Undo)
                     }
                 }
-                'r' if is_ctrl => Call::EditorCommand(BaseCommand::Redo),
-                'a' if is_ctrl => Call::EditorCommand(BaseCommand::SelectAll),
-                _ => Call::EditorCommand(BaseCommand::InsertChar(c)),
+                'r' if is_ctrl => Call::EditorCommand(Command::Redo),
+                'a' if is_ctrl => Call::EditorCommand(Command::SelectAll),
+                _ => Call::EditorCommand(Command::InsertChar(c)),
             };
 
             Some(command)
         } else {
             let editor_command = match &*key {
-                "Tab" => Some(BaseCommand::IndentForward),
-                "Enter" => Some(BaseCommand::BreakLine),
-                "Backspace" => Some(BaseCommand::DeleteBack),
-                "Delete" => Some(BaseCommand::DeleteForward),
-                "ArrowUp" => Some(BaseCommand::MoveUp),
-                "ArrowDown" => Some(BaseCommand::MoveDown),
-                "ArrowLeft" => Some(BaseCommand::MoveLeft),
-                "ArrowRight" => Some(BaseCommand::MoveRight),
-                "Home" => Some(BaseCommand::MoveLeftStart),
-                "End" => Some(BaseCommand::MoveRightEnd),
+                "Tab" => Some(Command::IndentForward),
+                "Enter" => Some(Command::BreakLine),
+                "Backspace" => Some(Command::DeleteBack),
+                "Delete" => Some(Command::DeleteForward),
+                "ArrowUp" => Some(Command::MoveUp),
+                "ArrowDown" => Some(Command::MoveDown),
+                "ArrowLeft" => Some(Command::MoveLeft),
+                "ArrowRight" => Some(Command::MoveRight),
+                "Home" => Some(Command::MoveLeftStart),
+                "End" => Some(Command::MoveRightEnd),
                 _ => None,
             };
             editor_command.map(Call::EditorCommand)
@@ -943,19 +943,19 @@ impl<XMSG> WebEditor<XMSG> {
 
     pub fn process_call(&mut self, call: Call) -> bool {
         match call {
-            Call::EditorCommand(ecommand) => match ecommand {
-                BaseCommand::InsertChar(ch) => {
+            Call::EditorCommand(command) => match command {
+                Command::InsertChar(ch) => {
                     self.insert_to_highlighted_line(ch);
-                    self.base_editor.process_command(ecommand)
+                    self.base_editor.process_command(command)
                 }
-                _ => self.base_editor.process_command(ecommand),
+                _ => self.base_editor.process_command(command),
             },
             Call::PasteTextBlock(text_block) => self
                 .base_editor
-                .process_command(BaseCommand::PasteTextBlock(text_block)),
+                .process_command(Command::PasteTextBlock(text_block)),
             Call::MergeText(text_block) => self
                 .base_editor
-                .process_command(BaseCommand::MergeText(text_block)),
+                .process_command(Command::MergeText(text_block)),
             Call::CopyText => self.copy_selected_text_to_clipboard(),
             Call::CutText => self.cut_selected_text_to_clipboard(),
         }
