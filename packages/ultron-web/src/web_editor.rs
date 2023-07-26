@@ -383,7 +383,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                         let msgs = self
                             .base_editor
                             .process_commands([Command::SetPosition(cursor)]);
-                        Effects::new(vec![], msgs).measure()
+                        Effects::new(vec![], msgs)
                     } else {
                         Effects::none()
                     }
@@ -403,7 +403,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                             let msgs = self
                                 .base_editor
                                 .process_commands([Command::SetSelection(start, cursor)]);
-                            Effects::new(vec![], msgs).measure()
+                            Effects::new(vec![], msgs)
                         } else {
                             Effects::none()
                         }
@@ -448,7 +448,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
             }
             Msg::Keydown(ke) => self.process_keypress(&ke),
             Msg::Measurements(measure) => {
-                self.update_measure(measure);
+                self.update_measure(&measure);
                 Effects::none()
             }
             Msg::Focused(_fe) => {
@@ -693,13 +693,20 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
 
-    fn update_measure(&mut self, measure: Measurements) {
-        if let Some(average_dispatch) = self.measure.average_dispatch.as_mut() {
-            *average_dispatch = (*average_dispatch + measure.total_time) / 2.0;
-        } else {
-            self.measure.average_dispatch = Some(measure.total_time);
+    fn update_measure(&mut self, measure: &Measurements) {
+        match &*measure.name{
+            "keypress" => {
+                if let Some(average_dispatch) = self.measure.average_dispatch.as_mut() {
+                    *average_dispatch = (*average_dispatch + measure.total_time) / 2.0;
+                } else {
+                    self.measure.average_dispatch = Some(measure.total_time);
+                }
+                self.measure.last_dispatch = Some(measure.total_time);
+            }
+            _ => {
+                panic!("unexpected measurement name from: {measure:?}");
+            }
         }
-        self.measure.last_dispatch = Some(measure.total_time);
     }
 
     pub fn set_mouse_cursor(&mut self, mouse_cursor: MouseCursor) {
@@ -869,7 +876,7 @@ impl<XMSG> WebEditor<XMSG> {
     /// make this into keypress to command
     pub fn process_keypress(&mut self, ke: &web_sys::KeyboardEvent) -> Effects<Msg, XMSG> {
         if let Some(command) = Self::keyevent_to_call(ke) {
-            let effects = self.process_calls_with_effects([command]).measure();
+            let effects = self.process_calls_with_effects([command]).measure_with_name("keypress");
             effects.append_local([Msg::ScrollCursorIntoView])
         } else {
             Effects::none()
