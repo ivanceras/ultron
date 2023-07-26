@@ -338,7 +338,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 self.font_loader.update(fmsg).localize(Msg::FontLoaderMsg)
             }
             Msg::ChangeValue(content) => {
-                self.process_call(Call::Command(Command::SetContent(content)));
+                self.process_calls_with_effects([Call::Command(Command::SetContent(content))]);
                 Effects::none()
             }
             Msg::ChangeSyntax(syntax_token) => {
@@ -495,10 +495,10 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                 self.show_context_menu = false;
                 match menu_action {
                     MenuAction::Undo => {
-                        self.process_call(Call::Command(Command::Undo));
+                        self.process_calls_with_effects([Call::Command(Command::Undo)]);
                     }
                     MenuAction::Redo => {
-                        self.process_call(Call::Command(Command::Redo));
+                        self.process_calls_with_effects([Call::Command(Command::Redo)]);
                     }
                     MenuAction::Cut => {
                         self.cut_selected_text_to_clipboard();
@@ -509,7 +509,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
                     MenuAction::Paste => todo!(),
                     MenuAction::Delete => todo!(),
                     MenuAction::SelectAll => {
-                        self.process_call(Call::Command(Command::SelectAll));
+                        self.process_calls_with_effects([Call::Command(Command::SelectAll)]);
                         log::info!("selected text: {:?}", self.selected_text());
                     }
                 }
@@ -869,14 +869,15 @@ impl<XMSG> WebEditor<XMSG> {
     /// make this into keypress to command
     pub fn process_keypress(&mut self, ke: &web_sys::KeyboardEvent) -> Effects<Msg, XMSG> {
         if let Some(command) = Self::keyevent_to_call(ke) {
-            let effects = self.process_calls([command]).measure();
+            let effects = self.process_calls_with_effects([command]).measure();
             effects.append_local([Msg::ScrollCursorIntoView])
         } else {
             Effects::none()
         }
     }
 
-    pub fn process_calls(&mut self, commands: impl IntoIterator<Item = Call>) -> Effects<Msg,XMSG> {
+    /// process the calls and dispatch effects events when applicable
+    pub fn process_calls_with_effects(&mut self, commands: impl IntoIterator<Item = Call>) -> Effects<Msg,XMSG> {
         let results: Vec<bool> = commands
             .into_iter()
             .map(|command| self.process_call(command))
@@ -936,6 +937,8 @@ impl<XMSG> WebEditor<XMSG> {
         }
     }
 
+    /// process a call and return true of the content has changed
+    /// Note: this does not trigger an effect
     pub fn process_call(&mut self, call: Call) -> bool {
         match call {
             Call::Command(command) => match command {
