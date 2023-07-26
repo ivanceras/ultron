@@ -156,7 +156,7 @@ impl<XMSG> WebEditor<XMSG> {
         }
         text_highlighter.set_syntax_token(&options.syntax_token);
         let highlighted_lines = Rc::new(RefCell::new(Self::highlight_lines(
-            &base_editor.text_edit,
+            &base_editor.as_ref(),
             &mut text_highlighter,
         )));
 
@@ -214,6 +214,10 @@ impl<XMSG> WebEditor<XMSG> {
 
     pub fn get_content(&self) -> String {
         self.base_editor.get_content()
+    }
+
+    pub fn text_buffer(&self) -> &TextBuffer{
+        self.base_editor.text_buffer()
     }
 
     /// returns true if the editor is ready
@@ -719,7 +723,7 @@ impl<XMSG> WebEditor<XMSG> {
   fn rehighlight_all(&mut self) {
         self.text_highlighter.borrow_mut().reset();
         *self.highlighted_lines.borrow_mut() = Self::highlight_lines(
-            &self.base_editor.text_edit,
+            &self.base_editor.as_ref(),
             &mut self.text_highlighter.borrow_mut(),
         );
     }
@@ -729,7 +733,7 @@ impl<XMSG> WebEditor<XMSG> {
         if let Some((_top, end)) = self.visible_lines(){
             let text_highlighter = self.text_highlighter.clone();
             let highlighted_lines = self.highlighted_lines.clone();
-            let lines = self.base_editor.text_edit.lines();
+            let lines = self.base_editor.as_ref().lines();
             for handle in self.animation_frame_handles.drain(..) {
                 //cancel the old ones, dropping the handle will call on the cancel_animation_frame
                 //for this handle
@@ -779,7 +783,7 @@ impl<XMSG> WebEditor<XMSG> {
             }
             let text_highlighter = self.text_highlighter.clone();
             let highlighted_lines = self.highlighted_lines.clone();
-            let lines = self.base_editor.text_edit.lines();
+            let lines = self.base_editor.as_ref().lines();
             let is_background_highlighting_ongoing = self.is_background_highlighting_ongoing.clone();
             let closure = move || {
                 let text_highlighter = text_highlighter.clone();
@@ -1274,7 +1278,7 @@ impl<XMSG> WebEditor<XMSG> {
 
                 let foreground = util::to_rgba(style.foreground).to_css();
 
-                let selection_splits = match self.base_editor.text_edit.selection_reorder_casted() {
+                let selection_splits = match self.base_editor.as_ref().selection_reorder_casted() {
                     Some((start, end)) => {
                         // selection end points is only on the same line
                         let selection_in_same_line = start.y == end.y;
@@ -1430,10 +1434,10 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     fn view_line_with_linear_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
-        let line_width = self.base_editor.text_edit.text_buffer.line_width(line_index);
+        let line_width = self.base_editor.text_buffer().line_width(line_index);
         let line_end = Point2::new(line_width, line_index);
 
-        let selection_splits = match self.base_editor.text_edit.selection_reorder_casted() {
+        let selection_splits = match self.base_editor.as_ref().selection_reorder_casted() {
             Some((start, end)) => {
                 // this line is in between the selection end points
                 let in_inner_line = line_index > start.y && line_index < end.y;
@@ -1447,7 +1451,7 @@ impl<XMSG> WebEditor<XMSG> {
                     let in_first_line = line_index == start.y;
                     // this line is on the last line of selection
                     let in_last_line = line_index == end.y;
-                    let text_buffer = &self.base_editor.text_edit.text_buffer;
+                    let text_buffer = &self.base_editor.text_buffer();
                     if in_first_line {
                         // the first part is the plain
                         // the second part is the highlighted
@@ -1486,9 +1490,9 @@ impl<XMSG> WebEditor<XMSG> {
         let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
 
         let default_view = span([], [text(&line)]);
-        match self.base_editor.text_edit.selection_normalized_casted() {
+        match self.base_editor.as_ref().selection_normalized_casted() {
             Some((start, end)) => {
-                let text_buffer = &self.base_editor.text_edit.text_buffer;
+                let text_buffer = &self.base_editor.text_buffer();
 
                 // there will be 3 parts
                 // the first one is plain
@@ -1520,7 +1524,7 @@ impl<XMSG> WebEditor<XMSG> {
 
     pub fn view_text_edit<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
-        let text_edit = &self.base_editor.text_edit;
+        let text_edit = &self.base_editor.as_ref();
 
         let code_attributes = [class_ns("code")];
         let rendered_lines = text_edit

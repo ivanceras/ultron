@@ -8,7 +8,7 @@ pub use ultron_syntaxes_themes::{Style, TextHighlighter};
 /// An editor with core functionality platform specific UI
 pub struct BaseEditor<XMSG> {
     options: BaseOptions,
-    pub text_edit: TextEdit,
+    text_edit: TextEdit,
     /// Other components can listen to the an event.
     /// When the content of the text editor changes, the change listener will be emitted
     #[cfg(feature = "callback")]
@@ -18,6 +18,12 @@ pub struct BaseEditor<XMSG> {
     #[cfg(feature = "callback")]
     change_notify_listeners: Vec<Callback<(), XMSG>>,
     _phantom: PhantomData<XMSG>,
+}
+
+impl<XMSG> AsRef<TextEdit> for BaseEditor<XMSG> {
+    fn as_ref(&self) -> &TextEdit {
+        &self.text_edit
+    }
 }
 
 impl<XMSG> Default for BaseEditor<XMSG> {
