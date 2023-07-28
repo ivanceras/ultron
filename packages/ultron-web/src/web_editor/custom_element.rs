@@ -138,7 +138,6 @@ pub fn ultron_editor<MSG>(
     attrs: impl IntoIterator<Item = Attribute<MSG>>,
     children: impl IntoIterator<Item = Node<MSG>>,
 ) -> Node<MSG> {
-    register();
     if !children.into_iter().collect::<Vec<_>>().is_empty() {
         log::warn!("ultron editor ignore the passed children nodes");
     }
