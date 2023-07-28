@@ -1,7 +1,7 @@
 use super::{Msg, WebEditor};
 use sauron::{html::*, *};
 
-impl<XMSG> sauron::CustomElement<Msg> for WebEditor<XMSG>
+impl<XMSG> sauron::WebComponent<Msg> for WebEditor<XMSG>
 where
     XMSG: 'static,
 {
@@ -114,7 +114,7 @@ impl WebEditorCustomElement {
     }
 
     pub fn register() {
-        sauron::dom::register_custom_element("ultron-editor", Self::struct_name());
+        sauron::dom::register_web_component("ultron-editor", Self::struct_name());
     }
 }
 pub fn register() {
