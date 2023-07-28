@@ -4,10 +4,9 @@ pub use sauron;
 use sauron::*;
 pub use ultron_core::{base_editor, nalgebra, SelectionMode, TextBuffer};
 #[cfg(feature = "custom_element")]
-pub use web_editor::custom_element::{attributes, register, ultron_editor, WebEditorCustomElement};
+pub use web_editor::custom_element::{attributes, register, ultron_editor};
 pub use web_editor::{
-    BaseCommand, BaseOptions, Command, FontSettings, MouseCursor, Options, WebEditor,
-    COMPONENT_NAME,
+    BaseOptions, Call, Command, FontSettings, MouseCursor, Options, WebEditor, COMPONENT_NAME,
 };
 
 pub use ultron_core;

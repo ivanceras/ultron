@@ -147,3 +147,5 @@
 - [X] For every last typed character, add it to the most probable range in the highlighted line
     - It will be corrected once the highlighting is run
 - [ ] Test to see if the CACHED_ELEMENT and the cached WINDOW and DOCUMENT in sauron is an improvement
+- [ ] Make a runnable benchmark which replays typing the characters in the editor
+- [ ] Put the background hightlighting task inside of spawn_local
