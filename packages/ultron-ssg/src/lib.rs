@@ -5,7 +5,10 @@ use ultron_web::{
     Options, WebEditor,
 };
 
-pub fn render<MSG>(content: &str, syntax_token: &str, theme_name: Option<&str>) -> Node<MSG> {
+pub fn render<MSG>(content: &str, syntax_token: &str, theme_name: Option<&str>) -> Node<MSG>
+where
+    MSG: 'static,
+{
     let options = Options {
         show_line_numbers: true,
         show_status_line: false,
@@ -29,7 +32,10 @@ pub fn render_to_string(content: &str, syntax_token: &str, theme_name: Option<&s
     node.render_to_string()
 }
 
-fn page<MSG>(web_editor: WebEditor<MSG>) -> Node<MSG> {
+fn page<MSG>(web_editor: WebEditor<MSG>) -> Node<MSG>
+where
+    MSG: 'static,
+{
     main(
         [],
         [

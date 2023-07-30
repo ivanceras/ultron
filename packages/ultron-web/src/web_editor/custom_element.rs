@@ -95,7 +95,7 @@ impl WebEditorCustomElement {
         let static_style = <WebEditor<()> as Application<Msg>>::stylesheet().join("");
         self.program.inject_style_to_mount(&static_style);
         let dynamic_style =
-            <WebEditor<()> as Application<Msg>>::style(&self.program.app.borrow()).join("");
+            <WebEditor<()> as Application<Msg>>::style(&self.program.app()).join("");
         self.program.inject_style_to_mount(&dynamic_style);
 
         self.program
