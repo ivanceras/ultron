@@ -2,29 +2,28 @@ use crate::context_menu::{self, Menu};
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::prelude::*;
+use selection::SelectionSplits;
 use std::cell::RefCell;
 use std::rc::Rc;
-use ultron_core::{
-    nalgebra::Point2, Ch, BaseEditor, SelectionMode, Style, TextBuffer, TextEdit,
-    TextHighlighter,
-    base_editor::Callback,
-};
-use selection::SelectionSplits;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
+use ultron_core::{
+    base_editor::Callback, nalgebra::Point2, BaseEditor, Ch, SelectionMode, Style, TextBuffer,
+    TextEdit, TextHighlighter,
+};
 
 pub use crate::context_menu::MenuAction;
+pub use crate::font_loader::FontSettings;
+use crate::wasm_bindgen::JsCast;
+use crate::wasm_bindgen_futures::JsFuture;
+use crate::{font_loader, FontLoader};
 pub use mouse_cursor::MouseCursor;
 pub use options::Options;
 pub use ultron_core;
-pub use ultron_core::{BaseOptions,Command};
-pub use crate::font_loader::FontSettings;
-use crate::{font_loader,FontLoader};
-use crate::wasm_bindgen_futures::JsFuture;
-use crate::wasm_bindgen::JsCast;
+pub use ultron_core::{BaseOptions, Command};
 
-mod selection;
 mod mouse_cursor;
+mod selection;
 
 #[cfg(feature = "custom_element")]
 pub mod custom_element;
@@ -97,21 +96,20 @@ pub struct WebEditor<XMSG> {
     is_fonts_ready: bool,
     /// emitted when the editor is ready
     /// meaning the fonts has been loaded and the editor has been mounted
-    ready_listener:Vec<Callback<(),XMSG>>,
+    ready_listener: Vec<Callback<(), XMSG>>,
     is_background_highlighting_ongoing: Rc<AtomicBool>,
 }
 
-impl<XMSG> Default for WebEditor<XMSG>{
-
+impl<XMSG> Default for WebEditor<XMSG> {
     fn default() -> Self {
         let options = Options::default();
         let mut text_highlighter = TextHighlighter::default();
         text_highlighter.set_syntax_token(&options.syntax_token);
 
-        let mut font_loader =  FontLoader::default();
-        font_loader.on_fonts_ready(||Msg::FontReady);
+        let mut font_loader = FontLoader::default();
+        font_loader.on_fonts_ready(|| Msg::FontReady);
 
-        Self{
+        Self {
             options,
             font_loader,
             base_editor: BaseEditor::default(),
@@ -135,14 +133,16 @@ impl<XMSG> Default for WebEditor<XMSG>{
     }
 }
 
-
 #[derive(Default, Clone)]
 struct Measure {
     average_dispatch: Option<f64>,
     last_dispatch: Option<f64>,
 }
 
-impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
+impl<XMSG> WebEditor<XMSG>
+where
+    XMSG: 'static,
+{
     pub fn from_str(options: &Options, content: &str) -> Self {
         let base_editor = BaseEditor::from_str(&options.base_options, content);
         let mut text_highlighter = TextHighlighter::default();
@@ -155,13 +155,13 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
             &mut text_highlighter,
         )));
 
-        let mut font_loader = if let Some(font_settings) = &options.font_settings{
+        let mut font_loader = if let Some(font_settings) = &options.font_settings {
             FontLoader::new(font_settings)
-        }else{
+        } else {
             // if no font settings is loaded, we use the iosevka font
             FontLoader::default()
         };
-        font_loader.on_fonts_ready(||Msg::FontReady);
+        font_loader.on_fonts_ready(|| Msg::FontReady);
 
         WebEditor {
             options: options.clone(),
@@ -179,11 +179,13 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
     where
         F: Fn() -> XMSG + 'static,
     {
-        self.ready_listener.push(Callback::from(move|_|f()));
+        self.ready_listener.push(Callback::from(move |_| f()));
     }
 
-    pub fn set_syntax_token(&mut self, syntax_token: &str){
-        self.text_highlighter.borrow_mut().set_syntax_token(syntax_token);
+    pub fn set_syntax_token(&mut self, syntax_token: &str) {
+        self.text_highlighter
+            .borrow_mut()
+            .set_syntax_token(syntax_token);
         self.rehighlight_all();
     }
 
@@ -199,7 +201,6 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
         self.base_editor.add_on_change_listener(f);
     }
 
-
     pub fn add_on_change_notify<F>(&mut self, f: F)
     where
         F: Fn(()) -> XMSG + 'static,
@@ -211,7 +212,7 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
         self.base_editor.get_content()
     }
 
-    pub fn text_buffer(&self) -> &TextBuffer{
+    pub fn text_buffer(&self) -> &TextBuffer {
         self.base_editor.text_buffer()
     }
 
@@ -220,89 +221,87 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
         self.is_fonts_ready && self.editor_element.is_some()
     }
 
-    fn try_ready_listener(&self) -> Vec<XMSG>{
-        if self.is_ready(){
+    fn try_ready_listener(&self) -> Vec<XMSG> {
+        if self.is_ready() {
             log::info!("emitting the ready listener..");
-            self.ready_listener
-                .iter()
-                .map(|c| c.emit(()))
-                .collect()
-        }else{
+            self.ready_listener.iter().map(|c| c.emit(())).collect()
+        } else {
             vec![]
         }
     }
 
     fn view_web_editor(&self) -> Node<Msg> {
-            let enable_context_menu = self.options.enable_context_menu;
-            let enable_keypresses = self.options.enable_keypresses;
-            let enable_click = self.options.enable_click;
-            div(
-                [
-                    class(COMPONENT_NAME),
-                    key("editor-main"),
-                    classes_flag_namespaced(
-                        COMPONENT_NAME,
-                        [("occupy_container", self.options.occupy_container)],
-                    ),
-                    on_mount(Msg::EditorMounted),
-                    on_keydown(move|ke| {
-                        if enable_keypresses{
-                            ke.prevent_default();
-                            ke.stop_propagation();
-                            Msg::Keydown(ke)
-                        }else{
-                            Msg::NoOp
-                        }
-                    }),
-                    on_click(move|me|{
-                        if enable_click{
-                            Msg::Click(me)
-                        }else{
-                            Msg::NoOp
-                        }
-                    }),
-                    spellcheck(false),
-                    tabindex(0),
-                    on_focus(Msg::Focused),
-                    on_blur(Msg::Blur),
-                    on_contextmenu(move|me| {
-                        if enable_context_menu{
-                            me.prevent_default();
-                            me.stop_propagation();
-                            Msg::ContextMenu(me)
-                        }else{
-                            Msg::NoOp
-                        }
-                    }),
-                    style! {
-                        cursor: self.mouse_cursor.to_str(),
-                    },
-                ],
-                [
-                    if self.options.use_syntax_highlighter {
-                        self.view_highlighted_lines()
+        let enable_context_menu = self.options.enable_context_menu;
+        let enable_keypresses = self.options.enable_keypresses;
+        let enable_click = self.options.enable_click;
+        div(
+            [
+                class(COMPONENT_NAME),
+                key("editor-main"),
+                classes_flag_namespaced(
+                    COMPONENT_NAME,
+                    [("occupy_container", self.options.occupy_container)],
+                ),
+                on_mount(Msg::EditorMounted),
+                on_keydown(move |ke| {
+                    if enable_keypresses {
+                        ke.prevent_default();
+                        ke.stop_propagation();
+                        Msg::Keydown(ke)
                     } else {
-                        self.plain_view()
-                    },
-                    view_if(self.options.show_status_line, self.view_status_line()),
-                    view_if(
-                        self.is_focused && self.options.show_cursor,
-                        self.view_cursor(),
-                    ),
-                    view_if(
-                        self.is_focused && self.show_context_menu,
-                        self.context_menu.view().map_msg(Msg::ContextMenuMsg),
-                    ),
-                ],
-            )
+                        Msg::NoOp
+                    }
+                }),
+                on_click(move |me| {
+                    if enable_click {
+                        Msg::Click(me)
+                    } else {
+                        Msg::NoOp
+                    }
+                }),
+                spellcheck(false),
+                tabindex(0),
+                on_focus(Msg::Focused),
+                on_blur(Msg::Blur),
+                on_contextmenu(move |me| {
+                    if enable_context_menu {
+                        me.prevent_default();
+                        me.stop_propagation();
+                        Msg::ContextMenu(me)
+                    } else {
+                        Msg::NoOp
+                    }
+                }),
+                style! {
+                    cursor: self.mouse_cursor.to_str(),
+                },
+            ],
+            [
+                if self.options.use_syntax_highlighter {
+                    self.view_highlighted_lines()
+                } else {
+                    self.plain_view()
+                },
+                view_if(self.options.show_status_line, self.view_status_line()),
+                view_if(
+                    self.is_focused && self.options.show_cursor,
+                    self.view_cursor(),
+                ),
+                view_if(
+                    self.is_focused && self.show_context_menu,
+                    self.context_menu.view().map_msg(Msg::ContextMenuMsg),
+                ),
+            ],
+        )
     }
 }
 
-impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
-
+impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG>
+where
+    XMSG: 'static,
+{
     fn init(&mut self) -> Effects<Msg, XMSG> {
-        self.font_loader
-            .init().localize(Msg::FontLoaderMsg)
+        self.font_loader.init().localize(Msg::FontLoaderMsg)
     }
 
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
@@ -311,7 +310,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
                 log::info!("Web editor is mounted..");
                 let mount_element: web_sys::Element = mount_event.target_node.unchecked_into();
                 let root_node = mount_element.get_root_node();
-                if let Some(shadow_root) = root_node.dyn_ref::<web_sys::ShadowRoot>(){
+                if let Some(shadow_root) = root_node.dyn_ref::<web_sys::ShadowRoot>() {
                     let host_element = shadow_root.host();
                     self.host_element = Some(host_element);
                 }
@@ -319,7 +318,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
                 let xmsgs = self.try_ready_listener();
                 Effects::new([], xmsgs)
             }
-            Msg::FontReady =>{
+            Msg::FontReady => {
                 log::info!("Fonts is ready in Web editor..");
                 let ch_width = self.font_loader.ch_width;
                 let ch_height = self.font_loader.ch_height;
@@ -329,9 +328,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
                 let xmsgs = self.try_ready_listener();
                 Effects::new([], xmsgs)
             }
-            Msg::FontLoaderMsg(fmsg) => {
-                self.font_loader.update(fmsg).localize(Msg::FontLoaderMsg)
-            }
+            Msg::FontLoaderMsg(fmsg) => self.font_loader.update(fmsg).localize(Msg::FontLoaderMsg),
             Msg::ChangeValue(content) => {
                 self.process_calls_with_effects([Call::Command(Command::SetContent(content))]);
                 Effects::none()
@@ -350,29 +347,34 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
                 Effects::none()
             }
             Msg::Click(me) => {
-                if self.is_ready(){
+                if self.is_ready() {
                     let client_x = me.client_x();
                     let client_y = me.client_y();
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
-                    let msgs = self.base_editor.process_commands([Command::SetPosition(cursor)]);
+                    let msgs = self
+                        .base_editor
+                        .process_commands([Command::SetPosition(cursor)]);
                     Effects::new(vec![], msgs)
-                }else{
+                } else {
                     Effects::none()
                 }
             }
             Msg::Mousedown(me) => {
-                if self.is_ready(){
+                if self.is_ready() {
                     log::info!("mouse down event in ultron..");
                     let client_x = me.client_x();
                     let client_y = me.client_y();
                     let is_primary_btn = me.button() == 0;
                     if is_primary_btn {
                         //self.base_editor.clear_selection();
-                        if self.options.allow_text_selection{
+                        if self.options.allow_text_selection {
                             self.is_selecting = true;
                         }
                         let cursor = self.client_to_grid_clamped(client_x, client_y);
-                        if self.options.allow_text_selection && self.is_selecting && !self.show_context_menu {
+                        if self.options.allow_text_selection
+                            && self.is_selecting
+                            && !self.show_context_menu
+                        {
                             self.base_editor.set_selection_start(cursor);
                         }
                         let msgs = self
@@ -382,16 +384,19 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
                     } else {
                         Effects::none()
                     }
-                }else{
+                } else {
                     Effects::none()
                 }
             }
             Msg::Mousemove(me) => {
-                if self.is_ready(){
+                if self.is_ready() {
                     let client_x = me.client_x();
                     let client_y = me.client_y();
                     let cursor = self.client_to_grid_clamped(client_x, client_y);
-                    if self.options.allow_text_selection && self.is_selecting && !self.show_context_menu {
+                    if self.options.allow_text_selection
+                        && self.is_selecting
+                        && !self.show_context_menu
+                    {
                         let selection = self.base_editor.selection();
                         if let Some(start) = selection.start {
                             self.base_editor.set_selection_end(cursor);
@@ -405,12 +410,12 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
                     } else {
                         Effects::none()
                     }
-                }else{
+                } else {
                     Effects::none()
                 }
             }
             Msg::Mouseup(me) => {
-                if self.is_ready(){
+                if self.is_ready() {
                     let client_x = me.client_x();
                     let client_y = me.client_y();
                     let is_primary_btn = me.button() == 0;
@@ -437,7 +442,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
                     } else {
                         Effects::none()
                     }
-                }else{
+                } else {
                     Effects::none()
                 }
             }
@@ -455,7 +460,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
             Msg::SetFocus => {
                 self.is_focused = true;
                 log::info!("ultron editor is focused: {}", self.is_focused);
-                if let Some(editor_element) = &self.editor_element{
+                if let Some(editor_element) = &self.editor_element {
                     let html_elm: &web_sys::HtmlElement = editor_element.unchecked_ref();
                     html_elm.focus().expect("element must focus");
                 }
@@ -470,14 +475,14 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
                 let (start, _end) = self.bounding_rect().expect("must have a bounding rect");
                 let x = me.client_x() - start.x as i32;
                 let y = me.client_y() - start.y as i32;
-                self
-                    .context_menu
+                self.context_menu
                     .update(context_menu::Msg::ShowAt(Point2::new(x, y)))
                     .localize(Msg::ContextMenuMsg)
             }
-            Msg::ContextMenuMsg(cm_msg) => {
-                self.context_menu.update(cm_msg).localize(Msg::ContextMenuMsg)
-            }
+            Msg::ContextMenuMsg(cm_msg) => self
+                .context_menu
+                .update(cm_msg)
+                .localize(Msg::ContextMenuMsg),
             Msg::ScrollCursorIntoView => {
                 if self.options.scroll_cursor_into_view {
                     let cursor_element = self.cursor_element.as_ref().unwrap();
@@ -513,20 +518,17 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
                 }
                 Effects::none()
             }
-            Msg::NoOp => Effects::none()
+            Msg::NoOp => Effects::none(),
         }
     }
 
-    fn view(&self) -> Node<Msg>{
+    fn view(&self) -> Node<Msg> {
         if self.is_fonts_ready {
             self.view_web_editor()
-        }else{
+        } else {
             self.font_loader.view().map_msg(Msg::FontLoaderMsg)
         }
     }
-
-
-
 
     fn stylesheet() -> Vec<String> {
         let main = jss_ns_pretty! {COMPONENT_NAME,
@@ -625,7 +627,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
         [vec![main], Menu::<Msg>::stylesheet()].concat()
     }
 
-    fn style(&self) -> Vec<String>{
+    fn style(&self) -> Vec<String> {
         let font_family = &self.font_loader.settings.font_family;
         let font_size = self.font_loader.settings.font_size;
 
@@ -635,7 +637,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
             "none"
         };
 
-        vec![jss_ns_pretty!{COMPONENT_NAME,
+        vec![jss_ns_pretty! {COMPONENT_NAME,
             ".": {
                 user_select: user_select,
                 "-webkit-user-select": user_select,
@@ -680,19 +682,20 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
     }
 }
 
-impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
-
+impl<XMSG> WebEditor<XMSG>
+where
+    XMSG: 'static,
+{
     pub fn ch_width(&self) -> f32 {
-       self.options.ch_width.expect("must have already measured")
+        self.options.ch_width.expect("must have already measured")
     }
     #[track_caller]
     pub fn ch_height(&self) -> f32 {
         self.options.ch_height.expect("must have already measured")
     }
 
-
     fn update_measure(&mut self, measure: &Measurements) {
-        match &*measure.name{
+        match &*measure.name {
             "keypress" => {
                 if let Some(average_dispatch) = self.measure.average_dispatch.as_mut() {
                     *average_dispatch = (*average_dispatch + measure.total_time) / 2.0;
@@ -711,7 +714,7 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
         self.mouse_cursor = mouse_cursor;
     }
 
-    pub fn get_char(&self,loc: Point2<usize>) -> Option<char> {
+    pub fn get_char(&self, loc: Point2<usize>) -> Option<char> {
         self.base_editor.get_char(loc)
     }
 
@@ -719,8 +722,7 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
         self.base_editor.get_position()
     }
 
-
-  fn rehighlight_all(&mut self) {
+    fn rehighlight_all(&mut self) {
         self.text_highlighter.borrow_mut().reset();
         *self.highlighted_lines.borrow_mut() = Self::highlight_lines(
             &self.base_editor.as_ref(),
@@ -730,7 +732,7 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
 
     /// rehighlight from 0 to the end of the visible lines
     pub fn rehighlight_visible_lines(&mut self) {
-        if let Some((_top, end)) = self.visible_lines(){
+        if let Some((_top, end)) = self.visible_lines() {
             let text_highlighter = self.text_highlighter.clone();
             let highlighted_lines = self.highlighted_lines.clone();
             let lines = self.base_editor.as_ref().lines();
@@ -747,14 +749,15 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
                 // where the parse state didn't change at that location, but that would be a much
                 // complex code
                 let start = 0;
-                let new_highlighted_lines = lines.iter().skip(start).take(end - start).map(|line| {
-                    text_highlighter
-                        .highlight_line(line)
-                        .expect("must highlight")
-                        .into_iter()
-                        .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
-                        .collect()
-                });
+                let new_highlighted_lines =
+                    lines.iter().skip(start).take(end - start).map(|line| {
+                        text_highlighter
+                            .highlight_line(line)
+                            .expect("must highlight")
+                            .into_iter()
+                            .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
+                            .collect()
+                    });
 
                 for (line, new_highlight) in highlighted_lines
                     .borrow_mut()
@@ -766,31 +769,31 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
                 }
             };
 
-            let handle =
-                sauron::dom::request_animation_frame(closure).expect("must have a handle");
+            let handle = sauron::dom::request_animation_frame(closure).expect("must have a handle");
 
             self.animation_frame_handles.push(handle);
-        }else{
+        } else {
             self.rehighlight_all();
         }
     }
 
     /// rehighlight the rest of the lines that are not visible
     pub fn rehighlight_non_visible_lines_in_background(&mut self) -> Effects<Msg, XMSG> {
-        if let Some((_top, end)) = self.visible_lines(){
+        if let Some((_top, end)) = self.visible_lines() {
             for handle in self.background_task_handles.drain(..) {
                 drop(handle);
             }
             let text_highlighter = self.text_highlighter.clone();
             let highlighted_lines = self.highlighted_lines.clone();
             let lines = self.base_editor.as_ref().lines();
-            let is_background_highlighting_ongoing = self.is_background_highlighting_ongoing.clone();
+            let is_background_highlighting_ongoing =
+                self.is_background_highlighting_ongoing.clone();
             let closure = move || {
                 let text_highlighter = text_highlighter.clone();
                 let highlighted_lines = highlighted_lines.clone();
                 let lines = lines.clone();
-                let is_background_highlighting_ongoing =is_background_highlighting_ongoing.clone();
-                sauron::dom::spawn_local(async move{
+                let is_background_highlighting_ongoing = is_background_highlighting_ongoing.clone();
+                sauron::dom::spawn_local(async move {
                     log::info!("--->>>background highlighting started...");
                     is_background_highlighting_ongoing.store(true, Ordering::Relaxed);
                     let mut text_highlighter = text_highlighter.borrow_mut();
@@ -822,7 +825,7 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
             let handle =
                 sauron::dom::request_timeout_callback(closure, 1_000).expect("timeout handle");
             self.background_task_handles.push(handle);
-        }else{
+        } else {
             self.rehighlight_all();
         }
         Effects::none()
@@ -875,7 +878,9 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
     /// make this into keypress to command
     pub fn process_keypress(&mut self, ke: &web_sys::KeyboardEvent) -> Effects<Msg, XMSG> {
         if let Some(command) = Self::keyevent_to_call(ke) {
-            let effects = self.process_calls_with_effects([command]).measure_with_name("keypress");
+            let effects = self
+                .process_calls_with_effects([command])
+                .measure_with_name("keypress");
             effects.append_local([Msg::ScrollCursorIntoView])
         } else {
             Effects::none()
@@ -883,25 +888,32 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
     }
 
     /// process the calls and dispatch effects events when applicable
-    pub fn process_calls_with_effects(&mut self, commands: impl IntoIterator<Item = Call>) -> Effects<Msg,XMSG> {
+    pub fn process_calls_with_effects(
+        &mut self,
+        commands: impl IntoIterator<Item = Call>,
+    ) -> Effects<Msg, XMSG> {
         let results: Vec<bool> = commands
             .into_iter()
             .map(|command| self.process_call(command))
             .collect();
-        let is_content_changed = results.into_iter().any(|v|v);
+        let is_content_changed = results.into_iter().any(|v| v);
         if is_content_changed {
             let xmsgs = self.base_editor.emit_on_change_listeners();
             let mut all_effects = vec![Effects::new([], xmsgs)];
-            if self.options.use_syntax_highlighter{
+            if self.options.use_syntax_highlighter {
                 self.rehighlight_visible_lines();
                 let effects = self.rehighlight_non_visible_lines_in_background();
                 all_effects.push(effects);
             }
-            if let Some(host_element) = self.host_element.as_ref(){
-                host_element.set_attribute("content", &self.get_content()).expect("set attr content");
-                host_element.dispatch_event(&InputEvent::create_web_event_composed()).expect("dispatch event");
+            if let Some(host_element) = self.host_element.as_ref() {
+                host_element
+                    .set_attribute("content", &self.get_content())
+                    .expect("set attr content");
+                host_element
+                    .dispatch_event(&InputEvent::create_web_event_composed())
+                    .expect("dispatch event");
             }
-             Effects::batch(all_effects)
+            Effects::batch(all_effects)
         } else {
             Effects::none()
         }
@@ -1176,7 +1188,6 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
         )
     }
 
-
     /// the view for the status line
     pub fn view_status_line<MSG>(&self) -> Node<MSG> {
         let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
@@ -1218,11 +1229,14 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
                 } else {
                     text!("")
                 },
-                if self.is_background_highlighting_ongoing.load(Ordering::Relaxed){
+                if self
+                    .is_background_highlighting_ongoing
+                    .load(Ordering::Relaxed)
+                {
                     text!(" |> background working")
-                }else{
+                } else {
                     text!("")
-                }
+                },
             ],
         )
     }
@@ -1403,16 +1417,20 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
             .iter()
             .enumerate()
             .map(|(line_index, line)| {
-                div([class_ns("line"),
-                    // needed to put the height here, since for some reason it add 1px to the
-                    // parent div, not a margin, not border,
-                     style!{height: px(self.ch_height())}
+                div(
+                    [
+                        class_ns("line"),
+                        // needed to put the height here, since for some reason it add 1px to the
+                        // parent div, not a margin, not border,
+                        style! {height: px(self.ch_height())},
                     ],
-                   {[self.view_line_number(line_index + 1)]
-                        .into_iter()
-                        .chain(self.view_highlighted_line(line_index, line))
-                        .collect::<Vec<_>>()
-                   })
+                    {
+                        [self.view_line_number(line_index + 1)]
+                            .into_iter()
+                            .chain(self.view_highlighted_line(line_index, line))
+                            .collect::<Vec<_>>()
+                    },
+                )
             });
 
         if self.options.use_for_ssg {
@@ -1540,10 +1558,11 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
             .map(|(line_index, line)| {
                 let line_number = line_index + 1;
                 div(
-                    [class_ns("line"),
-                      // Important! This is needed to render blank lines with same height as the
-                      // non blank ones
-                      style!{height: px(self.ch_height())},
+                    [
+                        class_ns("line"),
+                        // Important! This is needed to render blank lines with same height as the
+                        // non blank ones
+                        style! {height: px(self.ch_height())},
                     ],
                     [
                         view_if(
@@ -1581,7 +1600,9 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
 pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Node<MSG> {
     let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
 
-    let ch_height = options.ch_height.expect("error1: must have a ch_height in the options");
+    let ch_height = options
+        .ch_height
+        .expect("error1: must have a ch_height in the options");
 
     let rendered_lines = text_buffer
         .lines()
@@ -1590,10 +1611,12 @@ pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Nod
         .map(|(line_index, line)| {
             let line_number = line_index + 1;
             div(
-                [class_ns("line"), class("simple"),
-                  // Important! This is needed to render blank lines with same height as the
-                  // non blank ones
-                  style!{height: px(ch_height)},
+                [
+                    class_ns("line"),
+                    class("simple"),
+                    // Important! This is needed to render blank lines with same height as the
+                    // non blank ones
+                    style! {height: px(ch_height)},
                 ],
                 [
                     view_if(
@@ -1615,12 +1638,6 @@ pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Nod
         // using <pre><code> works well when copying in chrome
         // but in firefox, it creates a double line when select-copying the text
         // whe need to use <pre><code> in order for typing whitespace works.
-        pre(
-            [class_ns("code_wrapper")],
-            [code(vec![], rendered_lines)],
-        )
+        pre([class_ns("code_wrapper")], [code(vec![], rendered_lines)])
     }
 }
-
-
-

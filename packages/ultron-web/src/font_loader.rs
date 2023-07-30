@@ -131,14 +131,14 @@ where
         let font_family = self.settings.font_family.to_owned();
         let font_src = self.settings.font_src.to_owned();
         let font_size = self.settings.font_size;
-        Effects::with_local_async([async move{
+        Effects::with_local_async([async move {
             let font_set = document().fonts();
-            let font_face = FontFace::new_with_str(&font_family, &font_src)
-                .expect("font face");
+            let font_face = FontFace::new_with_str(&font_family, &font_src).expect("font face");
             font_set.add(&font_face).expect("font added");
             // Note: the 14px in-front of the font family is needed for this to work
             // properly
-            JsFuture::from(font_set.load(&format!("{} {}", px(font_size),font_family))).await
+            JsFuture::from(font_set.load(&format!("{} {}", px(font_size), font_family)))
+                .await
                 .expect("font loaded");
             log::info!("awaited the fonts loading...");
             log::info!("triggering Msg::FontsLoaded: {font_family}");
