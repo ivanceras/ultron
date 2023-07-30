@@ -1,5 +1,5 @@
+use sauron::Callback;
 use sauron::{html::attributes::*, html::events::*, html::units::*, html::*, *};
-use sauron::{Callback, Task};
 use ultron_core::nalgebra::Point2;
 
 #[derive(Debug, Clone)]
@@ -57,8 +57,8 @@ impl<XMSG> Component<Msg, XMSG> for Menu<XMSG>
 where
     XMSG: 'static,
 {
-    fn init(&mut self) -> Vec<Task<Msg>> {
-        vec![]
+    fn init(&mut self) -> Effects<Msg, XMSG> {
+        Effects::none()
     }
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {

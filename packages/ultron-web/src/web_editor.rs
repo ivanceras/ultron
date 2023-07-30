@@ -300,12 +300,9 @@ impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
 
 impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
 
-    fn init(&mut self) -> Vec<Task<Msg>> {
+    fn init(&mut self) -> Effects<Msg, XMSG> {
         self.font_loader
-            .init()
-            .into_iter()
-            .map(|task| task.map_msg(Msg::FontLoaderMsg))
-            .collect()
+            .init().localize(Msg::FontLoaderMsg)
     }
 
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {

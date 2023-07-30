@@ -126,12 +126,12 @@ impl<XMSG> Component<Msg, XMSG> for FontLoader<XMSG>
 where
     XMSG: 'static,
 {
-    fn init(&mut self) -> Vec<Task<Msg>> {
+    fn init(&mut self) -> Effects<Msg, XMSG> {
         log::info!("Initializing font loader: {:?}", self.settings);
         let font_family = self.settings.font_family.to_owned();
         let font_src = self.settings.font_src.to_owned();
         let font_size = self.settings.font_size;
-        vec![Task::new(async move{
+        Effects::with_local_async([async move{
             let font_set = document().fonts();
             let font_face = FontFace::new_with_str(&font_family, &font_src)
                 .expect("font face");
@@ -143,8 +143,7 @@ where
             log::info!("awaited the fonts loading...");
             log::info!("triggering Msg::FontsLoaded: {font_family}");
             Msg::FontsLoaded
-        })
-        ]
+        }])
     }
 
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {

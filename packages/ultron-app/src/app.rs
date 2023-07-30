@@ -35,23 +35,17 @@ impl App {
 }
 
 impl Application<Msg> for App {
-    fn init(&mut self) -> Vec<Cmd<Self, Msg>> {
-        [Cmd::new(|program| {
-            program.add_window_event_listeners(vec![
-                on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
-                on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
-                on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
-            ])
-        })]
-        .into_iter()
-        .chain(
-            self.web_editor
-                .init()
-                .into_iter()
-                .map(|task| task.map_msg(Msg::WebEditorMsg))
-                .map(Cmd::from),
-        )
-        .collect()
+    fn init(&mut self) -> Cmd<Self, Msg> {
+        Cmd::batch([
+            Cmd::new(|program| {
+                program.add_window_event_listeners(vec![
+                    on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
+                    on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
+                    on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
+                ])
+            }),
+            Cmd::from(self.web_editor.init().localize(Msg::WebEditorMsg)),
+        ])
     }
 
     fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
