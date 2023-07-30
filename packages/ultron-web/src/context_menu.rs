@@ -53,7 +53,10 @@ impl<XMSG> Menu<XMSG> {
     }
 }
 
-impl<XMSG> Component<Msg, XMSG> for Menu<XMSG> {
+impl<XMSG> Component<Msg, XMSG> for Menu<XMSG>
+where
+    XMSG: 'static,
+{
     fn init(&mut self) -> Vec<Task<Msg>> {
         vec![]
     }

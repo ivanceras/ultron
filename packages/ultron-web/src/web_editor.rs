@@ -142,7 +142,7 @@ struct Measure {
     last_dispatch: Option<f64>,
 }
 
-impl<XMSG> WebEditor<XMSG> {
+impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
     pub fn from_str(options: &Options, content: &str) -> Self {
         let base_editor = BaseEditor::from_str(&options.base_options, content);
         let mut text_highlighter = TextHighlighter::default();
@@ -298,7 +298,7 @@ impl<XMSG> WebEditor<XMSG> {
     }
 }
 
-impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
+impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> where XMSG: 'static{
 
     fn init(&mut self) -> Vec<Task<Msg>> {
         self.font_loader
@@ -683,7 +683,7 @@ impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG> {
     }
 }
 
-impl<XMSG> WebEditor<XMSG> {
+impl<XMSG> WebEditor<XMSG> where XMSG: 'static{
 
     pub fn ch_width(&self) -> f32 {
        self.options.ch_width.expect("must have already measured")
@@ -779,7 +779,7 @@ impl<XMSG> WebEditor<XMSG> {
     }
 
     /// rehighlight the rest of the lines that are not visible
-    pub fn rehighlight_non_visible_lines_in_background(&mut self) {
+    pub fn rehighlight_non_visible_lines_in_background(&mut self) -> Effects<Msg, XMSG> {
         if let Some((_top, end)) = self.visible_lines(){
             for handle in self.background_task_handles.drain(..) {
                 drop(handle);
@@ -828,6 +828,7 @@ impl<XMSG> WebEditor<XMSG> {
         }else{
             self.rehighlight_all();
         }
+        Effects::none()
     }
 
     pub fn keyevent_to_call(ke: &web_sys::KeyboardEvent) -> Option<Call> {
@@ -893,15 +894,17 @@ impl<XMSG> WebEditor<XMSG> {
         let is_content_changed = results.into_iter().any(|v|v);
         if is_content_changed {
             let xmsgs = self.base_editor.emit_on_change_listeners();
+            let mut all_effects = vec![Effects::new([], xmsgs)];
             if self.options.use_syntax_highlighter{
                 self.rehighlight_visible_lines();
-                self.rehighlight_non_visible_lines_in_background();
+                let effects = self.rehighlight_non_visible_lines_in_background();
+                all_effects.push(effects);
             }
             if let Some(host_element) = self.host_element.as_ref(){
                 host_element.set_attribute("content", &self.get_content()).expect("set attr content");
                 host_element.dispatch_event(&InputEvent::create_web_event_composed()).expect("dispatch event");
             }
-            Effects::new([], xmsgs)
+             Effects::batch(all_effects)
         } else {
             Effects::none()
         }
