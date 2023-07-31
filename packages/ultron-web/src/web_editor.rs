@@ -12,6 +12,7 @@ use ultron_core::{
     TextEdit, TextHighlighter,
 };
 use crate::Spinner;
+use sauron::dom::Widget;
 
 pub use crate::context_menu::MenuAction;
 pub use crate::font_loader::FontSettings;

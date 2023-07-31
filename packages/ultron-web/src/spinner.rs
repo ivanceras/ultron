@@ -1,3 +1,4 @@
+use sauron::dom::Widget;
 use sauron::*;
 
 const COMPONENT_NAME: &str = "font_loader";
@@ -12,7 +13,7 @@ impl Spinner {
     }
 }
 
-impl<MSG> Component<MSG, ()> for Spinner
+impl<MSG> Widget<MSG> for Spinner
 where
     MSG: 'static,
 {

@@ -6,6 +6,7 @@ use sauron::{
     events::*,
     html::{attributes::*, units::*, *},
     *,
+    dom::Widget,
 };
 use crate::Spinner;
 use web_sys::FontFace;
@@ -138,7 +139,7 @@ where
 
 
     fn stylesheet()->Vec<String>{
-        <Spinner as Component<Msg,()>>::stylesheet()
+        <Spinner as Widget<Msg>>::stylesheet()
     }
 
     fn style(&self) -> Vec<String> {
