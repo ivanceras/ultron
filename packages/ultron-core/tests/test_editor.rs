@@ -1,8 +1,8 @@
-use ultron_core::{Editor, Options, Point2, SelectionMode};
+use ultron_core::{BaseEditor, BaseOptions, Point2, SelectionMode};
 #[test]
 fn test_text_selection() {
     let raw = "Hello world";
-    let mut editor: Editor<()> = Editor::from_str(Options::default(), raw);
+    let mut editor: BaseEditor<()> = BaseEditor::from_str(&BaseOptions::default(), raw);
     editor.set_selection(Point2::new(0, 0), Point2::new(4, 0));
     let txt = editor.selected_text();
     assert_eq!(txt, Some("Hello".to_string()));
@@ -11,7 +11,7 @@ fn test_text_selection() {
 #[test]
 fn test_text_selection_world() {
     let raw = "Hello world";
-    let mut editor: Editor<()> = Editor::from_str(Options::default(), raw);
+    let mut editor: BaseEditor<()> = BaseEditor::from_str(&BaseOptions::default(), raw);
     editor.set_selection(Point2::new(6, 0), Point2::new(10, 0));
     let txt = editor.selected_text();
     assert_eq!(txt, Some("world".to_string()));
@@ -20,7 +20,7 @@ fn test_text_selection_world() {
 #[test]
 fn test_cut_text() {
     let raw = "Hello world";
-    let mut editor = Editor::<()>::from_str(Options::default(), raw);
+    let mut editor = BaseEditor::<()>::from_str(&BaseOptions::default(), raw);
     editor.set_selection(Point2::new(0, 0), Point2::new(4, 0));
     let txt = editor.cut_selected_text();
     assert_eq!(txt, Some("Hello".to_string()));
@@ -30,7 +30,7 @@ fn test_cut_text() {
 #[test]
 fn test_cut_text_multi_line() {
     let raw = "before text\nHello world\nafter text";
-    let mut editor = Editor::<()>::from_str(Options::default(), raw);
+    let mut editor = BaseEditor::<()>::from_str(&BaseOptions::default(), raw);
     editor.set_selection(Point2::new(0, 1), Point2::new(4, 1));
     let txt = editor.cut_selected_text();
     assert_eq!(txt, Some("Hello".to_string()));
@@ -40,7 +40,7 @@ fn test_cut_text_multi_line() {
 #[test]
 fn test_text_is_selected_linear() {
     let raw = "Hello world";
-    let mut editor: Editor<()> = Editor::from_str(Options::default(), raw);
+    let mut editor: BaseEditor<()> = BaseEditor::from_str(&BaseOptions::default(), raw);
     editor.set_selection(Point2::new(6, 0), Point2::new(10, 0));
     assert!(editor.is_selected(Point2::new(6, 0)));
     assert!(editor.is_selected(Point2::new(7, 0)));
@@ -56,7 +56,7 @@ fn test_text_is_selected_linear() {
 #[test]
 fn test_text_is_selected_linear_multiline() {
     let raw = "Hello\nworld\nand you with \neveryone";
-    let mut editor: Editor<()> = Editor::from_str(Options::default(), raw);
+    let mut editor: BaseEditor<()> = BaseEditor::from_str(&BaseOptions::default(), raw);
     editor.set_selection(Point2::new(1, 1), Point2::new(2, 2));
     let txt = editor.selected_text();
     assert_eq!(txt, Some("orld\nand".to_string()));
@@ -80,8 +80,8 @@ fn test_text_is_selected_linear_multiline() {
 #[test]
 fn test_text_is_selected_block_multiline() {
     let raw = "Hello\nworld\nand you with \neveryone";
-    let mut editor: Editor<()> = Editor::from_str(
-        Options {
+    let mut editor: BaseEditor<()> = BaseEditor::from_str(
+        &BaseOptions {
             selection_mode: SelectionMode::Block,
             ..Default::default()
         },

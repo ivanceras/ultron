@@ -14,7 +14,6 @@ members = [
 
 
 [profile.release]
-# https://doc.rust-lang.org/cargo/reference/profiles.html
 opt-level = 3 
 lto = true
 panic = "unwind"
