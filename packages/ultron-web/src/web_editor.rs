@@ -177,126 +177,6 @@ where
         }
     }
 
-    pub fn on_ready<F>(&mut self, f: F)
-    where
-        F: Fn() -> XMSG + 'static,
-    {
-        self.ready_listener.push(Callback::from(move |_| f()));
-    }
-
-    pub fn set_syntax_token(&mut self, syntax_token: &str) {
-        self.text_highlighter
-            .borrow_mut()
-            .set_syntax_token(syntax_token);
-        self.rehighlight_all();
-    }
-
-    pub fn set_theme(&mut self, theme_name: &str) {
-        self.text_highlighter.borrow_mut().select_theme(theme_name);
-        self.rehighlight_all();
-    }
-
-    pub fn add_on_change_listener<F>(&mut self, f: F)
-    where
-        F: Fn(String) -> XMSG + 'static,
-    {
-        self.base_editor.add_on_change_listener(f);
-    }
-
-    pub fn add_on_change_notify<F>(&mut self, f: F)
-    where
-        F: Fn(()) -> XMSG + 'static,
-    {
-        self.base_editor.add_on_change_notify(f);
-    }
-
-    pub fn get_content(&self) -> String {
-        self.base_editor.get_content()
-    }
-
-    pub fn text_buffer(&self) -> &TextBuffer {
-        self.base_editor.text_buffer()
-    }
-
-    /// returns true if the editor is ready
-    fn is_ready(&self) -> bool {
-        self.is_fonts_ready && self.editor_element.is_some()
-    }
-
-    fn try_ready_listener(&self) -> Vec<XMSG> {
-        if self.is_ready() {
-            log::info!("emitting the ready listener..");
-            self.ready_listener.iter().map(|c| c.emit(())).collect()
-        } else {
-            vec![]
-        }
-    }
-
-    fn view_web_editor(&self) -> Node<Msg> {
-        let enable_context_menu = self.options.enable_context_menu;
-        let enable_keypresses = self.options.enable_keypresses;
-        let enable_click = self.options.enable_click;
-        div(
-            [
-                class(COMPONENT_NAME),
-                key("editor-main"),
-                classes_flag_namespaced(
-                    COMPONENT_NAME,
-                    [("occupy_container", self.options.occupy_container)],
-                ),
-                on_mount(Msg::EditorMounted),
-                on_keydown(move |ke| {
-                    if enable_keypresses {
-                        ke.prevent_default();
-                        ke.stop_propagation();
-                        Msg::Keydown(ke)
-                    } else {
-                        Msg::NoOp
-                    }
-                }),
-                on_click(move |me| {
-                    if enable_click {
-                        Msg::Click(me)
-                    } else {
-                        Msg::NoOp
-                    }
-                }),
-                spellcheck(false),
-                tabindex(0),
-                on_focus(Msg::Focused),
-                on_blur(Msg::Blur),
-                on_contextmenu(move |me| {
-                    if enable_context_menu {
-                        me.prevent_default();
-                        me.stop_propagation();
-                        Msg::ContextMenu(me)
-                    } else {
-                        Msg::NoOp
-                    }
-                }),
-                style! {
-                    cursor: self.mouse_cursor.to_str(),
-                },
-            ],
-            [
-
-                if self.options.use_syntax_highlighter {
-                    self.view_highlighted_lines()
-                } else {
-                    self.plain_view()
-                },
-                view_if(self.options.show_status_line, self.view_status_line()),
-                view_if(
-                    self.is_focused && self.options.show_cursor,
-                    self.view_cursor(),
-                ),
-                view_if(
-                    self.is_focused && self.show_context_menu,
-                    self.context_menu.view().map_msg(Msg::ContextMenuMsg),
-                ),
-            ],
-        )
-    }
 }
 
 impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG>
@@ -689,6 +569,127 @@ impl<XMSG> WebEditor<XMSG>
 where
     XMSG: 'static,
 {
+
+    pub fn on_ready<F>(&mut self, f: F)
+    where
+        F: Fn() -> XMSG + 'static,
+    {
+        self.ready_listener.push(Callback::from(move |_| f()));
+    }
+
+    pub fn set_syntax_token(&mut self, syntax_token: &str) {
+        self.text_highlighter
+            .borrow_mut()
+            .set_syntax_token(syntax_token);
+        self.rehighlight_all();
+    }
+
+    pub fn set_theme(&mut self, theme_name: &str) {
+        self.text_highlighter.borrow_mut().select_theme(theme_name);
+        self.rehighlight_all();
+    }
+
+    pub fn add_on_change_listener<F>(&mut self, f: F)
+    where
+        F: Fn(String) -> XMSG + 'static,
+    {
+        self.base_editor.add_on_change_listener(f);
+    }
+
+    pub fn add_on_change_notify<F>(&mut self, f: F)
+    where
+        F: Fn(()) -> XMSG + 'static,
+    {
+        self.base_editor.add_on_change_notify(f);
+    }
+
+    pub fn get_content(&self) -> String {
+        self.base_editor.get_content()
+    }
+
+    pub fn text_buffer(&self) -> &TextBuffer {
+        self.base_editor.text_buffer()
+    }
+
+    /// returns true if the editor is ready
+    fn is_ready(&self) -> bool {
+        self.is_fonts_ready && self.editor_element.is_some()
+    }
+
+    fn try_ready_listener(&self) -> Vec<XMSG> {
+        if self.is_ready() {
+            log::info!("emitting the ready listener..");
+            self.ready_listener.iter().map(|c| c.emit(())).collect()
+        } else {
+            vec![]
+        }
+    }
+
+    fn view_web_editor(&self) -> Node<Msg> {
+        let enable_context_menu = self.options.enable_context_menu;
+        let enable_keypresses = self.options.enable_keypresses;
+        let enable_click = self.options.enable_click;
+        div(
+            [
+                class(COMPONENT_NAME),
+                key("editor-main"),
+                classes_flag_namespaced(
+                    COMPONENT_NAME,
+                    [("occupy_container", self.options.occupy_container)],
+                ),
+                on_mount(Msg::EditorMounted),
+                on_keydown(move |ke| {
+                    if enable_keypresses {
+                        ke.prevent_default();
+                        ke.stop_propagation();
+                        Msg::Keydown(ke)
+                    } else {
+                        Msg::NoOp
+                    }
+                }),
+                on_click(move |me| {
+                    if enable_click {
+                        Msg::Click(me)
+                    } else {
+                        Msg::NoOp
+                    }
+                }),
+                spellcheck(false),
+                tabindex(0),
+                on_focus(Msg::Focused),
+                on_blur(Msg::Blur),
+                on_contextmenu(move |me| {
+                    if enable_context_menu {
+                        me.prevent_default();
+                        me.stop_propagation();
+                        Msg::ContextMenu(me)
+                    } else {
+                        Msg::NoOp
+                    }
+                }),
+                style! {
+                    cursor: self.mouse_cursor.to_str(),
+                },
+            ],
+            [
+
+                if self.options.use_syntax_highlighter {
+                    self.view_highlighted_lines()
+                } else {
+                    self.plain_view()
+                },
+                view_if(self.options.show_status_line, self.view_status_line()),
+                view_if(
+                    self.is_focused && self.options.show_cursor,
+                    self.view_cursor(),
+                ),
+                view_if(
+                    self.is_focused && self.show_context_menu,
+                    self.context_menu.view().map_msg(Msg::ContextMenuMsg),
+                ),
+            ],
+        )
+    }
     pub fn ch_width(&self) -> f32 {
         self.options.ch_width.expect("must have already measured")
     }
