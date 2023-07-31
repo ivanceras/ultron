@@ -18,7 +18,6 @@ where
     MSG: 'static,
 {
     fn view(&self) -> Node<MSG> {
-        log::info!("size: {}", self.size);
         let class_ns = |c| class_namespaced(WIDGET_NAME, c);
         svg(
             [

@@ -92,7 +92,7 @@ pub struct WebEditor<XMSG> {
     /// lines of highlighted ranges
     highlighted_lines: Rc<RefCell<Vec<Vec<(Style, Vec<Ch>)>>>>,
     highlight_task_handles: Vec<IdleCallbackHandle>,
-    background_task_handles: Vec<TimeoutCallbackHandle>,
+    background_task_handles: Vec<IdleCallbackHandle>,
     pub is_focused: bool,
     context_menu: Menu<Msg>,
     show_context_menu: bool,
@@ -753,6 +753,7 @@ where
                 for (i,line) in lines[..end].iter().enumerate(){
                     highlighted_lines.borrow_mut()[i] = Self::highlight_line(line, &mut text_highlighter);
                     if deadline.did_timeout(){
+                        log::warn!("No more time highlighting visible lines");
                         did_complete = false;
                         break;
                     }
@@ -784,42 +785,28 @@ where
             let lines = self.base_editor.as_ref().lines();
             let is_background_highlighting_ongoing =
                 self.is_background_highlighting_ongoing.clone();
-            let closure = move || {
-                let text_highlighter = text_highlighter.clone();
-                let highlighted_lines = highlighted_lines.clone();
-                let lines = lines.clone();
-                let is_background_highlighting_ongoing = is_background_highlighting_ongoing.clone();
-                sauron::dom::spawn_local(async move {
-                    log::info!("--->>>background highlighting started...");
-                    is_background_highlighting_ongoing.store(true, Ordering::Relaxed);
-                    let mut text_highlighter = text_highlighter.borrow_mut();
-
-                    let new_highlighted_lines = lines.iter().skip(end).map(|line| {
-                        text_highlighter
-                            .highlight_line(line)
-                            .expect("must highlight")
-                            .into_iter()
-                            .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
-                            .collect()
-                    });
-
-                    // TODO: there could be a bug here, what if the new and old highlighted lines have
-                    // different length, it will only iterate to which ever is the shorted length.
-                    for (line, new_highlight) in highlighted_lines
-                        .borrow_mut()
-                        .iter_mut()
-                        .skip(end)
-                        .zip(new_highlighted_lines)
-                    {
-                        *line = new_highlight;
+            let closure = move |deadline:IdleDeadline| {
+                is_background_highlighting_ongoing.store(true, Ordering::Relaxed);
+                let mut text_highlighter = text_highlighter.borrow_mut();
+                let mut did_complete = true;
+                for (i,line) in lines[end..].iter().enumerate(){
+                    highlighted_lines.borrow_mut()[end+i] = Self::highlight_line(line, &mut text_highlighter);
+                    if deadline.did_timeout(){
+                        log::warn!("---> No more time background highlighting...");
+                        did_complete = false;
+                        break;
                     }
-                    //is_background_highlighting_ongoing.store(false, Ordering::Relaxed);
-                    log::info!("<<<-------background highlighting DONE!");
-                })
+                }
+
+                if did_complete{
+                    log::info!("Succeeded background highlighting...");
+                }else{
+                    log::error!("Background highlighting did not complete...");
+                }
             };
 
             let handle =
-                sauron::dom::request_timeout_callback(closure, 1_000).expect("timeout handle");
+                sauron::dom::request_idle_callback(closure).expect("timeout handle");
             self.background_task_handles.push(handle);
         } else {
             self.rehighlight_all();
