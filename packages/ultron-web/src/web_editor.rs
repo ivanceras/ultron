@@ -11,6 +11,7 @@ use ultron_core::{
     base_editor::Callback, nalgebra::Point2, BaseEditor, Ch, SelectionMode, Style, TextBuffer,
     TextEdit, TextHighlighter,
 };
+use crate::Spinner;
 
 pub use crate::context_menu::MenuAction;
 pub use crate::font_loader::FontSettings;
@@ -277,6 +278,7 @@ where
                 },
             ],
             [
+
                 if self.options.use_syntax_highlighter {
                     self.view_highlighted_lines()
                 } else {
@@ -624,7 +626,7 @@ where
             },
         };
 
-        [vec![main], Menu::<Msg>::stylesheet()].concat()
+        [vec![main], FontLoader::<Msg>::stylesheet(), Menu::<Msg>::stylesheet()].concat()
     }
 
     fn style(&self) -> Vec<String> {
@@ -1189,7 +1191,7 @@ where
     }
 
     /// the view for the status line
-    pub fn view_status_line<MSG>(&self) -> Node<MSG> {
+    pub fn view_status_line<MSG>(&self) -> Node<MSG> where MSG: 'static{
         let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         let cursor = self.base_editor.get_position();
 
@@ -1233,7 +1235,7 @@ where
                     .is_background_highlighting_ongoing
                     .load(Ordering::Relaxed)
                 {
-                    text!(" |> background working")
+                    Spinner::new(20).view()
                 } else {
                     text!("")
                 },

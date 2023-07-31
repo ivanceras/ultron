@@ -7,6 +7,7 @@ use sauron::{
     html::{attributes::*, units::*, *},
     *,
 };
+use crate::Spinner;
 use web_sys::FontFace;
 
 const IOSEVKA_FONT: &[u8] = include_bytes!("../../../fonts/iosevka-fixed-regular.woff2");
@@ -69,45 +70,6 @@ impl<XMSG> FontLoader<XMSG> {
             ..Default::default()
         }
     }
-
-    /// add a callback to be called when the fonts has already been loaded and measured
-    pub fn on_fonts_ready<F>(&mut self, f: F)
-    where
-        F: Fn() -> XMSG + 'static,
-    {
-        self.ready_listener.push(Callback::from(move |_| f()));
-    }
-
-    fn measure_font(&self) -> Option<(f32, f32)> {
-        self.mount_element.as_ref().map(|elm| {
-            let rect = elm.get_bounding_client_rect();
-            (rect.width() as f32, rect.height() as f32)
-        })
-    }
-
-    fn try_measure_font(&mut self) -> Vec<XMSG> {
-        if self.is_fonts_loaded {
-            if let Some((ch_width, ch_height)) = self.measure_font() {
-                self.ch_width = Some(ch_width);
-                self.ch_height = Some(ch_height);
-                self.is_fonts_measured = true;
-                self.ready_listener
-                    .iter()
-                    .map(|c| {
-                        c.emit(())
-                    })
-                    .collect()
-            } else {
-                vec![]
-            }
-        } else {
-            vec![]
-        }
-    }
-
-    pub fn is_ready(&self) -> bool {
-        self.is_fonts_loaded && self.is_fonts_measured && self.mount_element.is_some()
-    }
 }
 
 impl<XMSG> Component<Msg, XMSG> for FontLoader<XMSG>
@@ -153,7 +115,9 @@ where
         pre(
             [],
             [
-                text("font loader is loading"),
+
+                Spinner::new(20).view(),
+                text("font loader is loading..."),
                 code(
                     [],
                     [span(
@@ -172,11 +136,56 @@ where
         )
     }
 
-    fn stylesheet() -> Vec<String> {
-        vec![]
+
+    fn stylesheet()->Vec<String>{
+        <Spinner as Component<Msg,()>>::stylesheet()
     }
 
     fn style(&self) -> Vec<String> {
         vec![]
     }
 }
+
+impl<XMSG> FontLoader<XMSG> {
+
+    /// add a callback to be called when the fonts has already been loaded and measured
+    pub fn on_fonts_ready<F>(&mut self, f: F)
+    where
+        F: Fn() -> XMSG + 'static,
+    {
+        self.ready_listener.push(Callback::from(move |_| f()));
+    }
+
+    fn measure_font(&self) -> Option<(f32, f32)> {
+        self.mount_element.as_ref().map(|elm| {
+            let rect = elm.get_bounding_client_rect();
+            (rect.width() as f32, rect.height() as f32)
+        })
+    }
+
+    fn try_measure_font(&mut self) -> Vec<XMSG> {
+        if self.is_fonts_loaded {
+            if let Some((ch_width, ch_height)) = self.measure_font() {
+                self.ch_width = Some(ch_width);
+                self.ch_height = Some(ch_height);
+                self.is_fonts_measured = true;
+                self.ready_listener
+                    .iter()
+                    .map(|c| {
+                        c.emit(())
+                    })
+                    .collect()
+            } else {
+                vec![]
+            }
+        } else {
+            vec![]
+        }
+    }
+
+    pub fn is_ready(&self) -> bool {
+        self.is_fonts_loaded && self.is_fonts_measured && self.mount_element.is_some()
+    }
+
+}
+
