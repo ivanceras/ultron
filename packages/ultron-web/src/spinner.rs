@@ -1,7 +1,7 @@
 use sauron::dom::Widget;
 use sauron::*;
 
-const COMPONENT_NAME: &str = "font_loader";
+const WIDGET_NAME: &str = "spinner";
 
 pub struct Spinner {
     size: usize,
@@ -19,7 +19,7 @@ where
 {
     fn view(&self) -> Node<MSG> {
         log::info!("size: {}", self.size);
-        let class_ns = |c| class_namespaced(COMPONENT_NAME, c);
+        let class_ns = |c| class_namespaced(WIDGET_NAME, c);
         svg(
             [
                 class_ns("spinner"),
@@ -48,7 +48,7 @@ where
     }
 
     fn stylesheet() -> Vec<String> {
-        vec![jss_ns_pretty! {COMPONENT_NAME,
+        vec![jss_ns_pretty! {WIDGET_NAME,
             ".spinner": {
                 animation: "rotate 1s linear infinite",
                 z_index: 2,
@@ -58,7 +58,7 @@ where
              ".path": {
                 stroke: "black",
                 stroke_linecap: "round",
-                animation: "dash 1.5s ease-in-out infinite",
+                animation: "dash .7s ease-in-out infinite",
               },
 
             "@keyframes rotate": {
