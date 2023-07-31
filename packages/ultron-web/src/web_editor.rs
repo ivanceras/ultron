@@ -13,6 +13,7 @@ use ultron_core::{
 };
 use crate::Spinner;
 use sauron::dom::Widget;
+use sauron::dom::{IdleCallbackHandle, IdleDeadline, request_idle_callback};
 
 pub use crate::context_menu::MenuAction;
 pub use crate::font_loader::FontSettings;
@@ -90,7 +91,7 @@ pub struct WebEditor<XMSG> {
     text_highlighter: Rc<RefCell<TextHighlighter>>,
     /// lines of highlighted ranges
     highlighted_lines: Rc<RefCell<Vec<Vec<(Style, Vec<Ch>)>>>>,
-    animation_frame_handles: Vec<AnimationFrameHandle>,
+    highlight_task_handles: Vec<IdleCallbackHandle>,
     background_task_handles: Vec<TimeoutCallbackHandle>,
     pub is_focused: bool,
     context_menu: Menu<Msg>,
@@ -123,7 +124,7 @@ impl<XMSG> Default for WebEditor<XMSG> {
             is_selecting: false,
             text_highlighter: Rc::new(RefCell::new(text_highlighter)),
             highlighted_lines: Rc::new(RefCell::new(vec![])),
-            animation_frame_handles: vec![],
+            highlight_task_handles: vec![],
             background_task_handles: vec![],
             is_focused: false,
             context_menu: Menu::new(),
@@ -740,42 +741,33 @@ where
             let text_highlighter = self.text_highlighter.clone();
             let highlighted_lines = self.highlighted_lines.clone();
             let lines = self.base_editor.as_ref().lines();
-            for handle in self.animation_frame_handles.drain(..) {
+            for handle in self.highlight_task_handles.drain(..) {
                 //cancel the old ones, dropping the handle will call on the cancel_animation_frame
                 //for this handle
                 drop(handle);
             }
-            let closure = move || {
+            let closure = move |deadline: IdleDeadline| {
                 let mut text_highlighter = text_highlighter.borrow_mut();
                 text_highlighter.reset();
-                // Note: we are just starting from the very top.
-                // The alternative would be to save parse state, and start to the line
-                // where the parse state didn't change at that location, but that would be a much
-                // complex code
-                let start = 0;
-                let new_highlighted_lines =
-                    lines.iter().skip(start).take(end - start).map(|line| {
-                        text_highlighter
-                            .highlight_line(line)
-                            .expect("must highlight")
-                            .into_iter()
-                            .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
-                            .collect()
-                    });
-
-                for (line, new_highlight) in highlighted_lines
-                    .borrow_mut()
-                    .iter_mut()
-                    .skip(start)
-                    .zip(new_highlighted_lines)
-                {
-                    *line = new_highlight;
+                let mut did_complete = true;
+                for (i,line) in lines[..end].iter().enumerate(){
+                    highlighted_lines.borrow_mut()[i] = Self::highlight_line(line, &mut text_highlighter);
+                    if deadline.did_timeout(){
+                        did_complete = false;
+                        break;
+                    }
+                }
+                if did_complete{
+                    log::info!("Succeeded highlighting all visible lines..");
+                }
+                else{
+                    log::warn!("The highlighting job did not complete...");
                 }
             };
 
-            let handle = sauron::dom::request_animation_frame(closure).expect("must have a handle");
+            let handle = request_idle_callback(closure).expect("must have a handle");
 
-            self.animation_frame_handles.push(handle);
+            self.highlight_task_handles.push(handle);
         } else {
             self.rehighlight_all();
         }
@@ -923,6 +915,16 @@ where
         }
     }
 
+    fn highlight_line(line: &str, text_highlighter: &mut TextHighlighter) -> Vec<(Style, Vec<Ch>)> {
+        let h_ranges = text_highlighter
+            .highlight_line(line)
+            .expect("must highlight");
+        h_ranges
+            .into_iter()
+            .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
+            .collect()
+    }
+
     pub fn highlight_lines(
         text_edit: &TextEdit,
         text_highlighter: &mut TextHighlighter,
@@ -931,12 +933,7 @@ where
             .lines()
             .iter()
             .map(|line| {
-                text_highlighter
-                    .highlight_line(line)
-                    .expect("must highlight")
-                    .into_iter()
-                    .map(|(style, line)| (style, line.chars().map(Ch::new).collect()))
-                    .collect()
+                Self::highlight_line(line, text_highlighter)
             })
             .collect()
     }
