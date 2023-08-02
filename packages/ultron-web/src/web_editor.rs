@@ -244,7 +244,7 @@ where
                 }
             }
             Msg::Mousedown(me) => {
-                if self.is_ready() {
+                if self.is_ready() && MouseButton::is_primary(&me) {
                     log::info!("mouse down event in ultron..");
                     let client_x = me.client_x();
                     let client_y = me.client_y();
@@ -299,7 +299,7 @@ where
                 }
             }
             Msg::Mouseup(me) => {
-                if self.is_ready() {
+                if self.is_ready() && MouseButton::is_primary(&me){
                     let client_x = me.client_x();
                     let client_y = me.client_y();
                     let is_primary_btn = me.button() == 0;
