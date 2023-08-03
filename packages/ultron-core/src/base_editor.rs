@@ -26,6 +26,12 @@ impl<XMSG> AsRef<TextEdit> for BaseEditor<XMSG> {
     }
 }
 
+impl<XMSG> AsMut<TextEdit> for BaseEditor<XMSG> {
+    fn as_mut(&mut self) -> &mut TextEdit {
+        &mut self.text_edit
+    }
+}
+
 impl<XMSG> Default for BaseEditor<XMSG> {
     fn default() -> Self {
         Self {

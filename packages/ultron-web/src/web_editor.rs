@@ -14,6 +14,7 @@ use ultron_core::{
 use crate::Spinner;
 use sauron::dom::Widget;
 use sauron::dom::{IdleCallbackHandle, IdleDeadline, request_idle_callback};
+use web_sys::HtmlElement;
 
 pub use crate::context_menu::MenuAction;
 pub use crate::font_loader::FontSettings;
@@ -193,6 +194,7 @@ where
             Msg::EditorMounted(mount_event) => {
                 log::info!("Web editor is mounted..");
                 let mount_element: web_sys::Element = mount_event.target_node.unchecked_into();
+                mount_element.unchecked_ref::<HtmlElement>().focus().expect("mount_node should focus");
                 let root_node = mount_element.get_root_node();
                 if let Some(shadow_root) = root_node.dyn_ref::<web_sys::ShadowRoot>() {
                     let host_element = shadow_root.host();
@@ -330,7 +332,9 @@ where
                     Effects::none()
                 }
             }
-            Msg::Keydown(ke) => self.process_keypress(&ke),
+            Msg::Keydown(ke) => {
+                self.process_keypress(&ke)
+            }
             Msg::Measurements(measure) => {
                 self.update_measure(&measure);
                 Effects::none()
@@ -610,6 +614,10 @@ where
 
     pub fn text_buffer(&self) -> &TextBuffer {
         self.base_editor.text_buffer()
+    }
+
+    pub fn command_set_position(&mut self, position: Point2<usize>) {
+        self.base_editor.as_mut().command_set_position(position)
     }
 
     /// returns true if the editor is ready
@@ -1044,8 +1052,8 @@ where
         }
     }
 
-    /// calculate the points relative to the editor bounding box
-    pub fn relative_client(&self, client_x: i32, client_y: i32) -> Point2<f32> {
+    /// calculate screen client coordinates to coordinates relative to the editor's bounding box
+    pub fn client_to_relative(&self, client_x: i32, client_y: i32) -> Point2<f32> {
         let editor = self.editor_offset().expect("must have an editor offset");
         let x = client_x as f32 - editor.x;
         let y = client_y as f32 - editor.y;
@@ -1124,14 +1132,19 @@ where
 
     /// convert screen coordinate to grid coordinate taking into account the editor element
     pub fn client_to_grid(&self, client_x: i32, client_y: i32) -> Point2<i32> {
+        let rel = self.client_to_relative(client_x, client_y);
+        self.relative_to_cursor(rel.x, rel.y)
+    }
+
+    /// calculate this position, which relative to the editor's bound box into grid coordinate
+    pub fn relative_to_cursor(&self, rel_x: f32, rel_y: f32) -> Point2<i32> {
         let numberline_wide_with_padding = self.numberline_wide_with_padding() as f32;
-        let editor = self.editor_offset().expect("must have an editor offset");
         let ch_width = self.ch_width();
         let ch_height = self.ch_height();
         assert!(ch_width > 0.);
         assert!(ch_height > 0.);
-        let col = (client_x as f32 - editor.x) / ch_width - numberline_wide_with_padding;
-        let line = (client_y as f32 - editor.y) / ch_height;
+        let col = rel_x / ch_width - numberline_wide_with_padding;
+        let line = rel_y / ch_height;
         let x = col.floor() as i32;
         let y = line.floor() as i32;
         Point2::new(x, y)
