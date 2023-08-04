@@ -754,17 +754,23 @@ where
                 //for this handle
                 drop(handle);
             }
+
             let closure = move |deadline: IdleDeadline| {
                 let mut text_highlighter = text_highlighter.borrow_mut();
                 text_highlighter.reset();
                 let mut did_complete = true;
-                for (i,line) in lines[..end].iter().enumerate(){
-                    highlighted_lines.borrow_mut()[i] = Self::highlight_line(line, &mut text_highlighter);
+                let mut new_highlighted_lines = Vec::with_capacity(end);
+                for line in lines[..end].iter(){
+                    new_highlighted_lines.push(Self::highlight_line(line, &mut text_highlighter));
                     if deadline.did_timeout(){
                         log::warn!("No more time highlighting visible lines");
                         did_complete = false;
                         break;
                     }
+                }
+                
+                for (hl_line, new_hl_line) in highlighted_lines.borrow_mut().iter_mut().zip(new_highlighted_lines){
+                    *hl_line = new_hl_line;
                 }
                 if did_complete{
                     log::info!("Succeeded highlighting all visible lines..");
@@ -793,17 +799,23 @@ where
             let lines = self.base_editor.as_ref().lines();
             let is_background_highlighting_ongoing =
                 self.is_background_highlighting_ongoing.clone();
+
             let closure = move |deadline:IdleDeadline| {
                 is_background_highlighting_ongoing.store(true, Ordering::Relaxed);
                 let mut text_highlighter = text_highlighter.borrow_mut();
                 let mut did_complete = true;
-                for (i,line) in lines[end..].iter().enumerate(){
-                    highlighted_lines.borrow_mut()[end+i] = Self::highlight_line(line, &mut text_highlighter);
+                let mut new_highlighted_lines = Vec::with_capacity(lines.len() - end);
+                for line in lines[end..].iter(){
+                    new_highlighted_lines.push(Self::highlight_line(line, &mut text_highlighter));
                     if deadline.did_timeout(){
                         log::warn!("---> No more time background highlighting...");
                         did_complete = false;
                         break;
                     }
+                }
+
+                for (hl_line, new_hl_line) in highlighted_lines.borrow_mut().iter_mut().skip(end).zip(new_highlighted_lines){
+                    *hl_line = new_hl_line;
                 }
 
                 if did_complete{
