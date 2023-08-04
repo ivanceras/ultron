@@ -11,5 +11,6 @@ readme = "../../README.md"
 keywords = ["syntax", "highlighting", "monospace"]
 
 [dependencies]
-ultron-web = { version = "0.4.0", path = "../ultron-web" , default-features = false}
-
+sauron = { path = "../../../sauron" }
+ultron-syntaxes-themes = { path = "../syntaxes-themes" }
+css-colors = "1"
