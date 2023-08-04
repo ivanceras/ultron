@@ -110,6 +110,7 @@
             if scroll_top > page_offset && scroll_top < next_page_offset { show } else {hide}
           ```
 - [X] Simplify the text buffer, just a `Vec<Vec<char>>`, no paging, no ranges, no char.
+- [ ] Make `ultron-ssg` have it's own rendering algorithm
 
 ## Issues
 - [ ] Moving around characters with cell_width of 2
