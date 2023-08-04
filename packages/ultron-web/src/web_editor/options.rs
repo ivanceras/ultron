@@ -14,12 +14,6 @@ pub struct Options {
     pub show_status_line: bool,
     /// show virtual cursor
     pub show_cursor: bool,
-    /// use spans instead of div when rendering ranges
-    /// and characters
-    /// this is used when doing a static site rendering
-    pub use_spans: bool,
-    /// when used for ssg, whitespace will be rendered as &nbsp;
-    pub use_for_ssg: bool,
     /// apply background on the characters from syntax highlighter
     pub use_background: bool,
     /// The syntect theme name used for syntax highlighting
@@ -64,8 +58,6 @@ impl Default for Options {
             show_line_numbers: true,
             show_status_line: true,
             show_cursor: true,
-            use_spans: true,
-            use_for_ssg: false,
             use_background: true,
             theme_name: None,
             syntax_token: "txt".to_string(),

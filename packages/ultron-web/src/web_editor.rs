@@ -1446,11 +1446,6 @@ where
                 )
             });
 
-        if self.options.use_for_ssg {
-            // using div works well when select-copying for both chrome and firefox
-            // this is ideal for statis site generation highlighting
-            div(code_attributes, rendered_lines)
-        } else {
             // using <pre><code> works well when copying in chrome
             // but in firefox, it creates a double line when select-copying the text
             // whe need to use <pre><code> in order for typing whitespace works.
@@ -1458,7 +1453,6 @@ where
                 [class_ns("code_wrapper")],
                 [code(code_attributes, rendered_lines)],
             )
-        }
     }
 
     pub fn plain_view<MSG>(&self) -> Node<MSG> {
@@ -1594,11 +1588,6 @@ where
                 )
             });
 
-        if self.options.use_for_ssg {
-            // using div works well when select-copying for both chrome and firefox
-            // this is ideal for static site generation highlighting
-            div(code_attributes, rendered_lines)
-        } else {
             // using <pre><code> works well when copying in chrome
             // but in firefox, it creates a double line when select-copying the text
             // whe need to use <pre><code> in order for typing whitespace works.
@@ -1606,7 +1595,6 @@ where
                 [class_ns("code_wrapper")],
                 [code(code_attributes, rendered_lines)],
             )
-        }
     }
 }
 
@@ -1643,14 +1631,8 @@ pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Nod
             )
         });
 
-    if options.use_for_ssg {
-        // using div works well when select-copying for both chrome and firefox
-        // this is ideal for static site generation highlighting
-        div(vec![], rendered_lines)
-    } else {
         // using <pre><code> works well when copying in chrome
         // but in firefox, it creates a double line when select-copying the text
         // whe need to use <pre><code> in order for typing whitespace works.
         pre([class_ns("code_wrapper")], [code(vec![], rendered_lines)])
-    }
 }
