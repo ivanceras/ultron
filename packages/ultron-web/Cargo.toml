@@ -17,8 +17,8 @@ crate-type = ["rlib","cdylib"]
 
 [dependencies]
 ultron-core = { version = "0.4.0", path = "../ultron-core", features = ["callback"] }
-#sauron = { version = "0.57.0", default-features = false, features = ["with-dom"] }
-sauron = { path = "../../../sauron", default-features = false, features = ["with-dom"] }
+sauron = { version = "0.59.0", default-features = false, features = ["with-dom"] }
+#sauron = { path = "../../../sauron", default-features = false, features = ["with-dom"] }
 #sauron = { git = "https://github.com/ivanceras/sauron", default-features = false, features = ["with-dom"] }
 log = "0.4"
 console_log = { version = "1", features = ["color"]}

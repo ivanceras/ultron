@@ -1,9 +1,24 @@
 # Ultron
 
-Ultron is a web based monospace text-editor with syntax highlighting, completely written in rust.
+A very simple web base editor with syntax highlighting and theming.
+It also has undo/redo support
 
-## WIP
-A note of warning, this editor is pretty much a work-in-progress
+
+## Pre-requisite
+- rust with wasm32-unknown-unknown toolchain
+- wasm-pack
+- basic-http-server
+- just
+
+
+[Install rust](https://www.rust-lang.org/tools/install)
+[wasm-pack](https://rustwasm.github.io/wasm-pack/installer/)
+
+```
+cargo install basic-http-server
+cargo install just
+```
+
 
 ## Build and run the editor
 
@@ -11,7 +26,7 @@ A note of warning, this editor is pretty much a work-in-progress
 git clone https://github.com/ivanceras/ultron.git
 
 cd ultron
-./serve.sh
+just serve
 
 ```
 Then, navigate to http://localhost:4004
@@ -21,6 +36,17 @@ Then, navigate to http://localhost:4004
 
 [link](https://ivanceras.github.io/ultron)
 
+## What is working?
+- syntax highlighting
+- undo - <CTRL-z>
+- redo - <CTRL-Z>
 
-#### Patreon link
- [![Become a patron](https://c5.patreon.com/external/logo/become_a_patron_button.png)](https://www.patreon.com/ivanceras)
+## What's lacking?
+- key composition, ie: typing unicode character
+- auto-indent
+- auto-pair
+- remapping
+- Selection
+- Cut
+- Copy
+- Paste
