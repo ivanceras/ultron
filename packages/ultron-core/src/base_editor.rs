@@ -212,7 +212,7 @@ impl<XMSG> BaseEditor<XMSG> {
     }
 
     #[cfg(not(feature = "callback"))]
-    pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG> {
+    pub fn process_commands(&mut self, _commands: impl IntoIterator<Item = Command>) -> Vec<XMSG> {
         vec![]
     }
 
