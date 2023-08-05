@@ -250,26 +250,21 @@ where
                     log::info!("mouse down event in ultron..");
                     let client_x = me.client_x();
                     let client_y = me.client_y();
-                    let is_primary_btn = me.button() == 0;
-                    if is_primary_btn {
-                        //self.base_editor.clear_selection();
-                        if self.options.allow_text_selection {
-                            self.is_selecting = true;
-                        }
-                        let cursor = self.client_to_grid_clamped(client_x, client_y);
-                        if self.options.allow_text_selection
-                            && self.is_selecting
-                            && !self.show_context_menu
-                        {
-                            self.base_editor.set_selection_start(cursor);
-                        }
-                        let msgs = self
-                            .base_editor
-                            .process_commands([Command::SetPosition(cursor)]);
-                        Effects::new(vec![], msgs)
-                    } else {
-                        Effects::none()
+                    //self.base_editor.clear_selection();
+                    if self.options.allow_text_selection {
+                        self.is_selecting = true;
                     }
+                    let cursor = self.client_to_grid_clamped(client_x, client_y);
+                    if self.options.allow_text_selection
+                        && self.is_selecting
+                        && !self.show_context_menu
+                    {
+                        self.base_editor.set_selection_start(cursor);
+                    }
+                    let msgs = self
+                        .base_editor
+                        .process_commands([Command::SetPosition(cursor)]);
+                    Effects::new(vec![], msgs)
                 } else {
                     Effects::none()
                 }
