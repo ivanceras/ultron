@@ -198,16 +198,18 @@ impl<XMSG> BaseEditor<XMSG> {
 
 impl<XMSG> BaseEditor<XMSG> {
     pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG> {
-        let results: Vec<bool> = commands
-            .into_iter()
-            .map(|command| self.process_command(command))
-            .collect();
-
         #[cfg(feature = "callback")]
-        if results.into_iter().any(|v| v) {
-            self.emit_on_change_listeners()
-        } else {
-            vec![]
+        {
+            let results: Vec<bool> = commands
+                .into_iter()
+                .map(|command| self.process_command(command))
+                .collect();
+
+            if results.into_iter().any(|v| v) {
+                self.emit_on_change_listeners()
+            } else {
+                vec![]
+            }
         }
         #[cfg(not(feature = "callback"))]
         vec![]
