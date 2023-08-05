@@ -91,6 +91,7 @@ pub struct WebEditor<XMSG> {
     is_selecting: bool,
     text_highlighter: Rc<RefCell<TextHighlighter>>,
     /// lines of highlighted ranges
+    #[allow(clippy::type_complexity)]
     highlighted_lines: Rc<RefCell<Vec<Vec<(Style, Vec<Ch>)>>>>,
     highlight_task_handles: Vec<IdleCallbackHandle>,
     background_task_handles: Vec<IdleCallbackHandle>,
@@ -155,7 +156,7 @@ where
         }
         text_highlighter.set_syntax_token(&options.syntax_token);
         let highlighted_lines = Rc::new(RefCell::new(Self::highlight_lines(
-            &base_editor.as_ref(),
+            base_editor.as_ref(),
             &mut text_highlighter,
         )));
 
@@ -733,7 +734,7 @@ where
     fn rehighlight_all(&mut self) {
         self.text_highlighter.borrow_mut().reset();
         *self.highlighted_lines.borrow_mut() = Self::highlight_lines(
-            &self.base_editor.as_ref(),
+            self.base_editor.as_ref(),
             &mut self.text_highlighter.borrow_mut(),
         );
     }

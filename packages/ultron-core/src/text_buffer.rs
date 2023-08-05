@@ -40,7 +40,7 @@ impl Ch {
 }
 
 impl TextBuffer {
-    pub fn from_str(content: &str) -> Self {
+    pub fn new_from_str(content: &str) -> Self {
         Self {
             chars: content
                 .lines()
@@ -52,10 +52,7 @@ impl TextBuffer {
 
     pub fn from_ch(chars: &[&[Ch]]) -> Self {
         Self {
-            chars: chars
-                .iter()
-                .map(|inner| inner.iter().map(|ch| *ch).collect())
-                .collect(),
+            chars: chars.iter().map(|inner| inner.to_vec()).collect(),
             cursor: Point2::new(0, 0),
         }
     }

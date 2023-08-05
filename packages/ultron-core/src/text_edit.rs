@@ -53,8 +53,8 @@ impl Default for SelectionMode {
 }
 
 impl TextEdit {
-    pub fn from_str(content: &str) -> Self {
-        let text_buffer = TextBuffer::from_str(content);
+    pub fn new_from_str(content: &str) -> Self {
+        let text_buffer = TextBuffer::new_from_str(content);
         TextEdit {
             text_buffer,
             recorded: Recorded::new(),

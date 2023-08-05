@@ -16,6 +16,8 @@ where
     (Point2::new(min_x, min_y), Point2::new(max_x, max_y))
 }
 
+#[allow(clippy::if_same_then_else)]
+#[allow(clippy::comparison_chain)]
 /// order the point by y (top is first) and then by x (left is first)
 pub fn reorder_top_down_left_right<T>(p1: Point2<T>, p2: Point2<T>) -> (Point2<T>, Point2<T>)
 where

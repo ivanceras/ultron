@@ -55,7 +55,7 @@ impl<XMSG> Clone for BaseEditor<XMSG> {
             change_listeners: self.change_listeners.clone(),
             #[cfg(feature = "callback")]
             change_notify_listeners: self.change_notify_listeners.clone(),
-            _phantom: self._phantom.clone(),
+            _phantom: self._phantom,
         }
     }
 }
@@ -121,7 +121,7 @@ impl<IN, OUT> Callback<IN, OUT> {
 
 impl<XMSG> BaseEditor<XMSG> {
     pub fn from_str(options: &BaseOptions, content: &str) -> Self {
-        let text_edit = TextEdit::from_str(content);
+        let text_edit = TextEdit::new_from_str(content);
 
         BaseEditor {
             options: options.clone(),
@@ -197,21 +197,22 @@ impl<XMSG> BaseEditor<XMSG> {
 }
 
 impl<XMSG> BaseEditor<XMSG> {
+    #[cfg(feature = "callback")]
     pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG> {
-        #[cfg(feature = "callback")]
-        {
-            let results: Vec<bool> = commands
-                .into_iter()
-                .map(|command| self.process_command(command))
-                .collect();
+        let results: Vec<bool> = commands
+            .into_iter()
+            .map(|command| self.process_command(command))
+            .collect();
 
-            if results.into_iter().any(|v| v) {
-                self.emit_on_change_listeners()
-            } else {
-                vec![]
-            }
+        if results.into_iter().any(|v| v) {
+            self.emit_on_change_listeners()
+        } else {
+            vec![]
         }
-        #[cfg(not(feature = "callback"))]
+    }
+
+    #[cfg(not(feature = "callback"))]
+    pub fn process_commands(&mut self, commands: impl IntoIterator<Item = Command>) -> Vec<XMSG> {
         vec![]
     }
 
@@ -281,7 +282,7 @@ impl<XMSG> BaseEditor<XMSG> {
                 true
             }
             Command::SetContent(content) => {
-                self.text_edit = TextEdit::from_str(&content);
+                self.text_edit = TextEdit::new_from_str(&content);
                 true
             }
             Command::Undo => {

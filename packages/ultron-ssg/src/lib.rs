@@ -34,7 +34,7 @@ impl CodeViewer {
 
         let rendered_lines = self.lines.iter().enumerate().map(|(line_index, line)| {
             let hl_line = text_highlighter
-                .highlight_line(&line)
+                .highlight_line(line)
                 .expect("must highlight");
             div([class_ns("line")], {
                 [self.view_line_number(line_index + 1)]

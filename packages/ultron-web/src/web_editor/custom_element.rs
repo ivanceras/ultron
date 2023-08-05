@@ -18,7 +18,7 @@ where
     ) where
         Self: Sized + Application<Msg>,
     {
-        match &*attr_name {
+        match attr_name {
             "value" => {
                 if let Some(new_value) = new_value {
                     log::info!("value is changed.. {new_value}");
