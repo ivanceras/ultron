@@ -55,9 +55,20 @@ deploy-beta: build-web
 
 deploy-all-channels: deploy-alpha deploy-beta deploy
 
+publish-syntax-themes:
+    cargo publish -p ultron-syntax-themes
 
-publish:
-    cd packages/syntaxes-themes && cargo publish && cd -  &&\
-    cd packages/ultron-core && RUSTFLAGS=--cfg=web_sys_unstable_apis cargo publish && cd - &&\
-    cd packages/ultron-web && RUSTFLAGS=--cfg=web_sys_unstable_apis cargo publish  && cd - &&\
-    cd packages/ultron-ssg && cargo publish
+publish-ultron-core:
+    cargo publish -p ultron-core
+
+publish-ultron-ssg:
+    cargo publish -p ultron-ssg
+
+publish-ultron-web:
+    cargo run publish -p ultron-web
+
+publish-ultron-app:
+    cargo run publish -p ultron-app
+
+#publish: publish-syntax-themes publish-ultron-core publish-ultron-web publish-ultron-app
+publish: publish-ultron-core publish-ultron-web publish-ultron-app
