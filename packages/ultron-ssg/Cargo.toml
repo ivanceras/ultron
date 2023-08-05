@@ -11,6 +11,7 @@ readme = "../../README.md"
 keywords = ["syntax", "highlighting", "monospace"]
 
 [dependencies]
-sauron = { path = "../../../sauron" }
+#sauron = { path = "../../../sauron" }
+sauron = "0.59"
 ultron-syntaxes-themes = { path = "../syntaxes-themes" }
 css-colors = "1"
