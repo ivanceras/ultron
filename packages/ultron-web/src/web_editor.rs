@@ -19,7 +19,6 @@ use web_sys::HtmlElement;
 pub use crate::context_menu::MenuAction;
 pub use crate::font_loader::FontSettings;
 use crate::wasm_bindgen::JsCast;
-use crate::wasm_bindgen_futures::JsFuture;
 use crate::{font_loader, FontLoader};
 pub use mouse_cursor::MouseCursor;
 pub use options::Options;
@@ -1005,10 +1004,11 @@ where
 
     pub fn copy_selected_text_to_clipboard(&self) -> bool {
         log::warn!("Copying text to clipboard..");
+        #[cfg(web_sys_unstable_apis)]
         if let Some(clipboard) = window().navigator().clipboard() {
             if let Some(selected_text) = self.selected_text() {
                 log::info!("selected text: {selected_text}");
-                let fut = JsFuture::from(clipboard.write_text(&selected_text));
+                let fut = crate::wasm_bindgen_futures::JsFuture::from(clipboard.write_text(&selected_text));
                 sauron::dom::spawn_local(async move {
                     fut.await.expect("must not error");
                 });
