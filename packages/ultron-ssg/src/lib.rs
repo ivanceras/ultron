@@ -36,7 +36,7 @@ impl CodeViewer {
             let hl_line = text_highlighter
                 .highlight_line(line)
                 .expect("must highlight");
-            div([class_ns("line")], {
+            div([class_ns("line"), style! {line_height: 1}], {
                 [self.view_line_number(line_index + 1)]
                     .into_iter()
                     .chain(self.view_highlighted_line(&hl_line))
