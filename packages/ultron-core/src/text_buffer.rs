@@ -1,7 +1,7 @@
 use nalgebra::Point2;
 use std::iter::FromIterator;
 use std::iter::IntoIterator;
-use unicode_width::UnicodeWidthChar;
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 pub const BLANK_CH: char = ' ';
 
@@ -470,7 +470,9 @@ impl TextBuffer {
     }
 
     pub fn command_insert_text(&mut self, text: &str) {
+        let width = text.width();
         self.insert_text(self.cursor, text);
+        self.move_x(width);
     }
 
     pub fn move_left(&mut self) {

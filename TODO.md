@@ -134,12 +134,12 @@
 - [X] When `replace_char` is called for the next page, it applies to the first page instead
 - [X] replace addition and subtraction operation with saturating_add and saturating_sub.
 - [X] If the top level view of a Program changes, then the original root_node is not set, which causes
-    - [ X Add a test for replacing the top-level root-node and confirm it is changed
+    - [X] Add a test for replacing the top-level root-node and confirm it is changed
 - [ ] When using the selection tool, the app will just crash due to borrowing error (Rc<RefCell>)
 - [ ] Cursor color and gutter color and number has wrong pairing
     - [ ] Detect the color selected color from the theme and check to see if it is light or dark
         - contrast the color for the cursor number line and gutter
-- [ ] Avoid FOUC by waiting for the fonts to be loaded before mounting the application, this way the calculation of pixels from font size would be accurate
+- [X] Avoid FOUC by waiting for the fonts to be loaded before mounting the application, this way the calculation of pixels from font size would be accurate
 
 ## Tests
 - [ ] Add test for undo and redo (editor)
@@ -149,4 +149,19 @@
     - It will be corrected once the highlighting is run
 - [ ] Test to see if the CACHED_ELEMENT and the cached WINDOW and DOCUMENT in sauron is an improvement
 - [ ] Make a runnable benchmark which replays typing the characters in the editor
-- [ ] Put the background hightlighting task inside of spawn_local
+- [X] Put the background hightlighting task inside of spawn_local
+- [ ] Add a key to each line which is their respective line numbers.
+    This way, it will be faster to match existing lines.
+    - If a line is added, it will take a new key which appends ".1", thus it's key value will be "{n}.1".
+    - If a new line is added to that just added line, we will append the same ".1".
+```rust
+1. The quick brown
+    1.1 ,crazy
+    1.1.1 local water
+2. fox jumps over
+3. the lazy dog!
+```
+- [ ] Backspace(DeleteBack) is not fast enough
+- [ ] Delete(DeleteForward) is not fast enough
+- [ ] Visual Cue for Tab is also slow
+
