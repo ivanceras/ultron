@@ -1,6 +1,5 @@
 use nalgebra::Point2;
 use std::iter::FromIterator;
-use std::iter::IntoIterator;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 pub const BLANK_CH: char = ' ';
@@ -302,21 +301,17 @@ impl TextBuffer {
     /// break at line y and put the characters after x on the next line
     pub fn break_line(&mut self, loc: Point2<usize>) {
         self.ensure_before_cell_exist(loc);
-        let line = &self.chars[loc.y];
         if let Some(break_point) = self.column_index(loc) {
-            let (break1, break2): (Vec<_>, Vec<_>) = line
-                .iter()
-                .enumerate()
-                .partition(|(i, _ch)| *i < break_point);
-
-            let break1: Vec<Ch> = break1.into_iter().map(|(_, ch)| *ch).collect();
-            let break2: Vec<Ch> = break2.into_iter().map(|(_, ch)| *ch).collect();
-            self.chars.remove(loc.y);
-            self.chars.insert(loc.y, break2);
-            self.chars.insert(loc.y, break1);
+            let break2 = self.chars[loc.y].drain(break_point..).collect();
+            self.insert_line(loc.y + 1, break2);
         } else {
-            self.chars.insert(loc.y + 1, vec![]);
+            self.insert_line(loc.y + 1, vec![]);
         }
+    }
+
+    /// insert a line at this location
+    pub fn insert_line(&mut self, loc_y: usize, text: Vec<Ch>) {
+        self.chars.insert(loc_y, text);
     }
 
     pub fn join_line(&mut self, loc: Point2<usize>) {
@@ -407,7 +402,7 @@ impl TextBuffer {
         let mut start = loc.x;
         for (i, line) in text.lines().enumerate() {
             if i > 0 {
-                self.chars.insert(loc.y + 1, vec![]);
+                self.insert_line(loc.y + 1, vec![]);
             }
             self.insert_line_text(Point2::new(start, loc.y + i), line);
             start = 0;
