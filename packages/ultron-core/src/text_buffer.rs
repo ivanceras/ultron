@@ -302,7 +302,7 @@ impl TextBuffer {
     pub fn break_line(&mut self, loc: Point2<usize>) {
         self.ensure_before_cell_exist(loc);
         if let Some(break_point) = self.column_index(loc) {
-            let break2 = self.chars[loc.y].drain(break_point..).collect();
+            let break2 = self.cut_to_end_of_line(loc.y, break_point);
             self.insert_line(loc.y + 1, break2);
         } else {
             self.insert_line(loc.y + 1, vec![]);
@@ -314,10 +314,22 @@ impl TextBuffer {
         self.chars.insert(loc_y, text);
     }
 
+    pub fn remove_line(&mut self, loc_y: usize) -> Vec<Ch> {
+        self.chars.remove(loc_y)
+    }
+
+    pub fn cut_to_end_of_line(&mut self, loc_y: usize, char_index: usize) -> Vec<Ch> {
+        self.chars[loc_y].drain(char_index..).collect()
+    }
+
+    pub fn append_to_line(&mut self, loc_y: usize, text: Vec<Ch>) {
+        self.chars[loc_y].extend(text);
+    }
+
     pub fn join_line(&mut self, loc: Point2<usize>) {
         let next_line_index = loc.y.saturating_add(1);
-        let mut next_line = self.chars.remove(next_line_index);
-        self.chars[loc.y].append(&mut next_line);
+        let next_line = self.remove_line(next_line_index);
+        self.append_to_line(loc.y, next_line);
     }
 
     /// ensure line at index y exist
