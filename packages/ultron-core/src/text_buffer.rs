@@ -25,7 +25,9 @@ impl Default for TextBuffer {
 
 #[derive(Clone, Copy, Debug)]
 pub struct Ch {
+    /// the char
     pub ch: char,
+    /// the unicode width of the character
     pub width: usize,
 }
 
