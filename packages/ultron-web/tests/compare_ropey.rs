@@ -7,7 +7,7 @@ static CODE: &str = include_str!("../src/web_editor.rs");
 pub fn text_edit_highlighting() {
     let mut text_highlighter = TextHighlighter::default();
     text_highlighter.set_syntax_token("rust");
-    let text_edit = TextEdit::from_str(CODE);
+    let text_edit = TextEdit::new_from_str(CODE);
     let _result: Vec<Vec<(Style, Vec<Ch>)>> = text_edit
         .lines()
         .iter()
