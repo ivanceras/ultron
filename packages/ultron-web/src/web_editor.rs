@@ -1568,10 +1568,7 @@ where
                         style! {height: px(self.ch_height())},
                     ],
                     [
-                        view_if(
-                            self.options.show_line_numbers,
-                            span([class_ns("number")], [text(line_number)]),
-                        ),
+                        self.view_line_number(line_number),
                         match self.options.base_options.selection_mode {
                             SelectionMode::Linear => {
                                 self.view_line_with_linear_selection(line_index, line)
