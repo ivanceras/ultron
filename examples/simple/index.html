@@ -10,12 +10,7 @@
         }
     </style>
     <script type=module>
-      import init, * as component from './pkg/simple.js';
-
-      // It is important to assign the WebEditorCustomElement wrapper to the window,
-      // since it will be accessed in the registering the WebEditor as a custom component
-      Object.assign(window, component);
-
+      import init from './pkg/simple.js';
       /// load the wasm and call the main function, which register the WebEditor component
       await init().catch(console.error);
 

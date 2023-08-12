@@ -109,12 +109,18 @@ impl WebEditorCustomElement {
     #[wasm_bindgen(method, js_name = adoptedCallback)]
     pub fn adopted_callback(&mut self) {}
 
-    fn struct_name() -> &'static str {
-        "WebEditorCustomElement"
-    }
-
     pub fn register() {
-        sauron::dom::register_web_component("ultron-editor", Self::struct_name());
+        let constructor: Closure<dyn FnMut(JsValue)> = Closure::new(|node: JsValue| {
+            let new: Closure<dyn FnMut(JsValue) -> Self> =
+                Closure::new(|node: JsValue| Self::new(node));
+            js_sys::Reflect::set(&node, &JsValue::from_str("new"), &new.into_js_value())
+                .unwrap_throw();
+        });
+        sauron::dom::register_web_component(
+            "ultron-editor",
+            constructor.into_js_value(),
+            Self::observed_attributes(),
+        );
     }
 }
 pub fn register() {
