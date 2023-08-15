@@ -8,8 +8,6 @@ use ultron_syntaxes_themes::Style;
 use ultron_syntaxes_themes::TextHighlighter;
 use ultron_syntaxes_themes::Theme;
 
-const COMPONENT_NAME: &str = "ssg";
-
 #[derive(Debug, Default)]
 struct Options {
     show_line_numbers: bool,
@@ -23,9 +21,8 @@ struct CodeViewer {
 
 impl CodeViewer {
     fn view<MSG>(&self, text_highlighter: &mut TextHighlighter) -> Node<MSG> {
-        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         let code_attributes = [
-            class_ns("code"),
+            class("code"),
             style! {
                 background: self.theme_background().to_css(),
                 font_family: "monospace",
@@ -36,7 +33,7 @@ impl CodeViewer {
             let hl_line = text_highlighter
                 .highlight_line(line)
                 .expect("must highlight");
-            div([class_ns("line"), style! {line_height: 1}], {
+            div([class("line"), style! {line_height: 1}], {
                 [self.view_line_number(line_index + 1)]
                     .into_iter()
                     .chain(self.view_highlighted_line(&hl_line))
@@ -57,12 +54,11 @@ impl CodeViewer {
     }
 
     fn view_line_number<MSG>(&self, line_number: usize) -> Node<MSG> {
-        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         view_if(
             self.options.show_line_numbers,
             span(
                 [
-                    class_ns("number"),
+                    class("number"),
                     style! {
                         user_select: "none",
                         "-webkit-user-select": "none",

@@ -1,5 +1,6 @@
 use ultron_web::{
     attributes::{syntax, theme},
+    sauron,
     sauron::{html::attributes::*, html::events::*, html::*, *},
     ultron_editor,
 };
@@ -46,8 +47,8 @@ impl Application<Msg> for App {
     }
 
     fn style(&self) -> Vec<String> {
-        vec![jss_pretty! {
-            body: {
+        vec![jss! {
+            "body": {
                 margin: 0,
             }
         }]

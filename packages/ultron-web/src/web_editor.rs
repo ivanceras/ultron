@@ -525,14 +525,11 @@ where
                 "-webkit-user-select": user_select,
             },
 
-            Self::selector_ns("") + " pre code":{
-                font_family: font_family.to_owned(),
-                font_size: px(font_size),
-            },
-
             Self::selector_ns("code"): {
                 user_select: user_select,
                 "-webkit-user-select": user_select,
+                font_family: font_family.to_owned(),
+                font_size: px(font_size),
             },
 
             Self::selector_ns("line"): {
@@ -1579,44 +1576,43 @@ where
                 [code(code_attributes, rendered_lines)],
             )
     }
+
+    pub fn view_text_buffer(text_buffer: &TextBuffer, options: &Options) -> Node<Msg> {
+
+        let ch_height = options
+            .ch_height
+            .expect("error1: must have a ch_height in the options");
+
+        let rendered_lines = text_buffer
+            .lines()
+            .into_iter()
+            .enumerate()
+            .map(|(line_index, line)| {
+                let line_number = line_index + 1;
+                div(
+                    [
+                        Self::class_ns("line"),
+                        class("simple"),
+                        // Important! This is needed to render blank lines with same height as the
+                        // non blank ones
+                        style! {height: px(ch_height)},
+                    ],
+                    [
+                        view_if(
+                            options.show_line_numbers,
+                            span([Self::class_ns("number")], [text(line_number)]),
+                        ),
+                        // Note: this is important since text node with empty
+                        // content seems to cause error when finding the dom in rust
+                        span([], [text(line)]),
+                    ],
+                )
+            });
+
+            // using <pre><code> works well when copying in chrome
+            // but in firefox, it creates a double line when select-copying the text
+            // whe need to use <pre><code> in order for typing whitespace works.
+            pre([Self::class_ns("code_wrapper")], [code(vec![Self::class_ns("code")], rendered_lines)])
+    }
 }
 
-/*
-pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Node<MSG> {
-
-    let ch_height = options
-        .ch_height
-        .expect("error1: must have a ch_height in the options");
-
-    let rendered_lines = text_buffer
-        .lines()
-        .into_iter()
-        .enumerate()
-        .map(|(line_index, line)| {
-            let line_number = line_index + 1;
-            div(
-                [
-                    Self::class_ns("line"),
-                    class("simple"),
-                    // Important! This is needed to render blank lines with same height as the
-                    // non blank ones
-                    style! {height: px(ch_height)},
-                ],
-                [
-                    view_if(
-                        options.show_line_numbers,
-                        span([Self::class_ns("number")], [text(line_number)]),
-                    ),
-                    // Note: this is important since text node with empty
-                    // content seems to cause error when finding the dom in rust
-                    span([], [text(line)]),
-                ],
-            )
-        });
-
-        // using <pre><code> works well when copying in chrome
-        // but in firefox, it creates a double line when select-copying the text
-        // whe need to use <pre><code> in order for typing whitespace works.
-        pre([Self::class_ns("code_wrapper")], [code(vec![], rendered_lines)])
-}
-*/

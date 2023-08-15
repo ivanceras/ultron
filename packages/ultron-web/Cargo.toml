@@ -21,8 +21,6 @@ ultron-core = { version = "0.4.0", path = "../ultron-core", features = ["callbac
 sauron = { path = "../../../sauron", default-features = false, features = ["with-dom", "with-jss"] }
 #sauron = { git = "https://github.com/ivanceras/sauron", default-features = false, features = ["with-dom"] }
 log = "0.4"
-console_log = { version = "1", features = ["color"]}
-console_error_panic_hook = "0.1"
 css-colors = "1"
 serde-wasm-bindgen = "0.5.0"
 base64 = "0.21"
