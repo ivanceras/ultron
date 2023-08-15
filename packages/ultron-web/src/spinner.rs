@@ -1,7 +1,4 @@
-use sauron::dom::Widget;
 use sauron::*;
-
-const WIDGET_NAME: &str = "spinner";
 
 pub struct Spinner {
     size: usize,
@@ -13,15 +10,14 @@ impl Spinner {
     }
 }
 
-impl<MSG> Widget<MSG> for Spinner
+impl<MSG> Component<MSG, ()> for Spinner
 where
     MSG: 'static,
 {
     fn view(&self) -> Node<MSG> {
-        let class_ns = |c| class_namespaced(WIDGET_NAME, c);
         svg(
             [
-                class_ns("spinner"),
+                Self::class_ns("spinner"),
                 view_box([0, 0, self.size, self.size]),
                 style! {
                     width: px(self.size),
@@ -30,7 +26,7 @@ where
             ],
             [circle(
                 [
-                    class_ns("path"),
+                    Self::class_ns("path"),
                     cx(self.size / 2),
                     cy(self.size / 2),
                     r(self.size / 3),
@@ -47,7 +43,8 @@ where
     }
 
     fn stylesheet() -> Vec<String> {
-        vec![jss_ns_pretty! {WIDGET_NAME,
+        vec![
+            jss! {
             ".spinner": {
                 animation: "rotate 1s linear infinite",
                 z_index: 2,
@@ -59,28 +56,31 @@ where
                 stroke_linecap: "round",
                 animation: "dash .7s ease-in-out infinite",
               },
-
-            "@keyframes rotate": {
-              "100%": {
-                transform: "rotate(360deg)",
-              }
             },
-
-            "@keyframes dash": {
-              "0%": {
-                stroke_dasharray: "1, 150",
-                stroke_dashoffset: 0,
-              },
-              "50%": {
-                stroke_dasharray: "90, 150",
-                stroke_dashoffset: -35,
-              },
-              "100%": {
-                stroke_dasharray: "90, 150",
-                stroke_dashoffset: -124,
-              },
+            jss_with_media! {
+                "@keyframes rotate": {
+                  "100%": {
+                    transform: "rotate(360deg)",
+                  }
+                },
             },
+            jss_with_media! {
+                "@keyframes dash": {
+                  "0%": {
+                    stroke_dasharray: "1, 150",
+                    stroke_dashoffset: 0,
+                  },
+                  "50%": {
+                    stroke_dasharray: "90, 150",
+                    stroke_dashoffset: -35,
+                  },
+                  "100%": {
+                    stroke_dasharray: "90, 150",
+                    stroke_dashoffset: -124,
+                  },
+                },
 
-        }]
+            },
+        ]
     }
 }

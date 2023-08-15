@@ -1,5 +1,5 @@
 use ultron_web::{
-    sauron::prelude::*, web_editor, BaseOptions, Options, SelectionMode, WebEditor, COMPONENT_NAME,
+    sauron, sauron::prelude::*, web_editor, BaseOptions, Options, SelectionMode, WebEditor,
 };
 
 pub enum Msg {
@@ -62,15 +62,14 @@ impl Application<Msg> for App {
     }
 
     fn view(&self) -> Node<Msg> {
-        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         div(
-            [class_ns("app")],
+            [class("app")],
             [self.web_editor.view().map_msg(Msg::WebEditorMsg)],
         )
     }
 
     fn stylesheet() -> Vec<String> {
-        let css = jss_ns_pretty! {COMPONENT_NAME,
+        let css = jss! {
             ".app": {
                 display: "flex",
                 flex: "none",

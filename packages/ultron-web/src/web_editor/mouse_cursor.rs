@@ -13,7 +13,7 @@ impl Default for MouseCursor {
 }
 
 impl MouseCursor {
-    pub fn to_str(&self) -> &str {
+    pub fn to_str(&self) -> &'static str {
         match self {
             Self::Text => "text",
             Self::Move => "move",

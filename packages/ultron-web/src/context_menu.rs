@@ -126,7 +126,7 @@ where
     }
 
     fn stylesheet() -> Vec<String> {
-        vec![jss_pretty! {
+        vec![jss! {
             ".context_menu": {
                 background_color: "#eee",
                 display: "flex",

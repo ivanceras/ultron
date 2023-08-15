@@ -12,7 +12,6 @@ use ultron_core::{
     TextEdit, TextHighlighter,
 };
 use crate::Spinner;
-use sauron::dom::Widget;
 use sauron::dom::{IdleCallbackHandle, IdleDeadline, request_idle_callback};
 use web_sys::HtmlElement;
 
@@ -31,8 +30,6 @@ mod selection;
 #[cfg(feature = "custom_element")]
 pub mod custom_element;
 mod options;
-
-pub const COMPONENT_NAME: &str = "ultron";
 
 #[derive(Debug)]
 pub enum Msg {
@@ -414,13 +411,13 @@ where
     }
 
     fn stylesheet() -> Vec<String> {
-        let main = jss_ns_pretty! {COMPONENT_NAME,
-            ".": {
+        let main = jss! {
+            Self::selector_ns(""): {
                 position: "relative",
                 white_space: "normal",
             },
 
-            ".occupy_container": {
+            Self::selector_ns("occupy_container"): {
                 width: percent(100),
                 height: "auto",
             },
@@ -432,11 +429,11 @@ where
                 word_wrap: "normal",
             },
 
-            ".code_wrapper": {
+            Self::selector_ns("code_wrapper"): {
                 margin: 0,
             },
 
-            ".code": {
+            Self::selector_ns("code"): {
                 position: "relative",
                 display: "block",
                 // to make the background color extend to the longest line, otherwise only the
@@ -446,7 +443,7 @@ where
 
 
             // numbers
-            ".number": {
+            Self::selector_ns("number"): {
                 flex: "none", // dont compress the numbers
                 text_align: "right",
                 background_color: "#ddd",
@@ -456,7 +453,7 @@ where
             },
 
             // line content
-            ".line": {
+            Self::selector_ns("line"): {
                 flex: "none", // dont compress lines
                 display: "block",
             },
@@ -466,7 +463,7 @@ where
                 display: "inline-block",
             },
 
-            ".status": {
+            Self::selector_ns("status"): {
                 position: "fixed",
                 bottom: 0,
                 display: "flex",
@@ -474,20 +471,22 @@ where
                 user_select: "none",
             },
 
-            ".virtual_cursor": {
+            Self::selector_ns("virtual_cursor"): {
                 position: "absolute",
                 border_width: px(1),
                 opacity: 1,
                 border_style: "solid",
             },
 
-            ".cursor_center":{
+            Self::selector_ns("cursor_center"):{
                 width: percent(100),
                 height: percent(100),
                 opacity: percent(50),
                 animation: "cursor_blink-anim 1000ms step-end infinite",
             },
+        };
 
+        let media_css = jss_with_media!{
             "@keyframes cursor_blink-anim": {
               "0%": {
                 opacity: percent(0),
@@ -507,7 +506,7 @@ where
             },
         };
 
-        [vec![main], FontLoader::<Msg>::stylesheet(), Menu::<Msg>::stylesheet()].concat()
+        [vec![main, media_css], FontLoader::<Msg>::stylesheet(), Menu::<Msg>::stylesheet()].concat()
     }
 
     fn style(&self) -> Vec<String> {
@@ -520,44 +519,44 @@ where
             "none"
         };
 
-        vec![jss_ns_pretty! {COMPONENT_NAME,
-            ".": {
+        vec![jss! {
+            Self::selector_ns(""): {
                 user_select: user_select,
                 "-webkit-user-select": user_select,
             },
 
-            "pre code":{
+            Self::selector_ns("") + " pre code":{
                 font_family: font_family.to_owned(),
                 font_size: px(font_size),
             },
 
-            ".code": {
+            Self::selector_ns("code"): {
                 user_select: user_select,
                 "-webkit-user-select": user_select,
             },
 
-            ".line": {
+            Self::selector_ns("line"): {
                 "-webkit-user-select": user_select,
                 user_select: user_select,
             },
 
-            ".line span::selection": {
+            Self::selector_ns("line") + " span::selection": {
                 background_color: self.selection_background().to_css(),
             },
 
-            ".line .selected": {
+            Self::selector_ns("line") + " .selected": {
                background_color: self.selection_background().to_css(),
             },
 
-            ".status": {
+            Self::selector_ns("status"): {
                 font_family: font_family.to_owned(),
             },
 
-            ".virtual_cursor": {
+            Self::selector_ns("virtual_cursor"): {
                 border_color: self.cursor_border().to_css(),
             },
 
-            ".cursor_center":{
+            Self::selector_ns("cursor_center"):{
                 background_color: self.cursor_color().to_css(),
             },
 
@@ -635,12 +634,13 @@ where
         let enable_click = self.options.enable_click;
         div(
             [
-                class(COMPONENT_NAME),
+                Self::class_ns(""),
                 key("editor-main"),
-                classes_flag_namespaced(
-                    COMPONENT_NAME,
-                    [("occupy_container", self.options.occupy_container)],
-                ),
+                if self.options.occupy_container{
+                    Self::class_ns("occupy_container")
+                }else{
+                    empty_attr()
+                },
                 on_mount(Msg::EditorMounted),
                 on_keydown(move |ke| {
                     if enable_keypresses {
@@ -680,7 +680,7 @@ where
                 if self.options.use_syntax_highlighter {
                     self.view_highlighted_lines()
                 } else {
-                    self.plain_view()
+                    self.view_text_edit()
                 },
                 view_if(self.options.show_status_line, self.view_status_line()),
                 view_if(
@@ -1180,11 +1180,10 @@ where
     }
 
     fn view_cursor(&self) -> Node<Msg> {
-        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
         let cursor = self.cursor_to_client();
         div(
             [
-                class_ns("virtual_cursor"),
+                Self::class_ns("virtual_cursor"),
                 style! {
                     top: px(cursor.y),
                     left: px(cursor.x),
@@ -1193,18 +1192,17 @@ where
                 },
                 on_mount(Msg::CursorMounted),
             ],
-            [div([class_ns("cursor_center")], [])],
+            [div([Self::class_ns("cursor_center")], [])],
         )
     }
 
     /// the view for the status line
-    pub fn view_status_line<MSG>(&self) -> Node<MSG> where MSG: 'static{
-        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
+    pub fn view_status_line(&self) -> Node<Msg>{
         let cursor = self.base_editor.get_position();
 
         div(
             [
-                class_ns("status"),
+                Self::class_ns("status"),
                 style! {
                     background_color: self.gutter_background().to_css(),
                     color: self.gutter_foreground().to_css(),
@@ -1250,13 +1248,12 @@ where
         )
     }
 
-    fn view_line_number<MSG>(&self, line_number: usize) -> Node<MSG> {
-        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
+    fn view_line_number(&self, line_number: usize) -> Node<Msg> {
         view_if(
             self.options.show_line_numbers,
             span(
                 [
-                    class_ns("number"),
+                    Self::class_ns("number"),
                     style! {
                         background_color: self.gutter_background().to_css(),
                         color: self.gutter_foreground().to_css(),
@@ -1291,11 +1288,11 @@ where
         }
     }
 
-    fn view_highlighted_line<MSG>(
+    fn view_highlighted_line(
         &self,
         line_index: usize,
         line: &[(Style, Vec<Ch>)],
-    ) -> Vec<Node<MSG>> {
+    ) -> Vec<Node<Msg>> {
         let mut range_x: usize = 0;
         line.iter()
             .map(|(style, range)| {
@@ -1412,10 +1409,9 @@ where
     }
 
     // highlighted view
-    pub fn view_highlighted_lines<MSG>(&self) -> Node<MSG> {
-        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
+    pub fn view_highlighted_lines(&self) -> Node<Msg> {
         let code_attributes = [
-            class_ns("code"),
+            Self::class_ns("code"),
             style! {
                 background: self.theme_background().to_css(),
             },
@@ -1428,7 +1424,7 @@ where
             .map(|(line_index, line)| {
                 div(
                     [
-                        class_ns("line"),
+                        Self::class_ns("line"),
                         // needed to put the height here, since for some reason it add 1px to the
                         // parent div, not a margin, not border,
                         style! {height: px(self.ch_height())},
@@ -1446,13 +1442,9 @@ where
             // but in firefox, it creates a double line when select-copying the text
             // whe need to use <pre><code> in order for typing whitespace works.
             pre(
-                [class_ns("code_wrapper")],
+                [Self::class_ns("code_wrapper")],
                 [code(code_attributes, rendered_lines)],
             )
-    }
-
-    pub fn plain_view<MSG>(&self) -> Node<MSG> {
-        self.view_text_edit()
     }
 
     /// height of the status line which displays editor infor such as cursor location
@@ -1460,7 +1452,7 @@ where
         50
     }
 
-    fn view_line_with_linear_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
+    fn view_line_with_linear_selection(&self, line_index: usize, line: String) -> Node<Msg> {
         let line_width = self.base_editor.text_buffer().line_width(line_index);
         let line_end = Point2::new(line_width, line_index);
 
@@ -1513,8 +1505,7 @@ where
     }
 
     //TODO: this needs fixing, as we are accessing characters that may not not in the right index
-    fn view_line_with_block_selection<MSG>(&self, line_index: usize, line: String) -> Node<MSG> {
-        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
+    fn view_line_with_block_selection(&self, line_index: usize, line: String) -> Node<Msg> {
 
         let default_view = span([], [text(&line)]);
         match self.base_editor.as_ref().selection_normalized_casted() {
@@ -1537,7 +1528,7 @@ where
                         [],
                         [
                             span([], [text(first)]),
-                            span([class_ns("selected")], [text(second)]),
+                            span([Self::class_ns("selected")], [text(second)]),
                             span([], [text(third)]),
                         ],
                     )
@@ -1549,11 +1540,10 @@ where
         }
     }
 
-    pub fn view_text_edit<MSG>(&self) -> Node<MSG> {
-        let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
+    pub fn view_text_edit(&self) -> Node<Msg> {
         let text_edit = &self.base_editor.as_ref();
 
-        let code_attributes = [class_ns("code")];
+        let code_attributes = [Self::class_ns("code")];
         let rendered_lines = text_edit
             .lines()
             .into_iter()
@@ -1562,7 +1552,7 @@ where
                 let line_number = line_index + 1;
                 div(
                     [
-                        class_ns("line"),
+                        Self::class_ns("line"),
                         // Important! This is needed to render blank lines with same height as the
                         // non blank ones
                         style! {height: px(self.ch_height())},
@@ -1585,14 +1575,14 @@ where
             // but in firefox, it creates a double line when select-copying the text
             // whe need to use <pre><code> in order for typing whitespace works.
             pre(
-                [class_ns("code_wrapper")],
+                [Self::class_ns("code_wrapper")],
                 [code(code_attributes, rendered_lines)],
             )
     }
 }
 
+/*
 pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Node<MSG> {
-    let class_ns = |class_names| class_namespaced(COMPONENT_NAME, class_names);
 
     let ch_height = options
         .ch_height
@@ -1606,7 +1596,7 @@ pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Nod
             let line_number = line_index + 1;
             div(
                 [
-                    class_ns("line"),
+                    Self::class_ns("line"),
                     class("simple"),
                     // Important! This is needed to render blank lines with same height as the
                     // non blank ones
@@ -1615,7 +1605,7 @@ pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Nod
                 [
                     view_if(
                         options.show_line_numbers,
-                        span([class_ns("number")], [text(line_number)]),
+                        span([Self::class_ns("number")], [text(line_number)]),
                     ),
                     // Note: this is important since text node with empty
                     // content seems to cause error when finding the dom in rust
@@ -1627,5 +1617,6 @@ pub fn view_text_buffer<MSG>(text_buffer: &TextBuffer, options: &Options) -> Nod
         // using <pre><code> works well when copying in chrome
         // but in firefox, it creates a double line when select-copying the text
         // whe need to use <pre><code> in order for typing whitespace works.
-        pre([class_ns("code_wrapper")], [code(vec![], rendered_lines)])
+        pre([Self::class_ns("code_wrapper")], [code(vec![], rendered_lines)])
 }
+*/

@@ -1,4 +1,3 @@
-use super::COMPONENT_NAME;
 use sauron::{html::*, *};
 /// a utility enum which hold each cases of line selection
 pub(super) enum SelectionSplits {
@@ -14,60 +13,69 @@ pub(super) enum SelectionSplits {
     NotSelected(String),
 }
 
-impl SelectionSplits {
-    pub(super) fn view<MSG>(&self) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+impl<MSG> Component<MSG, ()> for SelectionSplits
+where
+    MSG: 'static,
+{
+    fn update(&mut self, _msg: MSG) -> Effects<MSG, ()> {
+        Effects::none()
+    }
+    fn view(&self) -> Node<MSG> {
         match self {
-            Self::SelectAll(line) => span([class_ns("selected")], [text(line)]),
+            Self::SelectAll(line) => span([Self::class_ns("selected")], [text(line)]),
             Self::SelectRight(first, second) => span(
                 [],
                 [
                     span([], [text(first)]),
-                    span([class_ns("selected")], [text(second)]),
+                    span([Self::class_ns("selected")], [text(second)]),
                 ],
             ),
             Self::SelectMiddle(first, second, third) => span(
                 [],
                 [
                     span([], [text(first)]),
-                    span([class_ns("selected")], [text(second)]),
+                    span([Self::class_ns("selected")], [text(second)]),
                     span([], [text(third)]),
                 ],
             ),
             Self::SelectLeft(first, second) => span(
                 [],
                 [
-                    span([class_ns("selected")], [text(first)]),
+                    span([Self::class_ns("selected")], [text(first)]),
                     span([], [text(second)]),
                 ],
             ),
             Self::NotSelected(line) => span([], [text(line)]),
         }
     }
+}
 
-    pub(super) fn view_with_style<MSG>(&self, node_style: Attribute<MSG>) -> Node<MSG> {
-        let class_ns = |class_names| attributes::class_namespaced(COMPONENT_NAME, class_names);
+impl SelectionSplits {
+    pub(super) fn view_with_style<MSG>(&self, node_style: Attribute<MSG>) -> Node<MSG>
+    where
+        MSG: 'static,
+    {
         match self {
-            Self::SelectAll(line) => span([class_ns("selected"), node_style], [text(line)]),
+            Self::SelectAll(line) => span([Self::class_ns("selected"), node_style], [text(line)]),
             Self::SelectRight(first, second) => span(
                 [node_style],
                 [
                     span([], [text(first)]),
-                    span([class_ns("selected")], [text(second)]),
+                    span([Self::class_ns("selected")], [text(second)]),
                 ],
             ),
             Self::SelectMiddle(first, second, third) => span(
                 [node_style],
                 [
                     span([], [text(first)]),
-                    span([class_ns("selected")], [text(second)]),
+                    span([Self::class_ns("selected")], [text(second)]),
                     span([], [text(third)]),
                 ],
             ),
             Self::SelectLeft(first, second) => span(
                 [node_style],
                 [
-                    span([class_ns("selected")], [text(first)]),
+                    span([Self::class_ns("selected")], [text(first)]),
                     span([], [text(second)]),
                 ],
             ),
