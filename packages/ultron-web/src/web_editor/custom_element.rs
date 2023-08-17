@@ -11,7 +11,7 @@ where
 
     /// this is called when the attributes in the mount is changed
     fn attribute_changed(
-        program: &Program<Self, Msg>,
+        mut program: Program<Self, Msg>,
         attr_name: &str,
         _old_value: Option<String>,
         new_value: Option<String>,
@@ -81,7 +81,7 @@ impl WebEditorCustomElement {
         new_value: JsValue,
     ) {
         WebEditor::<()>::attribute_changed(
-            &self.program,
+            self.program.clone(),
             attr_name,
             old_value.as_string(),
             new_value.as_string(),
