@@ -13,6 +13,11 @@ jobs:
         repository: ivanceras/sauron
         path: './sauron'
 
+    - uses: actions/checkout@v2
+      with:
+        repository: ivanceras/ultron
+        path: './ultron'
+
     - name: Install stable
       run: rustup toolchain install stable
 
