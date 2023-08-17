@@ -85,7 +85,7 @@ impl Application<Msg> for App {
     }
 
     fn measurements(&self, measurements: Measurements) -> Cmd<Self, Msg> {
-        Cmd::new(|program| {
+        Cmd::new(|mut program| {
             program.dispatch(Msg::WebEditorMsg(web_editor::Msg::Measurements(
                 measurements,
             )))

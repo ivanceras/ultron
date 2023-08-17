@@ -22,7 +22,6 @@ build-web-debug:
     RUSTFLAGS=--cfg=web_sys_unstable_apis wasm-pack build packages/ultron-app \
         --target web \
         --debug \
-        --profile dev \
         --features "with-navigator-clipboard with-measure with-ric with-raf"
 
 test-all: 

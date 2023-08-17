@@ -2,6 +2,7 @@ use crate::context_menu::{self, Menu};
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::prelude::*;
+use sauron::html::node_list;
 use selection::SelectionSplits;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -138,6 +139,7 @@ impl<XMSG> Default for WebEditor<XMSG> {
 struct Measure {
     average_dispatch: Option<f64>,
     last_dispatch: Option<f64>,
+    detail: Option<Measurements>,
 }
 
 impl<XMSG> WebEditor<XMSG>
@@ -328,7 +330,7 @@ where
                 self.process_keypress(&ke)
             }
             Msg::Measurements(measure) => {
-                self.update_measure(&measure);
+                self.update_measure(measure);
                 Effects::none()
             }
             Msg::Focused(_fe) => {
@@ -699,20 +701,22 @@ where
         self.options.ch_height.expect("must have already measured")
     }
 
-    fn update_measure(&mut self, measure: &Measurements) {
-        match &*measure.name {
+    fn update_measure(&mut self, measurements: Measurements) {
+        match &*measurements.name {
             "keypress" => {
                 if let Some(average_dispatch) = self.measure.average_dispatch.as_mut() {
-                    *average_dispatch = (*average_dispatch + measure.total_time) / 2.0;
+                    *average_dispatch = (*average_dispatch + measurements.total_time) / 2.0;
                 } else {
-                    self.measure.average_dispatch = Some(measure.total_time);
+                    self.measure.average_dispatch = Some(measurements.total_time);
                 }
-                self.measure.last_dispatch = Some(measure.total_time);
+                self.measure.last_dispatch = Some(measurements.total_time);
             }
             _ => {
-                log::trace!("unexpected measurement name from: {measure:?}");
+                log::trace!("unexpected measurement name from: {measurements:?}");
             }
         }
+
+        self.measure.detail = Some(measurements);
     }
 
     pub fn set_mouse_cursor(&mut self, mouse_cursor: MouseCursor) {
@@ -1231,6 +1235,14 @@ where
                 if let Some(last_dispatch) = self.measure.last_dispatch {
                     text!(" |> latest: {}ms", last_dispatch.round())
                 } else {
+                    text!("")
+                },
+                if let Some(detail) = &self.measure.detail{
+                    node_list([
+                        text!(" |> count: {}", detail.strong_count),
+                        text!(" |> weak: {}", detail.weak_count),
+                    ])
+                }else{
                     text!("")
                 },
                 if self
