@@ -681,14 +681,14 @@ where
                 } else {
                     self.view_text_edit()
                 },
-                view_if(self.options.show_status_line, self.view_status_line()),
-                view_if(
+                lazy_view_if(
                     self.is_focused && self.options.show_cursor,
-                    self.view_cursor(),
+                    ||self.view_cursor(),
                 ),
-                view_if(
+                lazy_view_if(self.options.show_status_line, ||self.view_status_line()),
+                lazy_view_if(
                     self.is_focused && self.show_context_menu,
-                    self.context_menu.view().map_msg(Msg::ContextMenuMsg),
+                    ||self.context_menu.view().map_msg(Msg::ContextMenuMsg),
                 ),
             ],
         )
@@ -1258,9 +1258,9 @@ where
     }
 
     fn view_line_number(&self, line_number: usize) -> Node<Msg> {
-        view_if(
+        lazy_view_if(
             self.options.show_line_numbers,
-            span(
+            ||span(
                 [
                     Self::class_ns("number"),
                     style! {
@@ -1610,9 +1610,9 @@ where
                         style! {height: px(ch_height)},
                     ],
                     [
-                        view_if(
+                        lazy_view_if(
                             options.show_line_numbers,
-                            span([Self::class_ns("number")], [text(line_number)]),
+                            ||span([Self::class_ns("number")], [text(line_number)]),
                         ),
                         // Note: this is important since text node with empty
                         // content seems to cause error when finding the dom in rust

@@ -54,8 +54,7 @@ impl CodeViewer {
     }
 
     fn view_line_number<MSG>(&self, line_number: usize) -> Node<MSG> {
-        view_if(
-            self.options.show_line_numbers,
+        lazy_view_if(self.options.show_line_numbers, || {
             span(
                 [
                     class("number"),
@@ -70,8 +69,8 @@ impl CodeViewer {
                     },
                 ],
                 [text(line_number)],
-            ),
-        )
+            )
+        })
     }
 
     fn numberline_wide(&self) -> usize {
