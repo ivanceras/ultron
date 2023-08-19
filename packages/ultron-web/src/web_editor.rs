@@ -659,6 +659,7 @@ where
                 }),
                 spellcheck(false),
                 tabindex(0),
+                attr("role","textbox"),
                 on_focus(Msg::Focused),
                 on_blur(Msg::Blur),
                 on_contextmenu(move |me| {
