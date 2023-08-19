@@ -45,12 +45,16 @@ impl CodeViewer {
     }
 
     fn view_highlighted_line<MSG>(&self, line: &[(Style, &str)]) -> Vec<Node<MSG>> {
-        line.iter()
-            .map(|(style, range)| {
-                let foreground = to_rgba(style.foreground).to_css();
-                span([style! { color: foreground }], [text(range)])
-            })
-            .collect()
+        if line.is_empty() {
+            vec![br([], [])]
+        } else {
+            line.iter()
+                .map(|(style, range)| {
+                    let foreground = to_rgba(style.foreground).to_css();
+                    span([style! { color: foreground }], [text(range)])
+                })
+                .collect()
+        }
     }
 
     fn view_line_number<MSG>(&self, line_number: usize) -> Node<MSG> {
