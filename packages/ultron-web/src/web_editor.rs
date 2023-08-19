@@ -3,13 +3,12 @@ use crate::util;
 use css_colors::{rgba, Color, RGBA};
 use sauron::prelude::*;
 use sauron::html::node_list;
-use selection::SelectionSplits;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use ultron_core::{
-    base_editor::Callback, nalgebra::Point2, BaseEditor, Ch, SelectionMode, Style, TextBuffer,
+    base_editor::Callback, nalgebra::Point2, BaseEditor, Ch, Style, TextBuffer,
     TextEdit, TextHighlighter,
 };
 use crate::Spinner;
@@ -26,7 +25,6 @@ pub use ultron_core;
 pub use ultron_core::{BaseOptions, Command};
 
 mod mouse_cursor;
-mod selection;
 
 #[cfg(feature = "custom_element")]
 pub mod custom_element;
@@ -1301,10 +1299,8 @@ where
 
     fn view_highlighted_line(
         &self,
-        line_index: usize,
         line: &[(Style, Vec<Ch>)],
     ) -> Vec<Node<Msg>> {
-        let mut range_x: usize = 0;
         if line.is_empty(){
             // added here to have a newline for empty lines when copied using native browser
             // selection and copy command
@@ -1312,114 +1308,9 @@ where
         }else{
             line.iter()
                 .map(|(style, range)| {
-                    let range_str = String::from_iter(range.iter().map(|ch| ch.ch));
-
-                    let range_start = Point2::new(range_x, line_index);
-                    range_x += range.iter().map(|ch| ch.width).sum::<usize>();
-                    let range_end = Point2::new(range_x, line_index);
-
                     let foreground = util::to_rgba(style.foreground).to_css();
-
-                    let selection_splits = match self.base_editor.as_ref().selection_reorder_casted() {
-                        Some((start, end)) => {
-                            // selection end points is only on the same line
-                            let selection_in_same_line = start.y == end.y;
-                            // this line is on the first line of selection
-                            let selection_start_within_first_line = line_index == start.y;
-                            // this line is on the last line of selection
-                            let selection_end_within_last_line = line_index == end.y;
-                            // this line is in between the selection end points
-                            let line_within_selection = line_index > start.y && line_index < end.y;
-                            let line_outside_selection = line_index < start.y || line_index > end.y;
-
-                            // the start selection is within this range  location
-                            let selection_start_within_range_start = start.x >= range_start.x;
-                            // the end selection is within this range location
-                            let selection_end_within_range_end = end.x <= range_end.x;
-                            // both selection endpoints is inside this range
-                            let selection_within_range =
-                                start.x >= range_start.x && end.x <= range_end.x;
-
-                            // range is in the right side of selection start
-                            let range_in_right_of_selection_start =
-                                range_start.x >= start.x && range_end.x >= start.x;
-                            let range_in_left_of_selection_end =
-                                range_start.x <= end.x && range_end.x <= end.x;
-                            let range_in_right_of_selection_end =
-                                range_start.x > end.x && range_end.x > end.x;
-
-                            let text_buffer = TextBuffer::from_ch(&[range]);
-
-                            if line_within_selection {
-                                SelectionSplits::SelectAll(range_str)
-                            } else if line_outside_selection {
-                                SelectionSplits::NotSelected(range_str)
-                            } else if selection_in_same_line {
-                                let range_within_selection =
-                                    range_start.x >= start.x && range_end.x <= end.x;
-                                if range_within_selection {
-                                    SelectionSplits::SelectAll(range_str)
-                                } else if selection_within_range {
-                                    // the first is plain
-                                    // the second is selected
-                                    // the third is plain
-                                    let break1 = Point2::new(start.x - range_start.x, 0);
-                                    let break1 = text_buffer.clamp_position(break1);
-                                    let break2 = Point2::new(end.x - range_start.x, 0);
-                                    let break2 = text_buffer.clamp_position(break2);
-                                    let (first, second, third) =
-                                        text_buffer.split_line_at_2_points(break1, break2);
-                                    SelectionSplits::SelectMiddle(first, second, third)
-                                } else if selection_start_within_range_start {
-                                    let break1 = Point2::new(start.x - range_start.x, 0);
-                                    let break1 = text_buffer.clamp_position(break1);
-                                    let (first, second) = text_buffer.split_line_at_point(break1);
-                                    SelectionSplits::SelectRight(first, second)
-                                } else if range_in_right_of_selection_end {
-                                    SelectionSplits::NotSelected(range_str)
-                                } else if selection_end_within_range_end {
-                                    // the first is selected
-                                    // the second is plain
-                                    let break1 = Point2::new(end.x - range_start.x, 0);
-                                    let break1 = text_buffer.clamp_position(break1);
-                                    let (first, second) = text_buffer.split_line_at_point(break1);
-                                    SelectionSplits::SelectLeft(first, second)
-                                } else {
-                                    SelectionSplits::NotSelected(range_str)
-                                }
-                            } else if selection_start_within_first_line {
-                                if range_in_right_of_selection_start {
-                                    SelectionSplits::SelectAll(range_str)
-                                } else if selection_start_within_range_start {
-                                    let break1 = Point2::new(start.x - range_start.x, 0);
-                                    let break1 = text_buffer.clamp_position(break1);
-                                    let (first, second) = text_buffer.split_line_at_point(break1);
-                                    SelectionSplits::SelectRight(first, second)
-                                } else {
-                                    SelectionSplits::NotSelected(range_str)
-                                }
-                            } else if selection_end_within_last_line {
-                                if range_in_left_of_selection_end {
-                                    SelectionSplits::SelectAll(range_str)
-                                } else if range_in_right_of_selection_end {
-                                    SelectionSplits::NotSelected(range_str)
-                                } else if selection_end_within_range_end {
-                                    // the first is selected
-                                    // the second is plain
-                                    let break1 = Point2::new(end.x - range_start.x, 0);
-                                    let break1 = text_buffer.clamp_position(break1);
-                                    let (first, second) = text_buffer.split_line_at_point(break1);
-                                    SelectionSplits::SelectLeft(first, second)
-                                } else {
-                                    SelectionSplits::NotSelected(range_str)
-                                }
-                            } else {
-                                SelectionSplits::NotSelected(range_str)
-                            }
-                        }
-                        None => SelectionSplits::NotSelected(range_str),
-                    };
-                    selection_splits.view_with_style(style! { color: foreground })
+                    let range_str = String::from_iter(range.iter().map(|ch| ch.ch));
+                    span([style! { color: foreground }], [text(range_str)])
                 })
                 .collect()
             }
@@ -1449,7 +1340,7 @@ where
                     {
                         [self.view_line_number(line_index + 1)]
                             .into_iter()
-                            .chain(self.view_highlighted_line(line_index, line))
+                            .chain(self.view_highlighted_line(line))
                             .collect::<Vec<_>>()
                     },
                 )
@@ -1467,94 +1358,6 @@ where
     /// height of the status line which displays editor infor such as cursor location
     pub fn status_line_height() -> i32 {
         50
-    }
-
-    fn view_line_with_linear_selection(&self, line_index: usize, line: String) -> Node<Msg> {
-        let line_width = self.base_editor.text_buffer().line_width(line_index);
-        let line_end = Point2::new(line_width, line_index);
-
-        let selection_splits = match self.base_editor.as_ref().selection_reorder_casted() {
-            Some((start, end)) => {
-                // this line is in between the selection end points
-                let in_inner_line = line_index > start.y && line_index < end.y;
-
-                if in_inner_line {
-                    SelectionSplits::SelectAll(line)
-                } else {
-                    // selection end points is only on the same line
-                    let in_same_line = start.y == end.y;
-                    // this line is on the first line of selection
-                    let in_first_line = line_index == start.y;
-                    // this line is on the last line of selection
-                    let in_last_line = line_index == end.y;
-                    let text_buffer = &self.base_editor.text_buffer();
-                    if in_first_line {
-                        // the first part is the plain
-                        // the second part is the highlighted
-                        let break1 = Point2::new(start.x, line_index);
-                        let break1 = text_buffer.clamp_position(break1);
-                        let (first, second) = text_buffer.split_line_at_point(break1);
-                        if in_same_line {
-                            // the third part will be in plain
-                            let break2 = Point2::new(end.x, line_end.y);
-                            let break2 = text_buffer.clamp_position(break2);
-                            let (first, second, third) =
-                                text_buffer.split_line_at_2_points(break1, break2);
-                            SelectionSplits::SelectMiddle(first, second, third)
-                        } else {
-                            SelectionSplits::SelectRight(first, second)
-                        }
-                    } else if in_last_line {
-                        // the first part is the highlighted
-                        // the second part is plain
-                        let break1 = Point2::new(end.x, line_index);
-                        let break1 = text_buffer.clamp_position(break1);
-                        let (first, second) = text_buffer.split_line_at_point(break1);
-                        SelectionSplits::SelectLeft(first, second)
-                    } else {
-                        SelectionSplits::NotSelected(line)
-                    }
-                }
-            }
-            None => SelectionSplits::NotSelected(line),
-        };
-        selection_splits.view()
-    }
-
-    //TODO: this needs fixing, as we are accessing characters that may not not in the right index
-    fn view_line_with_block_selection(&self, line_index: usize, line: String) -> Node<Msg> {
-
-        let default_view = span([], [text(&line)]);
-        match self.base_editor.as_ref().selection_normalized_casted() {
-            Some((start, end)) => {
-                let text_buffer = &self.base_editor.text_buffer();
-
-                // there will be 3 parts
-                // the first one is plain
-                // the second one is highlighted
-                // the third one is plain
-                let break1 = Point2::new(start.x, line_index);
-                let break1 = text_buffer.clamp_position(break1);
-
-                let break2 = Point2::new(end.x, line_index);
-                let break2 = text_buffer.clamp_position(break2);
-                let (first, second, third) = text_buffer.split_line_at_2_points(break1, break2);
-
-                if line_index >= start.y && line_index <= end.y {
-                    span(
-                        [],
-                        [
-                            span([], [text(first)]),
-                            span([Self::class_ns("selected")], [text(second)]),
-                            span([], [text(third)]),
-                        ],
-                    )
-                } else {
-                    default_view
-                }
-            }
-            _ => default_view,
-        }
     }
 
     pub fn view_text_edit(&self) -> Node<Msg> {
@@ -1576,14 +1379,7 @@ where
                     ],
                     [
                         self.view_line_number(line_number),
-                        match self.options.base_options.selection_mode {
-                            SelectionMode::Linear => {
-                                self.view_line_with_linear_selection(line_index, line)
-                            }
-                            SelectionMode::Block => {
-                                self.view_line_with_block_selection(line_index, line)
-                            }
-                        },
+                        span([],[text(line)])
                     ],
                 )
             });
