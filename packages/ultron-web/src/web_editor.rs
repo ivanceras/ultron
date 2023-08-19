@@ -539,9 +539,11 @@ where
                 user_select: user_select,
             },
 
+            /*
             Self::selector_ns("line") + " span::selection": {
                 background_color: self.selection_background().to_css(),
             },
+            */
 
             Self::selector_ns("line") + " .selected": {
                background_color: self.selection_background().to_css(),
