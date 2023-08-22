@@ -1289,18 +1289,18 @@ where
             vec![text("\n")]
         }else{
             line.iter()
-                .map(|(style, range)| {
+                .flat_map(|(style, range)| {
                     let foreground = util::to_rgba(style.foreground).to_css();
                     let range_str = String::from_iter(range.iter().map(|ch| ch.ch));
                     let is_all_whitespace = range_str.trim().is_empty();
                     if is_all_whitespace{
-                        safe_html(Self::transform_whitespace(&range_str))
+                        vec![safe_html(Self::transform_whitespace(&range_str))]
                     }else{
                         let (spaces,word) = Self::split_until_char(&range_str);
-                        node_list([
+                        vec![
                             safe_html(Self::transform_whitespace(&spaces)),
                             span([style! { color: foreground }], [text(word)])
-                        ])
+                        ]
                     }
                 })
                 .collect()
