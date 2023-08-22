@@ -74,7 +74,7 @@ pub enum Call {
 
 /// rename this to WebEditor
 pub struct WebEditor<XMSG> {
-    options: Options,
+    pub options: Options,
     font_loader: FontLoader<Msg>,
     pub base_editor: BaseEditor<XMSG>,
     editor_element: Option<web_sys::Element>,
@@ -513,35 +513,12 @@ where
         let font_family = &self.font_loader.settings.font_family;
         let font_size = self.font_loader.settings.font_size;
 
-        let user_select = if self.options.allow_text_selection {
-            "text"
-        } else {
-            "none"
-        };
-
         vec![jss! {
-            Self::selector_ns(""): {
-                user_select: user_select,
-                "-webkit-user-select": user_select,
-            },
 
             Self::selector_ns("code"): {
-                user_select: user_select,
-                "-webkit-user-select": user_select,
                 font_family: font_family.to_owned(),
                 font_size: px(font_size),
             },
-
-            Self::selector_ns("line"): {
-                "-webkit-user-select": user_select,
-                user_select: user_select,
-            },
-
-            /*
-            Self::selector_ns("line") + " span::selection": {
-                background_color: self.selection_background().to_css(),
-            },
-            */
 
             Self::selector_ns("line") + " .selected": {
                background_color: self.selection_background().to_css(),
@@ -1317,6 +1294,14 @@ where
             }
     }
 
+    fn user_select(&self) -> &'static str{
+        if self.options.allow_text_selection {
+            "text"
+        } else {
+            "none"
+        }
+    }
+
     // highlighted view
     pub fn view_highlighted_lines(&self) -> Node<Msg> {
         let code_attributes = [
@@ -1336,7 +1321,11 @@ where
                         Self::class_ns("line"),
                         // needed to put the height here, since for some reason it add 1px to the
                         // parent div, not a margin, not border,
-                        style! {height: px(self.ch_height())},
+                        style! {
+                            height: px(self.ch_height()),
+                            user_select: self.user_select(),
+                            "-webkit-user-select": self.user_select(),
+                        },
                     ],
                     {
                         [self.view_line_number(line_index + 1)]
