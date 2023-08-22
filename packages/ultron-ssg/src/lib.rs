@@ -2,6 +2,7 @@
 use css_colors::rgba;
 use css_colors::Color as ColorTrait;
 use css_colors::RGBA;
+use sauron::html::{doctype, node_list};
 use sauron::*;
 use ultron_syntaxes_themes::Color;
 use ultron_syntaxes_themes::Style;
@@ -41,7 +42,7 @@ impl CodeViewer {
             })
         });
 
-        div(code_attributes, rendered_lines)
+        code(code_attributes, rendered_lines)
     }
 
     fn view_highlighted_line<MSG>(&self, line: &[(Style, &str)]) -> Vec<Node<MSG>> {
@@ -49,12 +50,44 @@ impl CodeViewer {
             vec![br([], [])]
         } else {
             line.iter()
-                .map(|(style, range)| {
+                .map(|(style, range_str)| {
                     let foreground = to_rgba(style.foreground).to_css();
-                    span([style! { color: foreground }], [text(range)])
+                    let is_all_whitespace = range_str.trim().is_empty();
+                    if is_all_whitespace {
+                        safe_html(Self::transform_whitespace(&range_str))
+                    } else {
+                        let (spaces, word) = Self::split_until_char(&range_str);
+                        node_list([
+                            safe_html(Self::transform_whitespace(&spaces)),
+                            span([style! { color: foreground }], [text(word)]),
+                        ])
+                    }
                 })
                 .collect()
         }
+    }
+
+    fn split_until_char(range_str: &str) -> (&str, &str) {
+        let mut mid = 0;
+        for (i, c) in range_str.chars().enumerate() {
+            if !c.is_whitespace() {
+                mid = i;
+                break;
+            }
+        }
+        range_str.split_at(mid)
+    }
+
+    // Note: we have to use transform whitespace here
+    // since pre>code is inconsistent in chrome and ff
+    fn transform_whitespace(range_str: &str) -> String {
+        let mut buffer = String::new();
+        range_str.chars().for_each(|c| match c {
+            ' ' => buffer += "&nbsp;",
+            '\t' => buffer += &"&nbsp;".repeat(4),
+            _ => unreachable!(),
+        });
+        buffer
     }
 
     fn view_line_number<MSG>(&self, line_number: usize) -> Node<MSG> {
@@ -143,4 +176,10 @@ where
 pub fn render_to_string(content: &str, syntax_token: &str, theme_name: Option<&str>) -> String {
     let node = render::<()>(content, syntax_token, theme_name);
     node.render_to_string()
+}
+
+pub fn render_as_html_page(content: &str, syntax_token: &str, theme_name: Option<&str>) -> String {
+    let node = render::<()>(content, syntax_token, theme_name);
+    let complete = node_list([doctype("html"), html([], [body([], [node])])]);
+    complete.render_to_string()
 }

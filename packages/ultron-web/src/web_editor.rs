@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::context_menu::{self, Menu};
 use crate::util;
 use css_colors::{rgba, Color, RGBA};
@@ -448,8 +449,8 @@ where
                 text_align: "right",
                 background_color: "#ddd",
                 display: "inline-block",
-                user_select: "none",
-                "-webkit-user-select": "none",
+                //user_select: "none",
+                //"-webkit-user-select": "none",
             },
 
             // line content
@@ -551,6 +552,7 @@ where
     {
         self.ready_listener.push(Callback::from(move |_| f()));
     }
+
 
     pub fn set_syntax_token(&mut self, syntax_token: &str) {
         self.text_highlighter
@@ -1247,6 +1249,8 @@ where
                         width: px(self.ch_width() * self.base_editor.numberline_wide() as f32),
                         height: px(self.ch_height()),
                         padding_right: px(self.ch_width() * self.numberline_padding_wide() as f32),
+                        user_select: "none",
+                        "-webkit-user-select": "none",
                     },
                 ],
                 [text(line_number)],
@@ -1288,10 +1292,42 @@ where
                 .map(|(style, range)| {
                     let foreground = util::to_rgba(style.foreground).to_css();
                     let range_str = String::from_iter(range.iter().map(|ch| ch.ch));
-                    span([style! { color: foreground }], [text(range_str)])
+                    let is_all_whitespace = range_str.trim().is_empty();
+                    if is_all_whitespace{
+                        safe_html(Self::transform_whitespace(&range_str))
+                    }else{
+                        let (spaces,word) = Self::split_until_char(&range_str);
+                        node_list([
+                            safe_html(Self::transform_whitespace(&spaces)),
+                            span([style! { color: foreground }], [text(word)])
+                        ])
+                    }
                 })
                 .collect()
             }
+    }
+
+    // Note: we have to use transform whitespace here
+    // since pre>code is inconsistent in chrome and ff
+    fn transform_whitespace(range_str: &str) -> String {
+        let mut buffer = String::new();
+        range_str.chars().for_each(|c|match c{
+            ' ' => buffer += "&nbsp;",
+            '\t' => buffer += &"&nbsp;".repeat(4),
+             _ => unreachable!(),
+        });
+        buffer
+    }
+
+    fn split_until_char(range_str: &str) -> (&str, &str){
+        let mut mid = 0;
+        for (i,c) in range_str.chars().enumerate(){
+            if !c.is_whitespace(){
+                mid = i;
+                break;
+            }
+        }
+        range_str.split_at(mid)
     }
 
     fn user_select(&self) -> &'static str{
@@ -1323,14 +1359,13 @@ where
                         // parent div, not a margin, not border,
                         style! {
                             height: px(self.ch_height()),
-                            user_select: self.user_select(),
-                            "-webkit-user-select": self.user_select(),
                         },
                     ],
                     {
                         [self.view_line_number(line_index + 1)]
                             .into_iter()
                             .chain(self.view_highlighted_line(line))
+                            .chain(std::iter::once(br([],[])))
                             .collect::<Vec<_>>()
                     },
                 )
@@ -1339,10 +1374,7 @@ where
             // using <pre><code> works well when copying in chrome
             // but in firefox, it creates a double line when select-copying the text
             // whe need to use <pre><code> in order for typing whitespace works.
-            pre(
-                [Self::class_ns("code_wrapper")],
-                [code(code_attributes, rendered_lines)],
-            )
+            code(code_attributes, rendered_lines)
     }
 
     /// height of the status line which displays editor infor such as cursor location
