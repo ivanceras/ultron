@@ -446,8 +446,8 @@ where
                 text_align: "right",
                 background_color: "#ddd",
                 display: "inline-block",
-                //user_select: "none",
-                //"-webkit-user-select": "none",
+                user_select: "none",
+                "-webkit-user-select": "none",
             },
 
             // line content
@@ -1363,7 +1363,11 @@ where
                         Self::class_ns("line"),
                         // Important! This is needed to render blank lines with same height as the
                         // non blank ones
-                        style! {height: px(self.ch_height())},
+                        style! {
+                            height: px(self.ch_height()),
+                            user_select: self.user_select(),
+                            "-webkit-user-select": self.user_select(),
+                        },
                     ],
                     [
                         self.view_line_number(line_number),
