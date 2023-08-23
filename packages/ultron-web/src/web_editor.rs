@@ -423,11 +423,8 @@ where
                 height: "auto",
             },
 
-            "pre code":{
+            "code":{
                 white_space: "pre",
-                word_spacing: "normal",
-                word_break: "normal",
-                word_wrap: "normal",
             },
 
             Self::selector_ns("code_wrapper"): {
@@ -1289,45 +1286,15 @@ where
             vec![text("\n")]
         }else{
             line.iter()
-                .flat_map(|(style, range)| {
+                .map(|(style, range)| {
                     let foreground = util::to_rgba(style.foreground).to_css();
                     let range_str = String::from_iter(range.iter().map(|ch| ch.ch));
-                    let is_all_whitespace = range_str.trim().is_empty();
-                    if is_all_whitespace{
-                        vec![safe_html(Self::transform_whitespace(&range_str))]
-                    }else{
-                        let (spaces,word) = Self::split_until_char(&range_str);
-                        vec![
-                            safe_html(Self::transform_whitespace(&spaces)),
-                            span([style! { color: foreground }], [text(word)])
-                        ]
-                    }
+                    span([style! { color: foreground }], [
+                        text(range_str)
+                    ])
                 })
                 .collect()
             }
-    }
-
-    // Note: we have to use transform whitespace here
-    // since pre>code is inconsistent in chrome and ff
-    fn transform_whitespace(range_str: &str) -> String {
-        let mut buffer = String::new();
-        range_str.chars().for_each(|c|match c{
-            ' ' => buffer += "&nbsp;",
-            '\t' => buffer += &"&nbsp;".repeat(4),
-             _ => unreachable!(),
-        });
-        buffer
-    }
-
-    fn split_until_char(range_str: &str) -> (&str, &str){
-        let mut mid = 0;
-        for (i,c) in range_str.chars().enumerate(){
-            if !c.is_whitespace(){
-                mid = i;
-                break;
-            }
-        }
-        range_str.split_at(mid)
     }
 
     fn user_select(&self) -> &'static str{
@@ -1365,7 +1332,6 @@ where
                         [self.view_line_number(line_index + 1)]
                             .into_iter()
                             .chain(self.view_highlighted_line(line))
-                            .chain(std::iter::once(br([],[])))
                             .collect::<Vec<_>>()
                     },
                 )
