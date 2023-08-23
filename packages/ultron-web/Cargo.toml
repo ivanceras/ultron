@@ -41,6 +41,8 @@ features = [
     "FontFace",
     "FontFaceSet",
     "FontFaceSetLoadStatus",
+    "Range",
+    "Selection",
 ]
 
 

@@ -71,6 +71,7 @@ pub enum Call {
     CopyText,
     /// execute cut text
     CutText,
+    SelectAll,
 }
 
 /// rename this to WebEditor
@@ -393,8 +394,7 @@ where
                     MenuAction::Paste => todo!(),
                     MenuAction::Delete => todo!(),
                     MenuAction::SelectAll => {
-                        self.process_calls_with_effects([Call::Command(Command::SelectAll)]);
-                        log::info!("selected text: {:?}", self.selected_text());
+                        self.process_calls_with_effects([Call::SelectAll]);
                     }
                 }
                 Effects::none()
@@ -440,6 +440,7 @@ where
             },
 
 
+
             // numbers
             Self::selector_ns("number"): {
                 flex: "none", // dont compress the numbers
@@ -448,6 +449,15 @@ where
                 display: "inline-block",
                 user_select: "none",
                 "-webkit-user-select": "none",
+            },
+
+            // numbers when selected programatically
+            // using Range::select_node_contents, the numbers are visually highlighted in the browser
+            // but not included when copy pasted to a simple text editor.
+            // To visually represent that the number are not included in the selection
+            // set the background-color to transparent
+            Self::selector_ns("number") + "::selection": {
+                background_color: "transparent",
             },
 
             // line content
@@ -601,6 +611,18 @@ where
         } else {
             vec![]
         }
+    }
+
+    fn browser_select_all(&self) -> bool{
+        log::info!("browser select all.");
+        let selection = window().get_selection().ok().flatten().expect("must have selection");
+        selection.remove_all_ranges();
+        let range = web_sys::Range::new().expect("must create range");
+        let editor_element = self.editor_element.as_ref().expect("expecting editor element");
+        let editor_node: &web_sys::Node = editor_element.unchecked_ref();
+        range.select_node_contents(editor_node);
+        selection.add_range(&range);
+        false
     }
 
     fn view_web_editor(&self) -> Node<Msg> {
@@ -828,7 +850,9 @@ where
                     }
                 }
                 'r' if is_ctrl => Call::Command(Command::Redo),
-                'a' if is_ctrl => Call::Command(Command::SelectAll),
+                'a' if is_ctrl => {
+                    Call::SelectAll
+                }
                 _ => Call::Command(Command::InsertChar(c)),
             };
 
@@ -957,6 +981,7 @@ where
                 .process_command(Command::MergeText(text_block)),
             Call::CopyText => self.copy_selected_text_to_clipboard(),
             Call::CutText => self.cut_selected_text_to_clipboard(),
+            Call::SelectAll => self.browser_select_all(),
         }
     }
 
