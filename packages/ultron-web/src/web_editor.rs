@@ -425,6 +425,7 @@ where
 
             "code":{
                 white_space: "pre",
+                caret_color: "transparent",
             },
 
             Self::selector_ns("code_wrapper"): {
@@ -655,6 +656,7 @@ where
                 }),
                 spellcheck(false),
                 tabindex(0),
+                contenteditable(true),
                 attr("role","textbox"),
                 on_focus(Msg::Focused),
                 on_blur(Msg::Blur),
