@@ -617,11 +617,9 @@ where
         log::info!("browser select all.");
         let selection = window().get_selection().ok().flatten().expect("must have selection");
         selection.remove_all_ranges();
-        let range = web_sys::Range::new().expect("must create range");
         let editor_element = self.editor_element.as_ref().expect("expecting editor element");
         let editor_node: &web_sys::Node = editor_element.unchecked_ref();
-        range.select_node_contents(editor_node);
-        selection.add_range(&range);
+        selection.select_all_children(editor_node);
         false
     }
 
