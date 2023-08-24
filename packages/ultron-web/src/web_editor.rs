@@ -72,6 +72,7 @@ pub enum Call {
     /// execute cut text
     CutText,
     SelectAll,
+    ClearSelection,
 }
 
 /// rename this to WebEditor
@@ -478,6 +479,12 @@ where
                 display: "flex",
                 flex_direction: "row",
                 user_select: "none",
+                "-webkit-user-select": "none",
+            },
+
+            // set background color to transparent when programatically selected
+            Self::selector_ns("status") + "::selection": {
+                background_color: "transparent",
             },
 
             Self::selector_ns("virtual_cursor"): {
@@ -614,6 +621,12 @@ where
         }
     }
 
+    fn browser_clear_selection(&self) -> bool {
+        let selection = window().get_selection().ok().flatten().expect("must have selection");
+        selection.remove_all_ranges();
+        false
+    }
+
     fn browser_select_all(&self) -> bool{
         log::info!("browser select all.");
         let selection = window().get_selection().ok().flatten().expect("must have selection");
@@ -638,10 +651,10 @@ where
                     empty_attr()
                 },
                 on_mount(Msg::EditorMounted),
-                on_keydown(move |ke| {
+                on_keydown(move|ke|{
+                    ke.prevent_default();
+                    ke.stop_propagation();
                     if enable_keypresses {
-                        ke.prevent_default();
-                        ke.stop_propagation();
                         Msg::Keydown(ke)
                     } else {
                         Msg::NoOp
@@ -982,6 +995,7 @@ where
             Call::CopyText => self.copy_selected_text_to_clipboard(),
             Call::CutText => self.cut_selected_text_to_clipboard(),
             Call::SelectAll => self.browser_select_all(),
+            Call::ClearSelection => self.browser_clear_selection(),
         }
     }
 
