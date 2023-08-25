@@ -1,3 +1,4 @@
+use crate::Spinner;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use sauron::wasm_bindgen::JsCast;
@@ -7,7 +8,6 @@ use sauron::{
     html::{attributes::*, units::*, *},
     *,
 };
-use crate::Spinner;
 use web_sys::FontFace;
 
 const IOSEVKA_FONT: &[u8] = include_bytes!("../../../fonts/iosevka-fixed-regular.woff2");
@@ -115,7 +115,6 @@ where
         pre(
             [],
             [
-
                 Spinner::new(20).view(),
                 text("font loader is loading..."),
                 code(
@@ -136,8 +135,7 @@ where
         )
     }
 
-
-    fn stylesheet()->Vec<String>{
+    fn stylesheet() -> Vec<String> {
         <Spinner as Component<Msg, ()>>::stylesheet()
     }
 
@@ -147,7 +145,6 @@ where
 }
 
 impl<XMSG> FontLoader<XMSG> {
-
     /// add a callback to be called when the fonts has already been loaded and measured
     pub fn on_fonts_ready<F>(&mut self, f: F)
     where
@@ -169,12 +166,7 @@ impl<XMSG> FontLoader<XMSG> {
                 self.ch_width = Some(ch_width);
                 self.ch_height = Some(ch_height);
                 self.is_fonts_measured = true;
-                self.ready_listener
-                    .iter()
-                    .map(|c| {
-                        c.emit(())
-                    })
-                    .collect()
+                self.ready_listener.iter().map(|c| c.emit(())).collect()
             } else {
                 vec![]
             }
@@ -186,6 +178,4 @@ impl<XMSG> FontLoader<XMSG> {
     pub fn is_ready(&self) -> bool {
         self.is_fonts_loaded && self.is_fonts_measured && self.mount_element.is_some()
     }
-
 }
-

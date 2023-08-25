@@ -1,19 +1,19 @@
 #![allow(unused)]
 use crate::context_menu::{self, Menu};
 use crate::util;
+use crate::Spinner;
 use css_colors::{rgba, Color, RGBA};
-use sauron::prelude::*;
+use sauron::dom::{request_idle_callback, IdleCallbackHandle, IdleDeadline};
 use sauron::html::node_list;
+use sauron::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use ultron_core::{
-    base_editor::Callback, nalgebra::Point2, BaseEditor, Ch, Style, TextBuffer,
-    TextEdit, TextHighlighter,
+    base_editor::Callback, nalgebra::Point2, BaseEditor, Ch, Style, TextBuffer, TextEdit,
+    TextHighlighter,
 };
-use crate::Spinner;
-use sauron::dom::{IdleCallbackHandle, IdleDeadline, request_idle_callback};
 use web_sys::HtmlElement;
 
 pub use crate::context_menu::MenuAction;
@@ -178,7 +178,6 @@ where
             ..Default::default()
         }
     }
-
 }
 
 impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG>
@@ -194,7 +193,10 @@ where
             Msg::EditorMounted(mount_event) => {
                 log::info!("Web editor is mounted..");
                 let mount_element: web_sys::Element = mount_event.target_node.unchecked_into();
-                mount_element.unchecked_ref::<HtmlElement>().focus().expect("mount_node should focus");
+                mount_element
+                    .unchecked_ref::<HtmlElement>()
+                    .focus()
+                    .expect("mount_node should focus");
                 let root_node = mount_element.get_root_node();
                 if let Some(shadow_root) = root_node.dyn_ref::<web_sys::ShadowRoot>() {
                     let host_element = shadow_root.host();
@@ -296,7 +298,7 @@ where
                 }
             }
             Msg::Mouseup(me) => {
-                if self.is_ready() && MouseButton::is_primary(&me){
+                if self.is_ready() && MouseButton::is_primary(&me) {
                     let client_x = me.client_x();
                     let client_y = me.client_y();
                     let is_primary_btn = me.button() == 0;
@@ -327,9 +329,7 @@ where
                     Effects::none()
                 }
             }
-            Msg::Keydown(ke) => {
-                self.process_keypress(&ke)
-            }
+            Msg::Keydown(ke) => self.process_keypress(&ke),
             Msg::Measurements(measure) => {
                 self.update_measure(measure);
                 Effects::none()
@@ -502,7 +502,7 @@ where
             },
         };
 
-        let media_css = jss_with_media!{
+        let media_css = jss_with_media! {
             "@keyframes cursor_blink-anim": {
               "0%": {
                 opacity: percent(0),
@@ -522,7 +522,12 @@ where
             },
         };
 
-        [vec![main, media_css], FontLoader::<Msg>::stylesheet(), Menu::<Msg>::stylesheet()].concat()
+        [
+            vec![main, media_css],
+            FontLoader::<Msg>::stylesheet(),
+            Menu::<Msg>::stylesheet(),
+        ]
+        .concat()
     }
 
     fn style(&self) -> Vec<String> {
@@ -560,14 +565,12 @@ impl<XMSG> WebEditor<XMSG>
 where
     XMSG: 'static,
 {
-
     pub fn on_ready<F>(&mut self, f: F)
     where
         F: Fn() -> XMSG + 'static,
     {
         self.ready_listener.push(Callback::from(move |_| f()));
     }
-
 
     pub fn set_syntax_token(&mut self, syntax_token: &str) {
         self.text_highlighter
@@ -622,16 +625,27 @@ where
     }
 
     fn browser_clear_selection(&self) -> bool {
-        let selection = window().get_selection().ok().flatten().expect("must have selection");
+        let selection = window()
+            .get_selection()
+            .ok()
+            .flatten()
+            .expect("must have selection");
         selection.remove_all_ranges();
         false
     }
 
-    fn browser_select_all(&self) -> bool{
+    fn browser_select_all(&self) -> bool {
         log::info!("browser select all.");
-        let selection = window().get_selection().ok().flatten().expect("must have selection");
+        let selection = window()
+            .get_selection()
+            .ok()
+            .flatten()
+            .expect("must have selection");
         selection.remove_all_ranges();
-        let editor_element = self.editor_element.as_ref().expect("expecting editor element");
+        let editor_element = self
+            .editor_element
+            .as_ref()
+            .expect("expecting editor element");
         let editor_node: &web_sys::Node = editor_element.unchecked_ref();
         selection.select_all_children(editor_node);
         false
@@ -645,13 +659,13 @@ where
             [
                 Self::class_ns(""),
                 key("editor-main"),
-                if self.options.occupy_container{
+                if self.options.occupy_container {
                     Self::class_ns("occupy_container")
-                }else{
+                } else {
                     empty_attr()
                 },
                 on_mount(Msg::EditorMounted),
-                on_keydown(move|ke|{
+                on_keydown(move |ke| {
                     ke.prevent_default();
                     ke.stop_propagation();
                     if enable_keypresses {
@@ -670,7 +684,7 @@ where
                 spellcheck(false),
                 tabindex(0),
                 contenteditable(true),
-                attr("role","textbox"),
+                attr("role", "textbox"),
                 on_focus(Msg::Focused),
                 on_blur(Msg::Blur),
                 on_contextmenu(move |me| {
@@ -687,21 +701,18 @@ where
                 },
             ],
             [
-
                 if self.options.use_syntax_highlighter {
                     self.view_highlighted_lines()
                 } else {
                     self.view_text_edit()
                 },
-                lazy_view_if(
-                    self.is_focused && self.options.show_cursor,
-                    ||self.view_cursor(),
-                ),
-                lazy_view_if(self.options.show_status_line, ||self.view_status_line()),
-                lazy_view_if(
-                    self.is_focused && self.show_context_menu,
-                    ||self.context_menu.view().map_msg(Msg::ContextMenuMsg),
-                ),
+                lazy_view_if(self.is_focused && self.options.show_cursor, || {
+                    self.view_cursor()
+                }),
+                lazy_view_if(self.options.show_status_line, || self.view_status_line()),
+                lazy_view_if(self.is_focused && self.show_context_menu, || {
+                    self.context_menu.view().map_msg(Msg::ContextMenuMsg)
+                }),
             ],
         )
     }
@@ -768,22 +779,25 @@ where
                 text_highlighter.reset();
                 let mut did_complete = true;
                 let mut new_highlighted_lines = Vec::with_capacity(end);
-                for line in lines[..end].iter(){
+                for line in lines[..end].iter() {
                     new_highlighted_lines.push(Self::highlight_line(line, &mut text_highlighter));
-                    if deadline.did_timeout(){
+                    if deadline.did_timeout() {
                         log::warn!("No more time highlighting visible lines");
                         did_complete = false;
                         break;
                     }
                 }
-                
-                for (hl_line, new_hl_line) in highlighted_lines.borrow_mut().iter_mut().zip(new_highlighted_lines){
+
+                for (hl_line, new_hl_line) in highlighted_lines
+                    .borrow_mut()
+                    .iter_mut()
+                    .zip(new_highlighted_lines)
+                {
                     *hl_line = new_hl_line;
                 }
-                if did_complete{
+                if did_complete {
                     log::info!("Succeeded highlighting all visible lines..");
-                }
-                else{
+                } else {
                     log::warn!("The highlighting job did not complete...");
                 }
             };
@@ -808,33 +822,37 @@ where
             let is_background_highlighting_ongoing =
                 self.is_background_highlighting_ongoing.clone();
 
-            let closure = move |deadline:IdleDeadline| {
+            let closure = move |deadline: IdleDeadline| {
                 is_background_highlighting_ongoing.store(true, Ordering::Relaxed);
                 let mut text_highlighter = text_highlighter.borrow_mut();
                 let mut did_complete = true;
                 let mut new_highlighted_lines = Vec::with_capacity(lines.len() - end);
-                for line in lines[end..].iter(){
+                for line in lines[end..].iter() {
                     new_highlighted_lines.push(Self::highlight_line(line, &mut text_highlighter));
-                    if deadline.did_timeout(){
+                    if deadline.did_timeout() {
                         log::warn!("---> No more time background highlighting...");
                         did_complete = false;
                         break;
                     }
                 }
 
-                for (hl_line, new_hl_line) in highlighted_lines.borrow_mut().iter_mut().skip(end).zip(new_highlighted_lines){
+                for (hl_line, new_hl_line) in highlighted_lines
+                    .borrow_mut()
+                    .iter_mut()
+                    .skip(end)
+                    .zip(new_highlighted_lines)
+                {
                     *hl_line = new_hl_line;
                 }
 
-                if did_complete{
+                if did_complete {
                     log::info!("Succeeded background highlighting...");
-                }else{
+                } else {
                     log::error!("Background highlighting did not complete...");
                 }
             };
 
-            let handle =
-                sauron::dom::request_idle_callback(closure).expect("timeout handle");
+            let handle = sauron::dom::request_idle_callback(closure).expect("timeout handle");
             self.background_task_handles.push(handle);
         } else {
             self.rehighlight_all();
@@ -863,9 +881,7 @@ where
                     }
                 }
                 'r' if is_ctrl => Call::Command(Command::Redo),
-                'a' if is_ctrl => {
-                    Call::SelectAll
-                }
+                'a' if is_ctrl => Call::SelectAll,
                 _ => Call::Command(Command::InsertChar(c)),
             };
 
@@ -949,9 +965,7 @@ where
         text_edit
             .lines()
             .iter()
-            .map(|line| {
-                Self::highlight_line(line, text_highlighter)
-            })
+            .map(|line| Self::highlight_line(line, text_highlighter))
             .collect()
     }
 
@@ -1025,7 +1039,9 @@ where
         if let Some(clipboard) = window().navigator().clipboard() {
             if let Some(selected_text) = self.selected_text() {
                 log::info!("selected text: {selected_text}");
-                let fut = crate::wasm_bindgen_futures::JsFuture::from(clipboard.write_text(&selected_text));
+                let fut = crate::wasm_bindgen_futures::JsFuture::from(
+                    clipboard.write_text(&selected_text),
+                );
                 sauron::dom::spawn_local(async move {
                     fut.await.expect("must not error");
                 });
@@ -1214,7 +1230,7 @@ where
     }
 
     /// the view for the status line
-    pub fn view_status_line(&self) -> Node<Msg>{
+    pub fn view_status_line(&self) -> Node<Msg> {
         let cursor = self.base_editor.get_position();
 
         div(
@@ -1253,12 +1269,12 @@ where
                 } else {
                     text!("")
                 },
-                if let Some(detail) = &self.measure.detail{
+                if let Some(detail) = &self.measure.detail {
                     node_list([
                         text!(" |> count: {}", detail.strong_count),
                         text!(" |> weak: {}", detail.weak_count),
                     ])
-                }else{
+                } else {
                     text!("")
                 },
                 if self
@@ -1274,9 +1290,8 @@ where
     }
 
     fn view_line_number(&self, line_number: usize) -> Node<Msg> {
-        lazy_view_if(
-            self.options.show_line_numbers,
-            ||span(
+        lazy_view_if(self.options.show_line_numbers, || {
+            span(
                 [
                     Self::class_ns("number"),
                     style! {
@@ -1290,8 +1305,8 @@ where
                     },
                 ],
                 [text(line_number)],
-            ),
-        )
+            )
+        })
     }
 
     /// calculate the maximum number of visible lines
@@ -1315,28 +1330,23 @@ where
         }
     }
 
-    fn view_highlighted_line(
-        &self,
-        line: &[(Style, Vec<Ch>)],
-    ) -> Vec<Node<Msg>> {
-        if line.is_empty(){
+    fn view_highlighted_line(&self, line: &[(Style, Vec<Ch>)]) -> Vec<Node<Msg>> {
+        if line.is_empty() {
             // added here to have a newline for empty lines when copied using native browser
             // selection and copy command
             vec![text("\n")]
-        }else{
+        } else {
             line.iter()
                 .map(|(style, range)| {
                     let foreground = util::to_rgba(style.foreground).to_css();
                     let range_str = String::from_iter(range.iter().map(|ch| ch.ch));
-                    span([style! { color: foreground }], [
-                        text(range_str)
-                    ])
+                    span([style! { color: foreground }], [text(range_str)])
                 })
                 .collect()
-            }
+        }
     }
 
-    fn user_select(&self) -> &'static str{
+    fn user_select(&self) -> &'static str {
         if self.options.allow_text_selection {
             "text"
         } else {
@@ -1376,10 +1386,10 @@ where
                 )
             });
 
-            // using <pre><code> works well when copying in chrome
-            // but in firefox, it creates a double line when select-copying the text
-            // whe need to use <pre><code> in order for typing whitespace works.
-            code(code_attributes, rendered_lines)
+        // using <pre><code> works well when copying in chrome
+        // but in firefox, it creates a double line when select-copying the text
+        // whe need to use <pre><code> in order for typing whitespace works.
+        code(code_attributes, rendered_lines)
     }
 
     /// height of the status line which displays editor infor such as cursor location
@@ -1408,58 +1418,56 @@ where
                             "-webkit-user-select": self.user_select(),
                         },
                     ],
-                    [
-                        self.view_line_number(line_number),
-                        span([],[text(line)])
-                    ],
+                    [self.view_line_number(line_number), span([], [text(line)])],
                 )
             });
 
-            // using <pre><code> works well when copying in chrome
-            // but in firefox, it creates a double line when select-copying the text
-            // whe need to use <pre><code> in order for typing whitespace works.
-            pre(
-                [Self::class_ns("code_wrapper")],
-                [code(code_attributes, rendered_lines)],
-            )
+        // using <pre><code> works well when copying in chrome
+        // but in firefox, it creates a double line when select-copying the text
+        // whe need to use <pre><code> in order for typing whitespace works.
+        pre(
+            [Self::class_ns("code_wrapper")],
+            [code(code_attributes, rendered_lines)],
+        )
     }
 
     pub fn view_text_buffer(text_buffer: &TextBuffer, options: &Options) -> Node<Msg> {
-
         let ch_height = options
             .ch_height
             .expect("error1: must have a ch_height in the options");
 
-        let rendered_lines = text_buffer
-            .lines()
-            .into_iter()
-            .enumerate()
-            .map(|(line_index, line)| {
-                let line_number = line_index + 1;
-                div(
-                    [
-                        Self::class_ns("line"),
-                        class("simple"),
-                        // Important! This is needed to render blank lines with same height as the
-                        // non blank ones
-                        style! {height: px(ch_height)},
-                    ],
-                    [
-                        lazy_view_if(
-                            options.show_line_numbers,
-                            ||span([Self::class_ns("number")], [text(line_number)]),
-                        ),
-                        // Note: this is important since text node with empty
-                        // content seems to cause error when finding the dom in rust
-                        span([], [text(line)]),
-                    ],
-                )
-            });
+        let rendered_lines =
+            text_buffer
+                .lines()
+                .into_iter()
+                .enumerate()
+                .map(|(line_index, line)| {
+                    let line_number = line_index + 1;
+                    div(
+                        [
+                            Self::class_ns("line"),
+                            class("simple"),
+                            // Important! This is needed to render blank lines with same height as the
+                            // non blank ones
+                            style! {height: px(ch_height)},
+                        ],
+                        [
+                            lazy_view_if(options.show_line_numbers, || {
+                                span([Self::class_ns("number")], [text(line_number)])
+                            }),
+                            // Note: this is important since text node with empty
+                            // content seems to cause error when finding the dom in rust
+                            span([], [text(line)]),
+                        ],
+                    )
+                });
 
-            // using <pre><code> works well when copying in chrome
-            // but in firefox, it creates a double line when select-copying the text
-            // whe need to use <pre><code> in order for typing whitespace works.
-            pre([Self::class_ns("code_wrapper")], [code(vec![Self::class_ns("code")], rendered_lines)])
+        // using <pre><code> works well when copying in chrome
+        // but in firefox, it creates a double line when select-copying the text
+        // whe need to use <pre><code> in order for typing whitespace works.
+        pre(
+            [Self::class_ns("code_wrapper")],
+            [code(vec![Self::class_ns("code")], rendered_lines)],
+        )
     }
 }
-
