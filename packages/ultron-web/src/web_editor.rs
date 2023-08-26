@@ -919,11 +919,11 @@ where
     /// process the calls and dispatch effects events when applicable
     pub fn process_calls_with_effects(
         &mut self,
-        commands: impl IntoIterator<Item = Call>,
+        calls: impl IntoIterator<Item = Call>,
     ) -> Effects<Msg, XMSG> {
-        let results: Vec<bool> = commands
+        let results: Vec<bool> = calls
             .into_iter()
-            .map(|command| self.process_call(command))
+            .map(|call| self.process_call(call))
             .collect();
         let is_content_changed = results.into_iter().any(|v| v);
         if is_content_changed {
