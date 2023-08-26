@@ -1,8 +1,15 @@
 # Ultron
 
-A very simple web base editor with syntax highlighting and theming.
-It also has undo/redo support
+A minimal text editor written in rust that runs on the web.
 
+## Features
+- syntax highlighting
+- themes
+- history (undo/redo)
+
+
+## Demo
+[link](https://ivanceras.github.io/ultron)
 
 ## Pre-requisite
 - rust with wasm32-unknown-unknown toolchain
@@ -32,9 +39,6 @@ just serve
 Then, navigate to http://localhost:4004
 
 
-## Demo
-
-[link](https://ivanceras.github.io/ultron)
 
 ## What is working?
 - syntax highlighting

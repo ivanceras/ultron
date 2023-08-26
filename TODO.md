@@ -124,13 +124,14 @@
 - Putting the cursor before a quote and typing will make the cursor disappear
     - This might at before any range
 - [X] The long svgbob example is taking a long time to update.
-    - 180ms when syntax highlighting is enabled
+    - (2021) 180ms when syntax highlighting is enabled
         - scrolling is 20ms
         - building the view: 50ms
         - patching : 40ms
-    - 80ms when syntax highlighting is disabled
+    - (2022-01-03) 80ms when syntax highlighting is disabled
         - Update: 15ms when syntax highlighting is disablled
         - Update: 50ms when syntax highlighting is enabled
+    - (2023-08-26) 15ms to update highlighting on/off
 - [X] When `replace_char` is called for the next page, it applies to the first page instead
 - [X] replace addition and subtraction operation with saturating_add and saturating_sub.
 - [X] If the top level view of a Program changes, then the original root_node is not set, which causes
