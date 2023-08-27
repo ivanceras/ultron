@@ -666,9 +666,9 @@ where
                 },
                 on_mount(Msg::EditorMounted),
                 on_keydown(move |ke| {
-                    ke.prevent_default();
-                    ke.stop_propagation();
                     if enable_keypresses {
+                        ke.prevent_default();
+                        ke.stop_propagation();
                         Msg::Keydown(ke)
                     } else {
                         Msg::NoOp
@@ -683,7 +683,7 @@ where
                 }),
                 spellcheck(false),
                 tabindex(0),
-                contenteditable(true),
+                contenteditable(false),
                 attr("role", "textbox"),
                 on_focus(Msg::Focused),
                 on_blur(Msg::Blur),
