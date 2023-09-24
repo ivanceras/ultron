@@ -46,6 +46,29 @@ where
     fn adopted_callback(&mut self) {}
 }
 
+impl Application<Msg> for WebEditor<()> {
+    fn init(&mut self) -> Cmd<Self, Msg> {
+        Cmd::from(<Self as Component<Msg, ()>>::init(self))
+    }
+
+    fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
+        let effects = <Self as Component<Msg, ()>>::update(self, msg);
+        Cmd::from(effects)
+    }
+
+    fn view(&self) -> Node<Msg> {
+        <Self as Component<Msg, ()>>::view(self)
+    }
+
+    fn stylesheet() -> Vec<String> {
+        <Self as Component<Msg, ()>>::stylesheet()
+    }
+
+    fn style(&self) -> Vec<String> {
+        <Self as Component<Msg, ()>>::style(self)
+    }
+}
+
 #[wasm_bindgen]
 pub struct WebEditorCustomElement {
     program: Program<WebEditor<()>, Msg>,
