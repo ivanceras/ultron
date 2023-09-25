@@ -44,6 +44,11 @@ impl Application<Msg> for App {
                     on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
                 ])
             }),
+            Cmd::new(|program| {
+                program.add_document_event_listeners(vec![on_selectionchange(|selection| {
+                    Msg::WebEditorMsg(web_editor::Msg::Selection(selection))
+                })])
+            }),
             Cmd::from(self.web_editor.init().localize(Msg::WebEditorMsg)),
         ])
     }

@@ -37,6 +37,7 @@ features = [
     "DataTransfer",
     "HtmlDocument",
     "DomRect",
+    "DomRectList",
     "Element",
     "FontFace",
     "FontFaceSet",

@@ -1,4 +1,3 @@
-#![allow(unused)]
 use crate::context_menu::{self, Menu};
 use crate::util;
 use crate::Spinner;
@@ -15,6 +14,7 @@ use ultron_core::{
     TextHighlighter,
 };
 use web_sys::HtmlElement;
+use js_sys::Array;
 
 pub use crate::context_menu::MenuAction;
 pub use crate::font_loader::FontSettings;
@@ -58,6 +58,7 @@ pub enum Msg {
     MenuAction(MenuAction),
     /// set focus to the editor
     SetFocus,
+    Selection(Option<Selection>),
     NoOp,
 }
 
@@ -400,6 +401,12 @@ where
                 }
                 Effects::none()
             }
+            Msg::Selection(selection) => {
+                if let Some(selection) = selection {
+                    self.process_selection(selection);
+                }
+                Effects::none()
+            }
             Msg::NoOp => Effects::none(),
         }
     }
@@ -630,7 +637,7 @@ where
             .ok()
             .flatten()
             .expect("must have selection");
-        selection.remove_all_ranges();
+        selection.remove_all_ranges().expect("must remove all ranges");
         false
     }
 
@@ -641,13 +648,13 @@ where
             .ok()
             .flatten()
             .expect("must have selection");
-        selection.remove_all_ranges();
+        selection.remove_all_ranges().expect("must remove all ranges");
         let editor_element = self
             .editor_element
             .as_ref()
             .expect("expecting editor element");
         let editor_node: &web_sys::Node = editor_element.unchecked_ref();
-        selection.select_all_children(editor_node);
+        selection.select_all_children(editor_node).expect("must select all children");
         false
     }
 
@@ -1013,6 +1020,95 @@ where
         }
     }
 
+    /// get the tag name of the this node
+    fn tag_name(node: &web_sys::Node) -> Option<String> {
+        let is_start_text = node.node_type() == web_sys::Node::TEXT_NODE;
+        if !is_start_text{
+            let tag_name = node.unchecked_ref::<web_sys::Element>().tag_name();
+            Some(tag_name)
+        }else{
+            None
+        }
+    }
+
+    fn classname(node: &web_sys::Node) -> Option<String>{
+        if let Some(_tag_name) = Self::tag_name(node){
+            node.unchecked_ref::<web_sys::Element>().get_attribute("class")
+        }else{
+            None
+        }
+    }
+
+    fn extract_line_group(node: &web_sys::Node) -> (usize, usize) {
+      let(group_node, line_node) =  if let Some(classname) = Self::classname(node){
+            if classname.ends_with("line"){
+                // this is a line
+                let group_node = None;
+                let line_node = node.clone();
+                (group_node, line_node)
+            }else if classname.ends_with("group"){
+                // this is a group
+                let group_node = node.clone();
+                let line_node = group_node.parent_node().expect("must have a parent");
+                (Some(group_node), line_node)
+            }
+            else{
+                // this is a text
+                let group_node = node.parent_node().expect("must have a parent");
+                let line_node = group_node.parent_node().expect("must have a parent");
+                (Some(group_node), line_node)
+            }
+        }else{
+            // this is a text
+            let group_node = node.parent_node().expect("must have a parent");
+            let line_node = group_node.parent_node().expect("must have a parent");
+            (Some(group_node), line_node)
+        };
+
+        let editor_node = line_node.parent_node().expect("must have an editor node");
+        let group_index = if let Some(group_node) = group_node{
+            Array::from(&line_node.child_nodes()).index_of(&group_node,0)
+        }else{
+            0
+        };
+        let line_index = Array::from(&editor_node.child_nodes()).index_of(&line_node,0);
+        log::info!("line_index: {line_index}, group_index: {group_index}");
+        (line_index.try_into().unwrap(), group_index.try_into().unwrap())
+    }
+
+    /// extract the line range and offset of this range
+    fn extract_start_line_group_offset(range: &web_sys::Range) -> (usize, usize, usize){
+        let start = range.start_container().expect("must have a start container");
+        let (line, group) = Self::extract_line_group(&start);
+        let offset = range.start_offset().expect("must have a start offset");
+        (line, group, offset.try_into().unwrap())
+    }
+
+    fn extract_end_line_group_offset(range: &web_sys::Range) -> (usize, usize, usize){
+        let end = range.end_container().expect("must have a end container");
+        let (line, group) = Self::extract_line_group(&end);
+        let offset = range.end_offset().expect("must have a end offset");
+        (line, group, offset.try_into().unwrap())
+    }
+
+    fn process_selection(&self, selection: Selection){
+        let anchor_node = selection.anchor_node();
+        let focus_node = selection.focus_node();
+        match (anchor_node, focus_node) {
+            (Some(_anchor_node), Some(_focus_node)) => {
+                let range_count = selection.range_count();
+                assert!(range_count > 0);
+                let first_range = selection.get_range_at(0).expect("must have a first range");
+                let last_range = selection.get_range_at(range_count - 1).expect("must have a last range");
+                let (start_line, start_group, start_offset) = Self::extract_start_line_group_offset(&first_range);
+                let (end_line, end_group, end_offset) = Self::extract_end_line_group_offset(&last_range);
+                log::info!("start: [{start_line},{start_group},{start_offset}]");
+                log::info!("end: [{end_line},{end_group},{end_offset}]");
+            }
+            _ => (),
+        }
+    }
+
     pub fn selected_text(&self) -> Option<String> {
         self.base_editor.selected_text()
     }
@@ -1340,7 +1436,7 @@ where
                 .map(|(style, range)| {
                     let foreground = util::to_rgba(style.foreground).to_css();
                     let range_str = String::from_iter(range.iter().map(|ch| ch.ch));
-                    span([style! { color: foreground }], [text(range_str)])
+                    span([Self::class_ns("group"), style! { color: foreground }], [text(range_str)])
                 })
                 .collect()
         }
@@ -1418,7 +1514,7 @@ where
                             "-webkit-user-select": self.user_select(),
                         },
                     ],
-                    [self.view_line_number(line_number), span([], [text(line)])],
+                    [self.view_line_number(line_number), span([Self::class_ns("group")], [text(line)])],
                 )
             });
 
@@ -1457,7 +1553,7 @@ where
                             }),
                             // Note: this is important since text node with empty
                             // content seems to cause error when finding the dom in rust
-                            span([], [text(line)]),
+                            span([Self::class_ns("group")], [text(line)]),
                         ],
                     )
                 });
