@@ -1039,7 +1039,7 @@ where
         }
     }
 
-    fn extract_line_group(node: &web_sys::Node) -> (usize, usize) {
+    fn extract_line_group(node: &web_sys::Node) -> (i32, i32) {
       let(group_node, line_node) =  if let Some(classname) = Self::classname(node){
             if classname.ends_with("line"){
                 // this is a line
@@ -1077,18 +1077,38 @@ where
     }
 
     /// extract the line range and offset of this range
-    fn extract_start_line_group_offset(range: &web_sys::Range) -> (usize, usize, usize){
+    fn extract_start_line_group_offset(range: &web_sys::Range) -> (i32, i32, i32){
         let start = range.start_container().expect("must have a start container");
         let (line, group) = Self::extract_line_group(&start);
         let offset = range.start_offset().expect("must have a start offset");
         (line, group, offset.try_into().unwrap())
     }
 
-    fn extract_end_line_group_offset(range: &web_sys::Range) -> (usize, usize, usize){
+    fn extract_end_line_group_offset(range: &web_sys::Range) -> (i32, i32, i32){
         let end = range.end_container().expect("must have a end container");
         let (line, group) = Self::extract_line_group(&end);
         let offset = range.end_offset().expect("must have a end offset");
         (line, group, offset.try_into().unwrap())
+    }
+
+    fn map_line_group_offset_to_line_column(&self, line: i32, group: i32, offset: i32) -> Point2<i32> {
+        if self.options.use_syntax_highlighter{
+            let group = if self.options.show_line_numbers{
+                group - 1
+            }else{
+                group
+            };
+            let highlighted_lines  = self.highlighted_lines.borrow();
+            let hl_line = &highlighted_lines[line as usize];
+            let mut sum = 0;
+            for i in 0..group{
+                let (_style, chars) = &hl_line[i as usize];
+                sum += chars.len();
+            }
+            Point2::new(line, sum as i32 + offset)
+        }else{
+           Point2::new(line, offset) 
+        }
     }
 
     fn process_selection(&self, selection: Selection){
@@ -1104,6 +1124,11 @@ where
                 let (end_line, end_group, end_offset) = Self::extract_end_line_group_offset(&last_range);
                 log::info!("start: [{start_line},{start_group},{start_offset}]");
                 log::info!("end: [{end_line},{end_group},{end_offset}]");
+                let start_loc = self.map_line_group_offset_to_line_column(start_line, start_group, start_offset);
+                let end_loc = self.map_line_group_offset_to_line_column(end_line, end_group, end_offset);
+                log::info!("start_loc: {start_loc}");
+                log::info!("end_loc: {end_loc}");
+
             }
             _ => (),
         }
