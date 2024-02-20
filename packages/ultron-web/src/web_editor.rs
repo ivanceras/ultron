@@ -31,7 +31,7 @@ mod mouse_cursor;
 pub mod custom_element;
 mod options;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Msg {
     EditorMounted(MountEvent),
     FontReady,
@@ -77,6 +77,7 @@ pub enum Call {
 }
 
 /// rename this to WebEditor
+#[derive(Clone)]
 pub struct WebEditor<XMSG> {
     pub options: Options,
     font_loader: FontLoader<Msg>,
@@ -1107,7 +1108,7 @@ where
             }
             Point2::new(line, sum as i32 + offset)
         }else{
-           Point2::new(line, offset) 
+           Point2::new(line, offset)
         }
     }
 

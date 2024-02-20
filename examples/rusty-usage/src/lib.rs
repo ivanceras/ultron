@@ -30,7 +30,7 @@ impl Application<Msg> for App {
                     syntax("rust"),
                     theme("solarized-light"),
                     value(&self.content),
-                    on_input(|input| Msg::ContentChanged(input.value)),
+                    on_input(|input| Msg::ContentChanged(input.value())),
                 ],
                 [],
             )],
