@@ -32,13 +32,11 @@ impl Default for FontSettings {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Msg {
     FontsLoaded,
     FontMeasureMounted(MountEvent),
 }
-
-#[derive(Clone)]
 pub struct FontLoader<XMSG> {
     pub settings: FontSettings,
     ready_listener: Vec<Callback<(), XMSG>>,

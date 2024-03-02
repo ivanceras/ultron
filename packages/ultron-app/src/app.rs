@@ -1,16 +1,13 @@
 use ultron_web::{
     sauron, sauron::prelude::*, web_editor, BaseOptions, Options, SelectionMode, WebEditor,
 };
-use crate::dom::PreDiff;
 
-#[derive(Clone)]
 pub enum Msg {
     WebEditorMsg(web_editor::Msg),
     EditorReady,
 }
 
 /// The web editor with text area hacks for listening to typing events
-#[derive(Clone)]
 pub struct App {
     web_editor: WebEditor<Msg>,
 }
@@ -67,10 +64,6 @@ impl Application<Msg> for App {
                 Cmd::from(effects)
             }
         }
-    }
-
-    fn pre_diff(&self, _other: &Self) -> Option<Vec<PreDiff>> {
-        None
     }
 
     fn view(&self) -> Node<Msg> {
