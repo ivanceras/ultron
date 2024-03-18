@@ -1,4 +1,4 @@
-use sauron::Callback;
+use sauron::vdom::Callback;
 use sauron::{html::attributes::*, html::events::*, html::units::*, html::*, *};
 use ultron_core::nalgebra::Point2;
 
@@ -47,16 +47,20 @@ impl<XMSG> Menu<XMSG> {
     pub(crate) fn on_activate<F>(mut self, f: F) -> Self
     where
         F: Fn(MenuAction) -> XMSG + 'static,
+        XMSG: 'static
     {
         self.listeners.push(Callback::from(f));
         self
     }
 }
 
-impl<XMSG> Component<Msg, XMSG> for Menu<XMSG>
+impl<XMSG> Component for Menu<XMSG>
 where
     XMSG: 'static,
 {
+    type MSG = Msg;
+    type XMSG = XMSG;
+
     fn init(&mut self) -> Effects<Msg, XMSG> {
         Effects::none()
     }

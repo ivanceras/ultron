@@ -34,8 +34,11 @@ impl App {
     }
 }
 
-impl Application<Msg> for App {
-    fn init(&mut self) -> Cmd<Self, Msg> {
+impl Application for App {
+
+    type MSG = Msg;
+
+    fn init(&mut self) -> Cmd<Self> {
         Cmd::batch([
             Cmd::new(|program| {
                 program.add_window_event_listeners(vec![
@@ -53,7 +56,7 @@ impl Application<Msg> for App {
         ])
     }
 
-    fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
+    fn update(&mut self, msg: Msg) -> Cmd<Self> {
         match msg {
             Msg::EditorReady => {
                 log::info!("Editor is now ready..");
@@ -89,7 +92,7 @@ impl Application<Msg> for App {
         self.web_editor.style()
     }
 
-    fn measurements(&self, measurements: Measurements) -> Cmd<Self, Msg> {
+    fn measurements(&self, measurements: Measurements) -> Cmd<Self> {
         Cmd::new(|mut program| {
             program.dispatch(Msg::WebEditorMsg(web_editor::Msg::Measurements(
                 measurements,

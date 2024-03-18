@@ -10,14 +10,12 @@ impl Spinner {
     }
 }
 
-impl<MSG> Component<MSG, ()> for Spinner
-where
-    MSG: 'static,
+impl Spinner
 {
-    fn view(&self) -> Node<MSG> {
+    pub fn view<MSG>(&self) -> Node<MSG> {
         svg(
             [
-                Self::class_ns("spinner"),
+                class("spinner"),
                 view_box([0, 0, self.size, self.size]),
                 style! {
                     width: px(self.size),
@@ -26,7 +24,7 @@ where
             ],
             [circle(
                 [
-                    Self::class_ns("path"),
+                    class("path"),
                     cx(self.size / 2),
                     cy(self.size / 2),
                     r(self.size / 3),
@@ -38,11 +36,7 @@ where
         )
     }
 
-    fn update(&mut self, _msg: MSG) -> Effects<MSG, ()> {
-        Effects::none()
-    }
-
-    fn stylesheet() -> Vec<String> {
+    pub fn stylesheet() -> Vec<String> {
         vec![
             jss! {
             ".spinner": {

@@ -181,10 +181,13 @@ where
     }
 }
 
-impl<XMSG> Component<Msg, XMSG> for WebEditor<XMSG>
+impl<XMSG> Component for WebEditor<XMSG>
 where
     XMSG: 'static,
 {
+    type MSG = Msg;
+    type XMSG = XMSG;
+
     fn init(&mut self) -> Effects<Msg, XMSG> {
         self.font_loader.init().localize(Msg::FontLoaderMsg)
     }

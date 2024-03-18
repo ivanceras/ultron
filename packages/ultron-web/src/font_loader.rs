@@ -7,6 +7,7 @@ use sauron::{
     events::*,
     html::{attributes::*, units::*, *},
     *,
+    vdom::Callback,
 };
 use web_sys::FontFace;
 
@@ -72,10 +73,13 @@ impl<XMSG> FontLoader<XMSG> {
     }
 }
 
-impl<XMSG> Component<Msg, XMSG> for FontLoader<XMSG>
+impl<XMSG> Component for FontLoader<XMSG>
 where
     XMSG: 'static,
 {
+    type MSG = Msg;
+    type XMSG = XMSG;
+
     fn init(&mut self) -> Effects<Msg, XMSG> {
         let font_family = self.settings.font_family.to_owned();
         let font_src = self.settings.font_src.to_owned();
@@ -136,7 +140,7 @@ where
     }
 
     fn stylesheet() -> Vec<String> {
-        <Spinner as Component<Msg, ()>>::stylesheet()
+        Spinner::stylesheet()
     }
 
     fn style(&self) -> Vec<String> {
@@ -144,7 +148,9 @@ where
     }
 }
 
-impl<XMSG> FontLoader<XMSG> {
+impl<XMSG> FontLoader<XMSG> 
+where XMSG: 'static
+{
     /// add a callback to be called when the fonts has already been loaded and measured
     pub fn on_fonts_ready<F>(&mut self, f: F)
     where
