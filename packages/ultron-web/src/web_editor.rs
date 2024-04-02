@@ -13,8 +13,8 @@ use ultron_core::{
     base_editor::Callback, nalgebra::Point2, BaseEditor, Ch, Style, TextBuffer, TextEdit,
     TextHighlighter,
 };
-use web_sys::HtmlElement;
 use js_sys::Array;
+use sauron::dom::DomNode;
 
 pub use crate::context_menu::MenuAction;
 pub use crate::font_loader::FontSettings;
@@ -81,10 +81,10 @@ pub struct WebEditor<XMSG> {
     pub options: Options,
     font_loader: FontLoader<Msg>,
     pub base_editor: BaseEditor<XMSG>,
-    editor_element: Option<web_sys::Element>,
+    editor_element: Option<DomNode>,
     /// the host element the web editor is mounted to, when mounted as a custom web component
-    host_element: Option<web_sys::Element>,
-    cursor_element: Option<web_sys::Element>,
+    host_element: Option<DomNode>,
+    cursor_element: Option<DomNode>,
     mouse_cursor: MouseCursor,
     measure: Measure,
     is_selecting: bool,
@@ -196,17 +196,7 @@ where
         match msg {
             Msg::EditorMounted(mount_event) => {
                 log::info!("Web editor is mounted..");
-                let mount_element: web_sys::Element = mount_event.target_node.unchecked_into();
-                mount_element
-                    .unchecked_ref::<HtmlElement>()
-                    .focus()
-                    .expect("mount_node should focus");
-                let root_node = mount_element.get_root_node();
-                if let Some(shadow_root) = root_node.dyn_ref::<web_sys::ShadowRoot>() {
-                    let host_element = shadow_root.host();
-                    self.host_element = Some(host_element);
-                }
-                self.editor_element = Some(mount_element);
+                self.editor_element = Some(mount_event.target_node);
                 let xmsgs = self.try_ready_listener();
                 Effects::new([], xmsgs)
             }
@@ -234,8 +224,7 @@ where
                 Effects::none()
             }
             Msg::CursorMounted(mount_event) => {
-                let cursor_element: web_sys::Element = mount_event.target_node.unchecked_into();
-                self.cursor_element = Some(cursor_element);
+                self.cursor_element = Some(mount_event.target_node);
                 Effects::none()
             }
             Msg::Click(me) => {
@@ -348,7 +337,7 @@ where
                 self.is_focused = true;
                 log::info!("ultron editor is focused: {}", self.is_focused);
                 if let Some(editor_element) = &self.editor_element {
-                    let html_elm: &web_sys::HtmlElement = editor_element.unchecked_ref();
+                    let html_elm: web_sys::HtmlElement = editor_element.as_element().unchecked_into();
                     html_elm.focus().expect("element must focus");
                 }
                 Effects::none()
@@ -372,7 +361,7 @@ where
                 .localize(Msg::ContextMenuMsg),
             Msg::ScrollCursorIntoView => {
                 if self.options.scroll_cursor_into_view {
-                    let cursor_element = self.cursor_element.as_ref().unwrap();
+                    let cursor_element = self.cursor_element.as_ref().unwrap().as_element();
                     let mut options = web_sys::ScrollIntoViewOptions::new();
                     options.behavior(web_sys::ScrollBehavior::Smooth);
                     options.block(web_sys::ScrollLogicalPosition::Center);
@@ -656,8 +645,8 @@ where
             .editor_element
             .as_ref()
             .expect("expecting editor element");
-        let editor_node: &web_sys::Node = editor_element.unchecked_ref();
-        selection.select_all_children(editor_node).expect("must select all children");
+        let editor_node: web_sys::Element = editor_element.as_element();
+        selection.select_all_children(&editor_node).expect("must select all children");
         false
     }
 
@@ -945,6 +934,7 @@ where
                 all_effects.push(effects);
             }
             if let Some(host_element) = self.host_element.as_ref() {
+                let host_element = host_element.as_element();
                 host_element
                     .set_attribute("content", &self.get_content())
                     .expect("set attr content");
@@ -1189,7 +1179,7 @@ where
     /// calculate the bounding rect of the base_editor using a DOM call [getBoundingClientRect](https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect)
     pub fn bounding_rect(&self) -> Option<(Point2<f32>, Point2<f32>)> {
         if let Some(ref editor_element) = self.editor_element {
-            let rect = editor_element.get_bounding_client_rect();
+            let rect = editor_element.as_element().get_bounding_client_rect();
             let editor_x = rect.x() as f32;
             let editor_y = rect.y() as f32;
             let bottom = rect.bottom() as f32;

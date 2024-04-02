@@ -1,7 +1,6 @@
 use crate::Spinner;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
-use sauron::wasm_bindgen::JsCast;
 use sauron::wasm_bindgen_futures::JsFuture;
 use sauron::{
     events::*,
@@ -10,6 +9,7 @@ use sauron::{
     vdom::Callback,
 };
 use web_sys::FontFace;
+use sauron::dom::DomNode;
 
 const IOSEVKA_FONT: &[u8] = include_bytes!("../../../fonts/iosevka-fixed-regular.woff2");
 
@@ -41,7 +41,7 @@ pub enum Msg {
 pub struct FontLoader<XMSG> {
     pub settings: FontSettings,
     ready_listener: Vec<Callback<(), XMSG>>,
-    mount_element: Option<web_sys::Element>,
+    mount_element: Option<DomNode>,
     /// if the fonts has been loaded
     is_fonts_loaded: bool,
     /// are the loaded fonts has been measured
@@ -100,8 +100,7 @@ where
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
         match msg {
             Msg::FontMeasureMounted(mount_event) => {
-                let elm: web_sys::Element = mount_event.target_node.unchecked_into();
-                self.mount_element = Some(elm);
+                self.mount_element = Some(mount_event.target_node);
                 let xmsgs = self.try_measure_font();
                 Effects::with_external(xmsgs)
             }
@@ -161,7 +160,7 @@ where XMSG: 'static
 
     fn measure_font(&self) -> Option<(f32, f32)> {
         self.mount_element.as_ref().map(|elm| {
-            let rect = elm.get_bounding_client_rect();
+            let rect = elm.as_element().get_bounding_client_rect();
             (rect.width() as f32, rect.height() as f32)
         })
     }

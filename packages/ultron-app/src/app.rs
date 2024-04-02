@@ -38,25 +38,19 @@ impl Application for App {
 
     type MSG = Msg;
 
-    fn init(&mut self) -> Cmd<Self> {
+    fn init(&mut self) -> Cmd<Msg> {
         Cmd::batch([
-            Cmd::new(|program| {
-                program.add_window_event_listeners(vec![
-                    on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
-                    on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
-                    on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
-                ])
-            }),
-            Cmd::new(|program| {
-                program.add_document_event_listeners(vec![on_selectionchange(|selection| {
+            Window::on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
+            Window::on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
+            Window::on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
+            Document::on_selectionchange(|selection|
                     Msg::WebEditorMsg(web_editor::Msg::Selection(selection))
-                })])
-            }),
+            ),
             Cmd::from(self.web_editor.init().localize(Msg::WebEditorMsg)),
         ])
     }
 
-    fn update(&mut self, msg: Msg) -> Cmd<Self> {
+    fn update(&mut self, msg: Msg) -> Cmd<Msg> {
         match msg {
             Msg::EditorReady => {
                 log::info!("Editor is now ready..");
@@ -92,11 +86,11 @@ impl Application for App {
         self.web_editor.style()
     }
 
-    fn measurements(&self, measurements: Measurements) -> Cmd<Self> {
-        Cmd::new(|mut program| {
-            program.dispatch(Msg::WebEditorMsg(web_editor::Msg::Measurements(
+    fn measurements(&self, measurements: Measurements) -> Cmd<Msg> {
+        Cmd::single(async move{
+            Msg::WebEditorMsg(web_editor::Msg::Measurements(
                 measurements,
-            )))
+            ))
         })
     }
 }
