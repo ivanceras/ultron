@@ -86,11 +86,8 @@ impl Application for App {
         self.web_editor.style()
     }
 
-    fn measurements(&self, measurements: Measurements) -> Cmd<Msg> {
-        Cmd::single(async move{
-            Msg::WebEditorMsg(web_editor::Msg::Measurements(
-                measurements,
-            ))
-        })
+    fn measurements(&mut self, measurements: Measurements) {
+        log::info!("got some measurements..");
+        self.web_editor.update(web_editor::Msg::Measurements(measurements));
     }
 }

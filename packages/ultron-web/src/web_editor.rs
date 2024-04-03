@@ -724,19 +724,13 @@ where
     }
 
     fn update_measure(&mut self, measurements: Measurements) {
-        match &*measurements.name {
-            "keypress" => {
-                if let Some(average_dispatch) = self.measure.average_dispatch.as_mut() {
-                    *average_dispatch = (*average_dispatch + measurements.total_time) / 2.0;
-                } else {
-                    self.measure.average_dispatch = Some(measurements.total_time);
-                }
-                self.measure.last_dispatch = Some(measurements.total_time);
-            }
-            _ => {
-                log::trace!("unexpected measurement name from: {measurements:?}");
-            }
+        log::info!("updating measure...: {:?}", measurements);
+        if let Some(average_dispatch) = self.measure.average_dispatch.as_mut() {
+            *average_dispatch = (*average_dispatch + measurements.total_time) / 2.0;
+        } else {
+            self.measure.average_dispatch = Some(measurements.total_time);
         }
+        self.measure.last_dispatch = Some(measurements.total_time);
 
         self.measure.detail = Some(measurements);
     }
@@ -907,8 +901,7 @@ where
     pub fn process_keypress(&mut self, ke: &web_sys::KeyboardEvent) -> Effects<Msg, XMSG> {
         if let Some(command) = Self::keyevent_to_call(ke) {
             let effects = self
-                .process_calls_with_effects([command])
-                .measure_with_name("keypress");
+                .process_calls_with_effects([command]);
             effects.append_local([Msg::ScrollCursorIntoView])
         } else {
             Effects::none()

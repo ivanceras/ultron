@@ -84,7 +84,7 @@ where
         let font_family = self.settings.font_family.to_owned();
         let font_src = self.settings.font_src.to_owned();
         let font_size = self.settings.font_size;
-        Effects::with_local_async([async move {
+        Effects::from(Cmd::new(async move {
             let font_set = document().fonts();
             let font_face = FontFace::new_with_str(&font_family, &font_src).expect("font face");
             font_set.add(&font_face).expect("font added");
@@ -94,7 +94,7 @@ where
                 .await
                 .expect("font loaded");
             Msg::FontsLoaded
-        }])
+        }))
     }
 
     fn update(&mut self, msg: Msg) -> Effects<Msg, XMSG> {
