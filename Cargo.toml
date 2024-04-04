@@ -3,11 +3,11 @@ cargo-features = ["strip"]
 [workspace]
 resolver = "2"
 members = [
-    "packages/syntaxes-themes",
-    "packages/ultron-core",
-    "packages/ultron-web",
-    "packages/ultron-ssg",
-    "packages/ultron-app",
+    "crates/syntaxes-themes",
+    "crates/ultron-core",
+    "crates/ultron-web",
+    "crates/ultron-ssg",
+    "crates/ultron-app",
     "examples/simple",
     "examples/rusty-usage",
 ]
