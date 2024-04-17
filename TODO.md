@@ -141,6 +141,9 @@
     - [ ] Detect the color selected color from the theme and check to see if it is light or dark
         - contrast the color for the cursor number line and gutter
 - [X] Avoid FOUC by waiting for the fonts to be loaded before mounting the application, this way the calculation of pixels from font size would be accurate
+- [ ] When empty text content, the editor wont show anything
+    - The WebEditor::default is evidently not showing this.
+- [ ] The editor should create a new line and render it properly
 
 ## Tests
 - [ ] Add test for undo and redo (editor)

@@ -27,8 +27,7 @@ pub use ultron_core::{BaseOptions, Command};
 
 mod mouse_cursor;
 
-#[cfg(feature = "custom_element")]
-pub mod custom_element;
+pub mod as_component;
 mod options;
 
 #[derive(Debug)]
@@ -322,7 +321,10 @@ where
                     Effects::none()
                 }
             }
-            Msg::Keydown(ke) => self.process_keypress(&ke),
+            Msg::Keydown(ke) => {
+                log::info!("ke: {:?}", ke);
+                self.process_keypress(&ke)
+            }
             Msg::Measurements(measure) => {
                 self.update_measure(measure);
                 Effects::none()
@@ -409,6 +411,10 @@ where
         } else {
             self.font_loader.view().map_msg(Msg::FontLoaderMsg)
         }
+    }
+
+    fn observed_attributes() -> Vec<&'static str> {
+        vec!["value", "syntax", "theme"]
     }
 
     fn stylesheet() -> Vec<String> {
@@ -665,6 +671,7 @@ where
                 },
                 on_mount(Msg::EditorMounted),
                 on_keydown(move |ke| {
+                    log::info!("keydown event");
                     if enable_keypresses {
                         ke.prevent_default();
                         ke.stop_propagation();
@@ -724,7 +731,6 @@ where
     }
 
     fn update_measure(&mut self, measurements: Measurements) {
-        log::info!("updating measure...: {:?}", measurements);
         if let Some(average_dispatch) = self.measure.average_dispatch.as_mut() {
             *average_dispatch = (*average_dispatch + measurements.total_time) / 2.0;
         } else {
@@ -758,9 +764,11 @@ where
     /// rehighlight from 0 to the end of the visible lines
     pub fn rehighlight_visible_lines(&mut self) {
         if let Some((_top, end)) = self.visible_lines() {
+            log::info!("visible lines: {},{}", _top, end);
             let text_highlighter = self.text_highlighter.clone();
             let highlighted_lines = self.highlighted_lines.clone();
             let lines = self.base_editor.as_ref().lines();
+            log::info!("lines: {:#?}", lines);
             for handle in self.highlight_task_handles.drain(..) {
                 //cancel the old ones, dropping the handle will call on the cancel_animation_frame
                 //for this handle
@@ -772,6 +780,7 @@ where
                 text_highlighter.reset();
                 let mut did_complete = true;
                 let mut new_highlighted_lines = Vec::with_capacity(end);
+                //FIXME: this causes an out of bounds
                 for line in lines[..end].iter() {
                     new_highlighted_lines.push(Self::highlight_line(line, &mut text_highlighter));
                     if deadline.did_timeout() {

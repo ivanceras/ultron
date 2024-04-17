@@ -2,7 +2,7 @@
 use css_colors::rgba;
 use css_colors::Color as ColorTrait;
 use css_colors::RGBA;
-use sauron::html::{doctype, node_list};
+use sauron::html::{doctype, node_list, symbol};
 use sauron::*;
 use ultron_syntaxes_themes::Color;
 use ultron_syntaxes_themes::Style;
@@ -54,11 +54,11 @@ impl CodeViewer {
                     let foreground = to_rgba(style.foreground).to_css();
                     let is_all_whitespace = range_str.trim().is_empty();
                     if is_all_whitespace {
-                        vec![safe_html(Self::transform_whitespace(&range_str))]
+                        vec![symbol(&Self::transform_whitespace(&range_str))]
                     } else {
                         let (spaces, word) = Self::split_until_char(&range_str);
                         vec![
-                            safe_html(Self::transform_whitespace(&spaces)),
+                            symbol(&Self::transform_whitespace(&spaces)),
                             span([style! { color: foreground }], [text(word)]),
                         ]
                     }

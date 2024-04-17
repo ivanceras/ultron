@@ -21,7 +21,10 @@ impl App {
     }
 }
 
-impl Application<Msg> for App {
+impl Application for App {
+
+    type MSG = Msg;
+
     fn view(&self) -> Node<Msg> {
         div(
             [class("container")],
@@ -30,14 +33,14 @@ impl Application<Msg> for App {
                     syntax("rust"),
                     theme("solarized-light"),
                     value(&self.content),
-                    on_input(|input| Msg::ContentChanged(input.value)),
+                    on_input(|input| Msg::ContentChanged(input.value())),
                 ],
                 [],
             )],
         )
     }
 
-    fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
+    fn update(&mut self, msg: Msg) -> Cmd<Msg> {
         match msg {
             Msg::ContentChanged(new_content) => {
                 log::info!("Content has been changed to: \n{new_content}");
@@ -57,6 +60,9 @@ impl Application<Msg> for App {
 
 #[wasm_bindgen(start)]
 pub fn main() {
-    ultron_web::register();
+    //ultron_web::register();
+    console_log::init_with_level(log::Level::Trace).unwrap();
+    log::trace!("starting ultron..");
+    console_error_panic_hook::set_once();
     Program::mount_to_body(App::new(include_str!("./lib.rs")));
 }

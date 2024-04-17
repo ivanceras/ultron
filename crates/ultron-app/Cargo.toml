@@ -28,3 +28,5 @@ with-measure = ["ultron-web/with-measure"]
 with-debug = ["ultron-web/with-debug"]
 with-navigator-clipboard = ["ultron-web/with-navigator-clipboard"]
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

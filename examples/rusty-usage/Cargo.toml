@@ -8,5 +8,10 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+console_error_panic_hook = "0.1.7"
+console_log = { version = "1.0.0", features = ["color"] }
 log = "0.4.19"
-ultron-web = { path = "../../crates/ultron-web", features = ["custom_element"] }
+ultron-web = { path = "../../crates/ultron-web" }
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

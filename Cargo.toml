@@ -8,7 +8,6 @@ members = [
     "crates/ultron-web",
     "crates/ultron-ssg",
     "crates/ultron-app",
-    "examples/simple",
     "examples/rusty-usage",
 ]
 
