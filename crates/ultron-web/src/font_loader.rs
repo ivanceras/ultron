@@ -1,15 +1,15 @@
 use crate::Spinner;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
+use sauron::dom::DomNode;
 use sauron::wasm_bindgen_futures::JsFuture;
 use sauron::{
     events::*,
     html::{attributes::*, units::*, *},
-    *,
     vdom::Callback,
+    *,
 };
 use web_sys::FontFace;
-use sauron::dom::DomNode;
 
 const IOSEVKA_FONT: &[u8] = include_bytes!("../../../fonts/iosevka-fixed-regular.woff2");
 
@@ -147,8 +147,9 @@ where
     }
 }
 
-impl<XMSG> FontLoader<XMSG> 
-where XMSG: 'static
+impl<XMSG> FontLoader<XMSG>
+where
+    XMSG: 'static,
 {
     /// add a callback to be called when the fonts has already been loaded and measured
     pub fn on_fonts_ready<F>(&mut self, f: F)

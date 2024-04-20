@@ -35,7 +35,6 @@ impl App {
 }
 
 impl Application for App {
-
     type MSG = Msg;
 
     fn init(&mut self) -> Cmd<Msg> {
@@ -43,9 +42,9 @@ impl Application for App {
             Window::on_mousemove(|me| Msg::WebEditorMsg(web_editor::Msg::Mousemove(me))),
             Window::on_mousedown(|me| Msg::WebEditorMsg(web_editor::Msg::Mousedown(me))),
             Window::on_mouseup(|me| Msg::WebEditorMsg(web_editor::Msg::Mouseup(me))),
-            Document::on_selectionchange(|selection|
-                    Msg::WebEditorMsg(web_editor::Msg::Selection(selection))
-            ),
+            Document::on_selectionchange(|selection| {
+                Msg::WebEditorMsg(web_editor::Msg::Selection(selection))
+            }),
             Cmd::from(self.web_editor.init().localize(Msg::WebEditorMsg)),
         ])
     }
@@ -88,6 +87,7 @@ impl Application for App {
 
     fn measurements(&mut self, measurements: Measurements) {
         log::info!("got some measurements..");
-        self.web_editor.update(web_editor::Msg::Measurements(measurements));
+        self.web_editor
+            .update(web_editor::Msg::Measurements(measurements));
     }
 }

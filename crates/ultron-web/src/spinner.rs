@@ -10,8 +10,7 @@ impl Spinner {
     }
 }
 
-impl Spinner
-{
+impl Spinner {
     pub fn view<MSG>(&self) -> Node<MSG> {
         svg(
             [

@@ -1,15 +1,11 @@
 use super::{Msg, WebEditor};
-use sauron::dom::DomNode;
 use sauron::dom::DomAttr;
+use sauron::dom::DomNode;
 use sauron::*;
 
 impl StatefulComponent for WebEditor<()> {
     /// this is called when the attributes in the mount is changed
-    fn attribute_changed(
-        &mut self,
-        attr: DomAttr,
-    ) 
-    {
+    fn attribute_changed(&mut self, attr: DomAttr) {
         match attr.name {
             "value" => {
                 if let Some(new_value) = attr.value[0].as_string() {
@@ -41,8 +37,6 @@ impl StatefulComponent for WebEditor<()> {
     }
 }
 
-
-
 pub mod attributes {
     use sauron::html::attributes::attr;
     use sauron::*;
@@ -63,7 +57,6 @@ pub fn ultron_editor<MSG>(
 where
     MSG: 'static,
 {
-
     if !children.into_iter().collect::<Vec<_>>().is_empty() {
         log::warn!("ultron editor ignore the passed children nodes");
     }

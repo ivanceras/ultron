@@ -2,6 +2,8 @@ use crate::context_menu::{self, Menu};
 use crate::util;
 use crate::Spinner;
 use css_colors::{rgba, Color, RGBA};
+use js_sys::Array;
+use sauron::dom::DomNode;
 use sauron::dom::{request_idle_callback, IdleCallbackHandle, IdleDeadline};
 use sauron::html::node_list;
 use sauron::prelude::*;
@@ -13,8 +15,6 @@ use ultron_core::{
     base_editor::Callback, nalgebra::Point2, BaseEditor, Ch, Style, TextBuffer, TextEdit,
     TextHighlighter,
 };
-use js_sys::Array;
-use sauron::dom::DomNode;
 
 pub use crate::context_menu::MenuAction;
 pub use crate::font_loader::FontSettings;
@@ -339,7 +339,8 @@ where
                 self.is_focused = true;
                 log::info!("ultron editor is focused: {}", self.is_focused);
                 if let Some(editor_element) = &self.editor_element {
-                    let html_elm: web_sys::HtmlElement = editor_element.as_element().unchecked_into();
+                    let html_elm: web_sys::HtmlElement =
+                        editor_element.as_element().unchecked_into();
                     html_elm.focus().expect("element must focus");
                 }
                 Effects::none()
@@ -635,7 +636,9 @@ where
             .ok()
             .flatten()
             .expect("must have selection");
-        selection.remove_all_ranges().expect("must remove all ranges");
+        selection
+            .remove_all_ranges()
+            .expect("must remove all ranges");
         false
     }
 
@@ -646,13 +649,17 @@ where
             .ok()
             .flatten()
             .expect("must have selection");
-        selection.remove_all_ranges().expect("must remove all ranges");
+        selection
+            .remove_all_ranges()
+            .expect("must remove all ranges");
         let editor_element = self
             .editor_element
             .as_ref()
             .expect("expecting editor element");
         let editor_node: web_sys::Element = editor_element.as_element();
-        selection.select_all_children(&editor_node).expect("must select all children");
+        selection
+            .select_all_children(&editor_node)
+            .expect("must select all children");
         false
     }
 
@@ -909,8 +916,7 @@ where
     /// make this into keypress to command
     pub fn process_keypress(&mut self, ke: &web_sys::KeyboardEvent) -> Effects<Msg, XMSG> {
         if let Some(command) = Self::keyevent_to_call(ke) {
-            let effects = self
-                .process_calls_with_effects([command]);
+            let effects = self.process_calls_with_effects([command]);
             effects.append_local([Msg::ScrollCursorIntoView])
         } else {
             Effects::none()
@@ -1018,42 +1024,42 @@ where
     /// get the tag name of the this node
     fn tag_name(node: &web_sys::Node) -> Option<String> {
         let is_start_text = node.node_type() == web_sys::Node::TEXT_NODE;
-        if !is_start_text{
+        if !is_start_text {
             let tag_name = node.unchecked_ref::<web_sys::Element>().tag_name();
             Some(tag_name)
-        }else{
+        } else {
             None
         }
     }
 
-    fn classname(node: &web_sys::Node) -> Option<String>{
-        if let Some(_tag_name) = Self::tag_name(node){
-            node.unchecked_ref::<web_sys::Element>().get_attribute("class")
-        }else{
+    fn classname(node: &web_sys::Node) -> Option<String> {
+        if let Some(_tag_name) = Self::tag_name(node) {
+            node.unchecked_ref::<web_sys::Element>()
+                .get_attribute("class")
+        } else {
             None
         }
     }
 
     fn extract_line_group(node: &web_sys::Node) -> (i32, i32) {
-      let(group_node, line_node) =  if let Some(classname) = Self::classname(node){
-            if classname.ends_with("line"){
+        let (group_node, line_node) = if let Some(classname) = Self::classname(node) {
+            if classname.ends_with("line") {
                 // this is a line
                 let group_node = None;
                 let line_node = node.clone();
                 (group_node, line_node)
-            }else if classname.ends_with("group"){
+            } else if classname.ends_with("group") {
                 // this is a group
                 let group_node = node.clone();
                 let line_node = group_node.parent_node().expect("must have a parent");
                 (Some(group_node), line_node)
-            }
-            else{
+            } else {
                 // this is a text
                 let group_node = node.parent_node().expect("must have a parent");
                 let line_node = group_node.parent_node().expect("must have a parent");
                 (Some(group_node), line_node)
             }
-        }else{
+        } else {
             // this is a text
             let group_node = node.parent_node().expect("must have a parent");
             let line_node = group_node.parent_node().expect("must have a parent");
@@ -1061,52 +1067,62 @@ where
         };
 
         let editor_node = line_node.parent_node().expect("must have an editor node");
-        let group_index = if let Some(group_node) = group_node{
-            Array::from(&line_node.child_nodes()).index_of(&group_node,0)
-        }else{
+        let group_index = if let Some(group_node) = group_node {
+            Array::from(&line_node.child_nodes()).index_of(&group_node, 0)
+        } else {
             0
         };
-        let line_index = Array::from(&editor_node.child_nodes()).index_of(&line_node,0);
+        let line_index = Array::from(&editor_node.child_nodes()).index_of(&line_node, 0);
         log::info!("line_index: {line_index}, group_index: {group_index}");
-        (line_index.try_into().unwrap(), group_index.try_into().unwrap())
+        (
+            line_index.try_into().unwrap(),
+            group_index.try_into().unwrap(),
+        )
     }
 
     /// extract the line range and offset of this range
-    fn extract_start_line_group_offset(range: &web_sys::Range) -> (i32, i32, i32){
-        let start = range.start_container().expect("must have a start container");
+    fn extract_start_line_group_offset(range: &web_sys::Range) -> (i32, i32, i32) {
+        let start = range
+            .start_container()
+            .expect("must have a start container");
         let (line, group) = Self::extract_line_group(&start);
         let offset = range.start_offset().expect("must have a start offset");
         (line, group, offset.try_into().unwrap())
     }
 
-    fn extract_end_line_group_offset(range: &web_sys::Range) -> (i32, i32, i32){
+    fn extract_end_line_group_offset(range: &web_sys::Range) -> (i32, i32, i32) {
         let end = range.end_container().expect("must have a end container");
         let (line, group) = Self::extract_line_group(&end);
         let offset = range.end_offset().expect("must have a end offset");
         (line, group, offset.try_into().unwrap())
     }
 
-    fn map_line_group_offset_to_line_column(&self, line: i32, group: i32, offset: i32) -> Point2<i32> {
-        if self.options.use_syntax_highlighter{
-            let group = if self.options.show_line_numbers{
+    fn map_line_group_offset_to_line_column(
+        &self,
+        line: i32,
+        group: i32,
+        offset: i32,
+    ) -> Point2<i32> {
+        if self.options.use_syntax_highlighter {
+            let group = if self.options.show_line_numbers {
                 group - 1
-            }else{
+            } else {
                 group
             };
-            let highlighted_lines  = self.highlighted_lines.borrow();
+            let highlighted_lines = self.highlighted_lines.borrow();
             let hl_line = &highlighted_lines[line as usize];
             let mut sum = 0;
-            for i in 0..group{
+            for i in 0..group {
                 let (_style, chars) = &hl_line[i as usize];
                 sum += chars.len();
             }
             Point2::new(line, sum as i32 + offset)
-        }else{
-           Point2::new(line, offset) 
+        } else {
+            Point2::new(line, offset)
         }
     }
 
-    fn process_selection(&self, selection: Selection){
+    fn process_selection(&self, selection: Selection) {
         let anchor_node = selection.anchor_node();
         let focus_node = selection.focus_node();
         match (anchor_node, focus_node) {
@@ -1114,16 +1130,24 @@ where
                 let range_count = selection.range_count();
                 assert!(range_count > 0);
                 let first_range = selection.get_range_at(0).expect("must have a first range");
-                let last_range = selection.get_range_at(range_count - 1).expect("must have a last range");
-                let (start_line, start_group, start_offset) = Self::extract_start_line_group_offset(&first_range);
-                let (end_line, end_group, end_offset) = Self::extract_end_line_group_offset(&last_range);
+                let last_range = selection
+                    .get_range_at(range_count - 1)
+                    .expect("must have a last range");
+                let (start_line, start_group, start_offset) =
+                    Self::extract_start_line_group_offset(&first_range);
+                let (end_line, end_group, end_offset) =
+                    Self::extract_end_line_group_offset(&last_range);
                 log::info!("start: [{start_line},{start_group},{start_offset}]");
                 log::info!("end: [{end_line},{end_group},{end_offset}]");
-                let start_loc = self.map_line_group_offset_to_line_column(start_line, start_group, start_offset);
-                let end_loc = self.map_line_group_offset_to_line_column(end_line, end_group, end_offset);
+                let start_loc = self.map_line_group_offset_to_line_column(
+                    start_line,
+                    start_group,
+                    start_offset,
+                );
+                let end_loc =
+                    self.map_line_group_offset_to_line_column(end_line, end_group, end_offset);
                 log::info!("start_loc: {start_loc}");
                 log::info!("end_loc: {end_loc}");
-
             }
             _ => (),
         }
@@ -1456,7 +1480,10 @@ where
                 .map(|(style, range)| {
                     let foreground = util::to_rgba(style.foreground).to_css();
                     let range_str = String::from_iter(range.iter().map(|ch| ch.ch));
-                    span([Self::class_ns("group"), style! { color: foreground }], [text(range_str)])
+                    span(
+                        [Self::class_ns("group"), style! { color: foreground }],
+                        [text(range_str)],
+                    )
                 })
                 .collect()
         }
@@ -1534,7 +1561,10 @@ where
                             "-webkit-user-select": self.user_select(),
                         },
                     ],
-                    [self.view_line_number(line_number), span([Self::class_ns("group")], [text(line)])],
+                    [
+                        self.view_line_number(line_number),
+                        span([Self::class_ns("group")], [text(line)]),
+                    ],
                 )
             });
 

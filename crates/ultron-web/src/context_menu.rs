@@ -47,7 +47,7 @@ impl<XMSG> Menu<XMSG> {
     pub(crate) fn on_activate<F>(mut self, f: F) -> Self
     where
         F: Fn(MenuAction) -> XMSG + 'static,
-        XMSG: 'static
+        XMSG: 'static,
     {
         self.listeners.push(Callback::from(f));
         self
