@@ -1,30 +1,30 @@
 use super::{Msg, WebEditor};
 use sauron::dom::DomNode;
+use sauron::dom::DomAttr;
 use sauron::*;
 
 impl StatefulComponent for WebEditor<()> {
     /// this is called when the attributes in the mount is changed
     fn attribute_changed(
         &mut self,
-        attr_name: &str,
-        new_value: Vec<DomAttrValue>,
+        attr: DomAttr,
     ) 
     {
-        match attr_name {
+        match attr.name {
             "value" => {
-                if let Some(new_value) = new_value[0].as_string() {
+                if let Some(new_value) = attr.value[0].as_string() {
                     log::info!("value is changed.. {new_value}");
                     <Self as Component>::update(self, Msg::ChangeValue(new_value));
                 }
             }
             "syntax" => {
-                if let Some(new_value) = new_value[0].as_string() {
+                if let Some(new_value) = attr.value[0].as_string() {
                     log::info!("syntax token is changed: {new_value}");
                     <Self as Component>::update(self, Msg::ChangeSyntax(new_value));
                 }
             }
             "theme" => {
-                if let Some(new_value) = new_value[0].as_string() {
+                if let Some(new_value) = attr.value[0].as_string() {
                     log::info!("theme is changed: {new_value}");
                     <Self as Component>::update(self, Msg::ChangeTheme(new_value));
                 }
