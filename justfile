@@ -28,11 +28,11 @@ test-all:
     cargo test --all
 
 serve: build-web
-    basic-http-server  -a 127.0.0.1:4004 ./crates/ultron-app
+    basic-http-server  -a 127.0.0.1:4114 ./crates/ultron-app
 
 
 serve-debug: build-web-debug
-    basic-http-server  -a 127.0.0.1:4004 ./crates/ultron-app
+    basic-http-server  -a 127.0.0.1:4114 ./crates/ultron-app
 
 deploy: build-web
     mkdir -p  {{dest_main}}
