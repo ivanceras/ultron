@@ -61,8 +61,8 @@ impl TextHighlighter {
         if self.theme_set.themes.get(theme_name).is_some() {
             self.theme_name = Some(theme_name.to_string());
         } else {
-            format!("The valid theme names are: {:?}", self.get_theme_names());
-            log::trace!("The valid theme names are: {:?}", self.get_theme_names());
+            let msg = format!("The valid theme names are: {:?}", self.get_theme_names());
+            log::trace!("{msg}");
             panic!("theme name: {} doesn't match", theme_name);
         }
     }

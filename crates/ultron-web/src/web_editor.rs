@@ -365,10 +365,10 @@ where
             Msg::ScrollCursorIntoView => {
                 if self.options.scroll_cursor_into_view {
                     let cursor_element = self.cursor_element.as_ref().unwrap().as_element();
-                    let mut options = web_sys::ScrollIntoViewOptions::new();
-                    options.behavior(web_sys::ScrollBehavior::Smooth);
-                    options.block(web_sys::ScrollLogicalPosition::Center);
-                    options.inline(web_sys::ScrollLogicalPosition::Center);
+                    let options = web_sys::ScrollIntoViewOptions::new();
+                    options.set_behavior(web_sys::ScrollBehavior::Smooth);
+                    options.set_block(web_sys::ScrollLogicalPosition::Center);
+                    options.set_inline(web_sys::ScrollLogicalPosition::Center);
                     cursor_element.scroll_into_view_with_scroll_into_view_options(&options);
                 }
                 Effects::none()
@@ -1175,8 +1175,7 @@ where
 
     pub fn copy_selected_text_to_clipboard(&self) -> bool {
         log::warn!("Copying text to clipboard..");
-        #[cfg(web_sys_unstable_apis)]
-        if let Some(clipboard) = window().navigator().clipboard() {
+        let clipboard = window().navigator().clipboard();
             if let Some(selected_text) = self.selected_text() {
                 log::info!("selected text: {selected_text}");
                 let fut = crate::wasm_bindgen_futures::JsFuture::from(
@@ -1189,9 +1188,6 @@ where
             } else {
                 log::warn!("No selected text..")
             }
-        } else {
-            log::error!("Clipboard is not supported");
-        }
         false
     }
 
